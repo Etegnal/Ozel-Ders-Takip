@@ -1,0 +1,142 @@
+import React from 'react';
+import { useApp } from '../context/AppContext';
+import { 
+  Bell, 
+  Check, 
+  Trash2, 
+  BookOpen, 
+  Calendar, 
+  Wallet, 
+  Info,
+  CheckSquare
+} from 'lucide-react';
+
+export const NotificationsPage: React.FC = () => {
+  const { 
+    notifications, 
+    markNotificationRead, 
+    clearAllNotifications 
+  } = useApp();
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'homework':
+        return <BookOpen size={16} className="text-blue-400" />;
+      case 'lesson':
+        return <Calendar size={16} className="text-orange-400" />;
+      case 'finance':
+        return <Wallet size={16} className="text-emerald-400" />;
+      default:
+        return <Info size={16} className="text-purple-400" />;
+    }
+  };
+
+  const getBackground = (type: string) => {
+    switch (type) {
+      case 'homework':
+        return 'bg-blue-500/10 border-blue-500/20';
+      case 'lesson':
+        return 'bg-orange-500/10 border-orange-500/20';
+      case 'finance':
+        return 'bg-emerald-500/10 border-emerald-500/20';
+      default:
+        return 'bg-purple-500/10 border-purple-500/20';
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    notifications.forEach(n => {
+      if (!n.read) {
+        markNotificationRead(n.id);
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Controls header */}
+      <div className="flex items-center justify-between bg-surface-card/30 p-4 border border-border/80 rounded-2xl">
+        <span className="text-xs font-semibold text-text-secondary">
+          Toplam {notifications.length} bildirim mevcut
+        </span>
+        
+        {notifications.length > 0 && (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleMarkAllRead}
+              className="text-xs px-3.5 py-2 bg-surface-card border border-border text-text-secondary hover:text-text-primary rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
+            >
+              <CheckSquare size={14} />
+              <span>Tümünü Okundu İşaretle</span>
+            </button>
+            <button 
+              onClick={clearAllNotifications}
+              className="text-xs px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
+            >
+              <Trash2 size={14} />
+              <span>Temizle</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Notifications List */}
+      <div className="space-y-3">
+        {notifications.length > 0 ? (
+          notifications.map((notif) => (
+            <div 
+              key={notif.id}
+              className={`p-4 border rounded-2xl flex items-start justify-between gap-4 transition-all relative group ${
+                notif.read ? 'bg-surface-card/40 border-border/40' : 'bg-surface-card border-border/80'
+              }`}
+            >
+              <div className="flex items-start gap-3.5">
+                {/* Type Indicator Icon wrapper */}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${getBackground(notif.type)}`}>
+                  {getIcon(notif.type)}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className={`text-sm font-bold ${notif.read ? 'text-text-secondary' : 'text-text-primary'}`}>
+                      {notif.title}
+                    </h4>
+                    {!notif.read && (
+                      <span className="w-2 h-2 bg-primary rounded-full glow-primary" />
+                    )}
+                  </div>
+                  <p className="text-xs text-text-secondary max-w-2xl">{notif.message}</p>
+                  <span className="text-[10px] text-text-muted block">
+                    {new Date(notif.date).toLocaleDateString('tr-TR', { 
+                      day: 'numeric', 
+                      month: 'long', 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              {!notif.read && (
+                <button 
+                  onClick={() => markNotificationRead(notif.id)}
+                  className="p-2 hover:bg-surface-hover text-text-muted hover:text-emerald-400 rounded-xl transition-all"
+                  title="Okundu İşaretle"
+                >
+                  <Check size={16} />
+                </button>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-surface-card border border-border border-dashed rounded-2xl text-text-secondary space-y-2">
+            <Bell className="mx-auto w-10 h-10 text-text-muted" />
+            <p className="font-semibold text-sm">Bildirim bulunmuyor</p>
+            <p className="text-xs text-text-muted">Ödev güncellemeleri, ders hatırlatmaları ve ödemeler burada görünecektir.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

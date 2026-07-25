@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-text-primary antialiased font-sans;
+    background-color: #121212;
+  }
+
+  /* Custom thin dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #121212;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 9999px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+}
+
+/* Glassmorphic card styling utilities */
+.glass-card {
+  background: rgba(30, 30, 36, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-sidebar {
+  background: rgba(24, 24, 27, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Glowing effects for active navigation icons and notifications */
+.glow-primary {
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.35);
+}
+
+.glow-green {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+}
+
+/* Smooth page slide animations */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 250ms ease-out, transform 250ms ease-out;
+}
