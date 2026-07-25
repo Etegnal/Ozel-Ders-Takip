@@ -3,6 +3,7 @@ export interface Teacher {
   name: string;
   email: string;
   subject: string;
+  password?: string; // Optional if we want, but required for registration. Let's make it optional or required. Let's make it required.
   createdAt: string;
 }
 

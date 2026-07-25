@@ -31,7 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     activeTeacherId, 
     setActiveTeacherId, 
     activeTeacher,
-    addTeacher
+    logout,
+    register
   } = useApp();
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
@@ -41,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newTeacherEmail, setNewTeacherEmail] = useState('');
   const [newTeacherSubject, setNewTeacherSubject] = useState('Matematik');
+  const [newTeacherPassword, setNewTeacherPassword] = useState('');
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
@@ -59,16 +61,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
   const handleAddTeacherSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTeacherName.trim() || !newTeacherEmail.trim()) return;
+    if (!newTeacherName.trim() || !newTeacherEmail.trim() || !newTeacherPassword.trim()) return;
 
-    addTeacher({
-      name: newTeacherName,
-      email: newTeacherEmail,
-      subject: newTeacherSubject
-    });
+    const success = register(
+      newTeacherName,
+      newTeacherEmail,
+      newTeacherSubject,
+      newTeacherPassword
+    );
+
+    if (!success) {
+      alert('Bu e-posta adresi zaten kullanımda.');
+      return;
+    }
 
     setNewTeacherName('');
     setNewTeacherEmail('');
+    setNewTeacherPassword('');
     setShowAddTeacherModal(false);
     setShowTeacherDropdown(false);
   };
@@ -233,6 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
         {/* Log Out Button */}
         <button 
+          onClick={logout}
           className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-text-secondary hover:bg-red-500/10 hover:text-red-400 transition-all ${
             collapsed ? 'justify-center' : ''
           }`}
@@ -308,6 +318,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                   <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
                   <option value="Sınıf Öğretmenliği">Sınıf Öğretmenliği</option>
                 </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-text-secondary font-semibold">ŞİFRE</label>
+                <input 
+                  type="password" 
+                  required
+                  placeholder="••••••"
+                  value={newTeacherPassword}
+                  onChange={(e) => setNewTeacherPassword(e.target.value)}
+                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
+                />
               </div>
 
               <button 

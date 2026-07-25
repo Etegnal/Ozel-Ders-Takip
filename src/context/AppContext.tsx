@@ -9,7 +9,9 @@ interface AppContextType {
   activeTeacherId: string;
   activeTeacher: Teacher | undefined;
   setActiveTeacherId: (id: string) => void;
-  addTeacher: (teacher: Omit<Teacher, 'id' | 'createdAt'>) => void;
+  login: (email: string, password: string) => boolean;
+  register: (name: string, email: string, subject: string, password: string) => boolean;
+  logout: () => void;
 
   students: Student[];
   lessons: Lesson[];
@@ -75,7 +77,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const transactions = state.transactions.filter(t => t.teacherId === state.activeTeacherId);
   const notifications = state.notifications.filter(n => n.teacherId === state.activeTeacherId);
 
-  // --- Teacher Actions ---
+  // --- Teacher / Auth Actions ---
   const setActiveTeacherId = (id: string) => {
     setState(prev => ({
       ...prev,
@@ -83,17 +85,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const addTeacher = (teacherData: Omit<Teacher, 'id' | 'createdAt'>) => {
+  const login = (email: string, password: string): boolean => {
+    const teacher = state.teachers.find(
+      t => t.email.toLowerCase() === email.toLowerCase() && t.password === password
+    );
+    if (teacher) {
+      setActiveTeacherId(teacher.id);
+      return true;
+    }
+    return false;
+  };
+
+  const register = (name: string, email: string, subject: string, password: string): boolean => {
+    const exists = state.teachers.some(t => t.email.toLowerCase() === email.toLowerCase());
+    if (exists) {
+      return false;
+    }
+
     const newTeacher: Teacher = {
-      ...teacherData,
       id: `teacher-${Date.now()}`,
+      name,
+      email,
+      subject,
+      password,
       createdAt: new Date().toISOString()
     };
+
     setState(prev => ({
       ...prev,
       teachers: [...prev.teachers, newTeacher],
-      activeTeacherId: newTeacher.id // Automatically switch to the newly created teacher
+      activeTeacherId: newTeacher.id
     }));
+    return true;
+  };
+
+  const logout = () => {
+    setActiveTeacherId('');
   };
 
   // --- Student Actions ---
@@ -374,7 +401,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeTeacherId: state.activeTeacherId,
         activeTeacher,
         setActiveTeacherId,
-        addTeacher,
+        login,
+        register,
+        logout,
 
         students,
         lessons,
