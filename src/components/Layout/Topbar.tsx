@@ -13,11 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-interface TopbarProps {
-  onAddClick?: () => void;
-}
-
-export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
+export const Topbar: React.FC = () => {
   const location = useLocation();
   const path = location.pathname;
   
@@ -25,28 +21,34 @@ export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
     searchQuery, 
     setSearchQuery, 
     statusFilter, 
-    setStatusFilter 
+    setStatusFilter,
+    setActiveModal
   } = useApp();
 
-  // Helper to determine page title/context
   const getPageInfo = () => {
     switch (path) {
       case '/':
-        return { title: 'Takvim ve Planlama', showSearch: false };
+        return { title: 'Takvim ve Planlama', showSearch: false, modalType: 'lesson' as const };
       case '/students':
-        return { title: 'Öğrenci Yönetimi', showSearch: true };
+        return { title: 'Öğrenci Yönetimi', showSearch: true, modalType: 'student' as const };
       case '/homeworks':
-        return { title: 'Ödev Takip Paneli', showSearch: false };
+        return { title: 'Ödev Takip Paneli', showSearch: false, modalType: 'homework' as const };
       case '/finance':
-        return { title: 'Finansal Analiz ve Raporlama', showSearch: false };
+        return { title: 'Finansal Analiz ve Raporlama', showSearch: false, modalType: 'transaction' as const };
       case '/notifications':
-        return { title: 'Bildirimler', showSearch: false };
+        return { title: 'Bildirimler', showSearch: false, modalType: null };
       default:
-        return { title: 'Dashboard', showSearch: false };
+        return { title: 'Dashboard', showSearch: false, modalType: null };
     }
   };
 
-  const { title, showSearch } = getPageInfo();
+  const { title, showSearch, modalType } = getPageInfo();
+
+  const handlePlusClick = () => {
+    if (modalType) {
+      setActiveModal(modalType);
+    }
+  };
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-surface/40 backdrop-blur-md sticky top-0 z-20">
@@ -72,10 +74,8 @@ export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
 
       {/* Right Section: Page Specific Filters & Actions */}
       <div className="flex items-center gap-3">
-        {/* Students view specific filters */}
         {path === '/students' && (
           <>
-            {/* Status filters */}
             <div className="bg-surface-card border border-border rounded-xl p-1 flex items-center gap-1">
               <button
                 onClick={() => setStatusFilter('active')}
@@ -109,19 +109,16 @@ export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
               </button>
             </div>
 
-            {/* Groups Select Dropdown */}
             <button className="flex items-center gap-1.5 px-3 py-2 bg-surface-card border border-border rounded-xl text-xs text-text-secondary hover:text-text-primary hover:border-border/80 transition-colors">
               <Filter size={14} />
               <span>Gruplar</span>
             </button>
 
-            {/* Sort Dropdown */}
             <button className="flex items-center gap-1.5 px-3 py-2 bg-surface-card border border-border rounded-xl text-xs text-text-secondary hover:text-text-primary hover:border-border/80 transition-colors">
               <ChevronsUpDown size={14} />
               <span>Yeni</span>
             </button>
 
-            {/* View Grid/List Switches */}
             <div className="bg-surface-card border border-border rounded-xl p-1 flex items-center gap-0.5">
               <button className="p-1 rounded-lg text-text-secondary hover:text-text-primary transition-colors">
                 <Eye size={15} />
@@ -136,7 +133,6 @@ export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
           </>
         )}
 
-        {/* Calendar Page controls */}
         {path === '/' && (
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-1.5 px-3 py-2 bg-surface-card border border-border rounded-xl text-xs text-text-secondary hover:text-text-primary hover:border-border/80 transition-colors">
@@ -146,7 +142,6 @@ export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
           </div>
         )}
 
-        {/* Homework page controls */}
         {path === '/homeworks' && (
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-1.5 px-3 py-2 bg-surface-card border border-border rounded-xl text-xs text-text-secondary hover:text-text-primary hover:border-border/80 transition-colors">
@@ -156,10 +151,10 @@ export const Topbar: React.FC<TopbarProps> = ({ onAddClick }) => {
           </div>
         )}
 
-        {/* Universal Quick Action "+" button */}
-        {onAddClick && (
+        {/* Global Quick Action "+" button */}
+        {modalType && (
           <button 
-            onClick={onAddClick}
+            onClick={handlePlusClick}
             className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-black font-bold text-sm rounded-xl transition-colors shadow-lg shadow-primary/10 cursor-pointer"
           >
             <Plus size={16} />

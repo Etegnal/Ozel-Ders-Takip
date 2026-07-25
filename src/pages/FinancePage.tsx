@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 import { 
@@ -31,11 +31,20 @@ export const FinancePage: React.FC = () => {
     students, 
     lessons, 
     addTransaction, 
-    deleteTransaction 
+    deleteTransaction,
+    activeModal,
+    setActiveModal
   } = useApp();
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Detect Topbar "+" click (via Context activeModal)
+  useEffect(() => {
+    if (activeModal === 'transaction') {
+      handleOpenAddModal('income');
+    }
+  }, [activeModal]);
   const [transType, setTransType] = useState<'income' | 'expense'>('income');
   const [studentId, setStudentId] = useState('');
   const [amount, setAmount] = useState(1000);
@@ -118,6 +127,7 @@ export const FinancePage: React.FC = () => {
       notes
     });
     setShowAddModal(false);
+    setActiveModal(null);
   };
 
   return (
@@ -352,14 +362,14 @@ export const FinancePage: React.FC = () => {
       {/* --- ADD TRANSACTION MODAL --- */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => { setShowAddModal(false); setActiveModal(null); }} />
           <div className="bg-surface border border-border w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative z-10">
             <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
               <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
                 <CreditCard className="text-primary w-5 h-5" />
                 <span>{transType === 'income' ? 'Ödeme Tahsilatı Gir' : 'Yeni Gider Kaydet'}</span>
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
+              <button onClick={() => { setShowAddModal(false); setActiveModal(null); }} className="text-text-muted hover:text-text-primary transition-colors">
                 <X size={18} />
               </button>
             </div>

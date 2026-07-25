@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Ders ve Öğrenci Takip Sistemi',
-        short_name: 'Tilki Takip',
+        name: 'Coach · Ders ve Öğrenci Takip Sistemi',
+        short_name: 'Coach',
         description: 'Özel Ders ve Öğretmen Asistanı Takip Sistemi',
         theme_color: '#121212',
         background_color: '#121212',

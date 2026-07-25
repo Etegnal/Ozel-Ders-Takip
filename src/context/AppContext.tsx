@@ -1,8 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState } from '../types';
+import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState } from '../types';
 import { storageService } from '../services/storage';
 
+export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | null;
+
 interface AppContextType {
+  teachers: Teacher[];
+  activeTeacherId: string;
+  activeTeacher: Teacher | undefined;
+  setActiveTeacherId: (id: string) => void;
+  addTeacher: (teacher: Omit<Teacher, 'id' | 'createdAt'>) => void;
+
   students: Student[];
   lessons: Lesson[];
   homeworks: Homework[];
@@ -10,22 +18,22 @@ interface AppContextType {
   notifications: AppNotification[];
   
   // Student Actions
-  addStudent: (student: Omit<Student, 'id' | 'createdAt' | 'balance'>) => void;
+  addStudent: (student: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => void;
   updateStudent: (id: string, updates: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
   
   // Lesson Actions
-  addLesson: (lesson: Omit<Lesson, 'id'>) => void;
+  addLesson: (lesson: Omit<Lesson, 'id' | 'teacherId'>) => void;
   updateLesson: (id: string, updates: Partial<Lesson>) => void;
   deleteLesson: (id: string) => void;
   
   // Homework Actions
-  addHomework: (homework: Omit<Homework, 'id'>) => void;
+  addHomework: (homework: Omit<Homework, 'id' | 'teacherId'>) => void;
   updateHomework: (id: string, updates: Partial<Homework>) => void;
   deleteHomework: (id: string) => void;
   
   // Transaction Actions
-  addTransaction: (transaction: Omit<FinancialTransaction, 'id'>) => void;
+  addTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'teacherId'>) => void;
   updateTransaction: (id: string, updates: Partial<FinancialTransaction>) => void;
   deleteTransaction: (id: string) => void;
   
@@ -38,6 +46,10 @@ interface AppContextType {
   setSearchQuery: (query: string) => void;
   statusFilter: 'active' | 'archive' | 'all';
   setStatusFilter: (filter: 'active' | 'archive' | 'all') => void;
+
+  // Global Modal Controller
+  activeModal: ModalType;
+  setActiveModal: (modal: ModalType) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -46,16 +58,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [state, setState] = useState<AppState>(() => storageService.getState());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'active' | 'archive' | 'all'>('active');
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   // Sync state to local storage on change
   useEffect(() => {
     storageService.saveState(state);
   }, [state]);
 
+  // Active Teacher details
+  const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
+
+  // Filtered lists for the active teacher
+  const students = state.students.filter(s => s.teacherId === state.activeTeacherId);
+  const lessons = state.lessons.filter(l => l.teacherId === state.activeTeacherId);
+  const homeworks = state.homeworks.filter(h => h.teacherId === state.activeTeacherId);
+  const transactions = state.transactions.filter(t => t.teacherId === state.activeTeacherId);
+  const notifications = state.notifications.filter(n => n.teacherId === state.activeTeacherId);
+
+  // --- Teacher Actions ---
+  const setActiveTeacherId = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      activeTeacherId: id
+    }));
+  };
+
+  const addTeacher = (teacherData: Omit<Teacher, 'id' | 'createdAt'>) => {
+    const newTeacher: Teacher = {
+      ...teacherData,
+      id: `teacher-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setState(prev => ({
+      ...prev,
+      teachers: [...prev.teachers, newTeacher],
+      activeTeacherId: newTeacher.id // Automatically switch to the newly created teacher
+    }));
+  };
+
   // --- Student Actions ---
-  const addStudent = (studentData: Omit<Student, 'id' | 'createdAt' | 'balance'>) => {
+  const addStudent = (studentData: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => {
     const newStudent: Student = {
       ...studentData,
+      teacherId: state.activeTeacherId,
       id: `student-${Date.now()}`,
       balance: 0,
       createdAt: new Date().toISOString()
@@ -77,7 +122,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => ({
       ...prev,
       students: prev.students.filter(s => s.id !== id),
-      // Clean up related items
       lessons: prev.lessons.filter(l => l.studentId !== id),
       homeworks: prev.homeworks.filter(h => h.studentId !== id),
       transactions: prev.transactions.filter(t => t.studentId !== id)
@@ -85,9 +129,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- Lesson Actions ---
-  const addLesson = (lessonData: Omit<Lesson, 'id'>) => {
+  const addLesson = (lessonData: Omit<Lesson, 'id' | 'teacherId'>) => {
     const newLesson: Lesson = {
       ...lessonData,
+      teacherId: state.activeTeacherId,
       id: `lesson-${Date.now()}`
     };
 
@@ -97,7 +142,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (lessonData.status === 'completed') {
         updatedStudents = prev.students.map(student => {
           if (student.id === lessonData.studentId) {
-            // Completed lesson adds to the amount the student owes (positive balance = debt)
             return { ...student, balance: student.balance + lessonData.rate };
           }
           return student;
@@ -120,7 +164,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updatedLessons = prev.lessons.map(l => (l.id === id ? { ...l, ...updates } : l));
       let updatedStudents = prev.students;
 
-      // Handle balance updates if status changed
       const statusChanged = updates.status && updates.status !== oldLesson.status;
       const rateChanged = updates.rate !== undefined && updates.rate !== oldLesson.rate;
 
@@ -134,11 +177,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updatedStudents = prev.students.map(student => {
           if (student.id === studentId) {
             let balanceDiff = 0;
-            // Subtract old effect if it was completed
             if (oldStatus === 'completed') {
               balanceDiff -= oldRate;
             }
-            // Add new effect if it is completed
             if (newStatus === 'completed') {
               balanceDiff += newRate;
             }
@@ -180,15 +221,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- Homework Actions ---
-  const addHomework = (homeworkData: Omit<Homework, 'id'>) => {
+  const addHomework = (homeworkData: Omit<Homework, 'id' | 'teacherId'>) => {
     const newHomework: Homework = {
       ...homeworkData,
+      teacherId: state.activeTeacherId,
       id: `homework-${Date.now()}`
     };
     
-    // Add a notification about new homework
     const newNotification: AppNotification = {
       id: `notif-${Date.now()}`,
+      teacherId: state.activeTeacherId,
       title: 'Yeni Ödev Eklendi',
       message: `${homeworkData.studentName} için yeni bir ödev tanımlandı: ${homeworkData.title}`,
       date: new Date().toISOString(),
@@ -207,7 +249,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => {
       const updatedHomeworks = prev.homeworks.map(h => (h.id === id ? { ...h, ...updates } : h));
       
-      // If homework evaluated, send notification
       let updatedNotifications = prev.notifications;
       if (updates.status === 'evaluated' || (updates.evaluation && !prev.homeworks.find(h => h.id === id)?.evaluation)) {
         const hw = prev.homeworks.find(h => h.id === id);
@@ -215,6 +256,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (hw) {
           const newNotification: AppNotification = {
             id: `notif-${Date.now()}`,
+            teacherId: state.activeTeacherId,
             title: 'Ödev Değerlendirildi',
             message: `${hw.studentName} öğrencisinin '${hw.title}' ödevi '${evalText}' olarak işaretlendi.`,
             date: new Date().toISOString(),
@@ -241,14 +283,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- Transaction Actions ---
-  const addTransaction = (transactionData: Omit<FinancialTransaction, 'id'>) => {
+  const addTransaction = (transactionData: Omit<FinancialTransaction, 'id' | 'teacherId'>) => {
     const newTransaction: FinancialTransaction = {
       ...transactionData,
+      teacherId: state.activeTeacherId,
       id: `trans-${Date.now()}`
     };
 
     setState(prev => {
-      // Adjust student balance based on payment (if payment is received/income, reduce student debt)
       let updatedStudents = prev.students;
       if (transactionData.studentId && transactionData.type === 'income') {
         updatedStudents = prev.students.map(student => {
@@ -261,6 +303,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const newNotification: AppNotification = {
         id: `notif-${Date.now()}`,
+        teacherId: state.activeTeacherId,
         title: transactionData.type === 'income' ? 'Ödeme Tahsil Edildi' : 'Gider Eklendi',
         message: transactionData.type === 'income'
           ? `${transactionData.studentName} öğrencisinden ₺${transactionData.amount} tahsil edildi.`
@@ -280,7 +323,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateTransaction = (id: string, updates: Partial<FinancialTransaction>) => {
-    // Basic update - for simplicity we just update values, in real cases we recalculate balances
     setState(prev => ({
       ...prev,
       transactions: prev.transactions.map(t => (t.id === id ? { ...t, ...updates } : t))
@@ -293,7 +335,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!trans) return prev;
 
       let updatedStudents = prev.students;
-      // Revert balance effect if deleting payment
       if (trans.studentId && trans.type === 'income') {
         updatedStudents = prev.students.map(student => {
           if (student.id === trans.studentId) {
@@ -322,18 +363,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const clearAllNotifications = () => {
     setState(prev => ({
       ...prev,
-      notifications: []
+      notifications: prev.notifications.filter(n => n.teacherId !== state.activeTeacherId)
     }));
   };
 
   return (
     <AppContext.Provider
       value={{
-        students: state.students,
-        lessons: state.lessons,
-        homeworks: state.homeworks,
-        transactions: state.transactions,
-        notifications: state.notifications,
+        teachers: state.teachers,
+        activeTeacherId: state.activeTeacherId,
+        activeTeacher,
+        setActiveTeacherId,
+        addTeacher,
+
+        students,
+        lessons,
+        homeworks,
+        transactions,
+        notifications,
+
         addStudent,
         updateStudent,
         deleteStudent,
@@ -351,7 +399,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         searchQuery,
         setSearchQuery,
         statusFilter,
-        setStatusFilter
+        setStatusFilter,
+
+        activeModal,
+        setActiveModal
       }}
     >
       {children}

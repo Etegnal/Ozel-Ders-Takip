@@ -1,11 +1,29 @@
-import { AppState, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
+import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
 
-const STORAGE_KEY = 'ozel_ders_tracker_state';
+const STORAGE_KEY = 'coach_app_state';
 
 const initialMockState: AppState = {
+  teachers: [
+    {
+      id: 'teacher-1',
+      name: 'Rahmi KOÇ',
+      email: 'rahmik93@gmail.com',
+      subject: 'Matematik',
+      createdAt: '2026-07-01T10:00:00Z'
+    },
+    {
+      id: 'teacher-2',
+      name: 'Merve YILMAZ',
+      email: 'merve.ylmz@gmail.com',
+      subject: 'Fizik',
+      createdAt: '2026-07-10T10:00:00Z'
+    }
+  ],
+  activeTeacherId: 'teacher-1',
   students: [
     {
       id: 'student-1',
+      teacherId: 'teacher-1',
       name: 'Eren',
       phone: '+905435269142',
       parentName: '',
@@ -18,11 +36,28 @@ const initialMockState: AppState = {
       weeklySchedule: ['Çarşamba 18:00', 'Cuma 18:00'],
       notes: 'Matematik LGS hazırlık öğrencisi. Konu eksikleri gideriliyor.',
       createdAt: '2026-07-01T10:00:00Z'
+    },
+    {
+      id: 'student-2',
+      teacherId: 'teacher-2',
+      name: 'Ayşe Kaya',
+      phone: '+905551234567',
+      parentName: 'Fatma Kaya',
+      parentPhone: '+905557654321',
+      grade: '10. Sınıf',
+      hourlyRate: 1200,
+      monthlyRate: 4800,
+      balance: 1200,
+      status: 'active',
+      weeklySchedule: ['Cumartesi 10:00'],
+      notes: 'Fizik okul derslerine takviye ve TYT hazırlık.',
+      createdAt: '2026-07-10T11:00:00Z'
     }
   ],
   lessons: [
     {
       id: 'lesson-1',
+      teacherId: 'teacher-1',
       studentId: 'student-1',
       studentName: 'Eren',
       date: '2026-07-22', // July 22, 2026
@@ -34,6 +69,7 @@ const initialMockState: AppState = {
     },
     {
       id: 'lesson-2',
+      teacherId: 'teacher-1',
       studentId: 'student-1',
       studentName: 'Eren',
       date: '2026-07-24', // July 24, 2026
@@ -45,6 +81,7 @@ const initialMockState: AppState = {
     },
     {
       id: 'lesson-3',
+      teacherId: 'teacher-1',
       studentId: 'student-1',
       studentName: 'Eren',
       date: '2026-07-29', // July 29, 2026 (Upcoming)
@@ -52,11 +89,23 @@ const initialMockState: AppState = {
       durationMinutes: 60,
       rate: 1000,
       status: 'scheduled'
+    },
+    {
+      id: 'lesson-4',
+      teacherId: 'teacher-2',
+      studentId: 'student-2',
+      studentName: 'Ayşe Kaya',
+      date: '2026-07-25', // Today
+      startTime: '10:00',
+      durationMinutes: 90,
+      rate: 1800,
+      status: 'scheduled'
     }
   ],
   homeworks: [
     {
       id: 'homework-1',
+      teacherId: 'teacher-1',
       studentId: 'student-1',
       studentName: 'Eren',
       title: 'test',
@@ -68,6 +117,7 @@ const initialMockState: AppState = {
     },
     {
       id: 'homework-2',
+      teacherId: 'teacher-1',
       studentId: 'student-1',
       studentName: 'Eren',
       title: 'Kareköklü Sayılar Ödevi',
@@ -80,6 +130,7 @@ const initialMockState: AppState = {
   transactions: [
     {
       id: 'trans-1',
+      teacherId: 'teacher-1',
       studentId: 'student-1',
       studentName: 'Eren',
       type: 'income',
@@ -92,6 +143,7 @@ const initialMockState: AppState = {
   notifications: [
     {
       id: 'notif-1',
+      teacherId: 'teacher-1',
       title: 'Ödev Değerlendirildi',
       message: "Eren'in 'test' ödevi Yetersiz olarak işaretlendi.",
       date: '2026-07-15T21:58:00Z',
@@ -100,6 +152,7 @@ const initialMockState: AppState = {
     },
     {
       id: 'notif-2',
+      teacherId: 'teacher-1',
       title: 'Ders Hatırlatması',
       message: 'Bugün saat 18:00\'da Eren ile dersiniz var.',
       date: '2026-07-24T08:00:00Z',
@@ -125,6 +178,27 @@ export const storageService = {
 
   saveState(state: AppState): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  },
+
+  // Teachers CRUD
+  getTeachers(): Teacher[] {
+    return this.getState().teachers;
+  },
+
+  saveTeachers(teachers: Teacher[]): void {
+    const state = this.getState();
+    state.teachers = teachers;
+    this.saveState(state);
+  },
+
+  getActiveTeacherId(): string {
+    return this.getState().activeTeacherId;
+  },
+
+  setActiveTeacherId(id: string): void {
+    const state = this.getState();
+    state.activeTeacherId = id;
+    this.saveState(state);
   },
 
   // Students CRUD

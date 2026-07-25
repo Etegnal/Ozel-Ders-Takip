@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Menu, Plus } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  onAddClick?: () => void;
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ children, onAddClick }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  
+  const location = useLocation();
+  const path = location.pathname;
+  const { setActiveModal } = useApp();
 
   // Automatically collapse sidebar on smaller desktop/tablet resolutions
   useEffect(() => {
@@ -27,6 +32,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onAddClick }) 
     
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const getPageModalType = () => {
+    switch (path) {
+      case '/':
+        return 'lesson';
+      case '/students':
+        return 'student';
+      case '/homeworks':
+        return 'homework';
+      case '/finance':
+        return 'transaction';
+      default:
+        return null;
+    }
+  };
+
+  const modalType = getPageModalType();
+
+  const handleMobilePlusClick = () => {
+    if (modalType) {
+      setActiveModal(modalType);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-text-primary flex">
@@ -60,13 +88,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onAddClick }) 
           {/* Mobile Menu Trigger */}
           <button 
             onClick={() => setMobileOpen(true)}
-            className="p-3.5 border-b border-border text-text-secondary hover:text-text-primary bg-surface/40 md:hidden"
+            className="p-3.5 border-b border-border text-text-secondary hover:text-text-primary bg-surface/40 md:hidden animate-fade-in"
           >
             <Menu size={22} />
           </button>
 
           <div className="flex-1">
-            <Topbar onAddClick={onAddClick} />
+            <Topbar />
           </div>
         </div>
 
@@ -76,10 +104,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onAddClick }) 
         </main>
         
         {/* Mobile floating quick action button */}
-        {onAddClick && (
+        {modalType && (
           <button
-            onClick={onAddClick}
-            className="md:hidden fixed right-6 bottom-6 w-14 h-14 bg-primary rounded-full flex items-center justify-center text-black shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all z-35"
+            onClick={handleMobilePlusClick}
+            className="md:hidden fixed right-6 bottom-6 w-14 h-14 bg-primary rounded-full flex items-center justify-center text-black shadow-lg shadow-primary/25 hover:bg-primary-hover active:scale-95 transition-all z-35"
           >
             <Plus size={24} />
           </button>

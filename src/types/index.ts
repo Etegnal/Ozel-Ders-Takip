@@ -1,7 +1,16 @@
+export interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  createdAt: string;
+}
+
 export type StudentStatus = 'active' | 'archive';
 
 export interface Student {
   id: string;
+  teacherId: string;
   name: string;
   phone: string;
   parentName?: string;
@@ -20,6 +29,7 @@ export type LessonStatus = 'scheduled' | 'completed' | 'cancelled';
 
 export interface Lesson {
   id: string;
+  teacherId: string;
   studentId: string;
   studentName: string;
   date: string; // YYYY-MM-DD
@@ -34,6 +44,7 @@ export type HomeworkStatus = 'pending' | 'completed' | 'overdue' | 'evaluated';
 
 export interface Homework {
   id: string;
+  teacherId: string;
   studentId: string;
   studentName: string;
   title: string;
@@ -48,6 +59,7 @@ export type TransactionType = 'income' | 'expense';
 
 export interface FinancialTransaction {
   id: string;
+  teacherId: string;
   studentId?: string;
   studentName?: string;
   type: TransactionType;
@@ -59,6 +71,7 @@ export interface FinancialTransaction {
 
 export interface AppNotification {
   id: string;
+  teacherId: string;
   title: string;
   message: string;
   date: string; // ISO String
@@ -67,6 +80,8 @@ export interface AppNotification {
 }
 
 export interface AppState {
+  teachers: Teacher[];
+  activeTeacherId: string;
   students: Student[];
   lessons: Lesson[];
   homeworks: Homework[];

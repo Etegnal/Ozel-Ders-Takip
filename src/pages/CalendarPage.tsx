@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Lesson } from '../types';
 import { 
@@ -9,9 +9,10 @@ import {
   Plus, 
   ChevronLeft, 
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Trash2
 } from 'lucide-react';
-
+import { formatCurrency, formatReadableDate } from '../utils/helpers';
 
 export const CalendarPage: React.FC = () => {
   const { 
@@ -19,57 +20,30 @@ export const CalendarPage: React.FC = () => {
     students, 
     addLesson, 
     updateLesson, 
-    deleteLesson 
+    deleteLesson,
+    activeModal,
+    setActiveModal
   } = useApp();
 
-  // Calendar states
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [showAddModal, setShowAddModal] = useState(false);
-  
-  // Lesson form states
+  // Calendar State
+  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 25)); // Initialize around July 2026 to show mock data
+
+  // Local state for view/edit popover
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+
+  // Lesson form state
   const [studentId, setStudentId] = useState('');
-  const [lessonDate, setLessonDate] = useState(new Date().toISOString().split('T')[0]);
+  const [lessonDate, setLessonDate] = useState('');
   const [lessonTime, setLessonTime] = useState('18:00');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [notes, setNotes] = useState('');
 
-  // Generate week dates based on currentDate
-  const getWeekDates = (date: Date): Date[] => {
-    const startOfWeek = new Date(date);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
-    startOfWeek.setDate(diff);
-
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const nextDay = new Date(startOfWeek);
-      nextDay.setDate(startOfWeek.getDate() + i);
-      dates.push(nextDay);
+  // Detect Topbar "+" click (via Context activeModal)
+  useEffect(() => {
+    if (activeModal === 'lesson') {
+      handleOpenAddModal();
     }
-    return dates;
-  };
-
-  const weekDates = getWeekDates(currentDate);
-
-  const handlePrevWeek = () => {
-    const prev = new Date(currentDate);
-    prev.setDate(currentDate.getDate() - 7);
-    setCurrentDate(prev);
-  };
-
-  const handleNextWeek = () => {
-    const next = new Date(currentDate);
-    next.setDate(currentDate.getDate() + 7);
-    setCurrentDate(next);
-  };
-
-  const handleToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  const formatDateString = (date: Date): string => {
-    return date.toISOString().split('T')[0];
-  };
+  }, [activeModal]);
 
   const handleOpenAddModal = (dateStr?: string) => {
     setStudentId(students[0]?.id || '');
@@ -77,7 +51,11 @@ export const CalendarPage: React.FC = () => {
     setLessonTime('18:00');
     setDurationMinutes(60);
     setNotes('');
-    setShowAddModal(true);
+    setActiveModal('lesson');
+  };
+
+  const handleCloseModal = () => {
+    setActiveModal(null);
   };
 
   const handleAddLessonSubmit = (e: React.FormEvent) => {
@@ -95,41 +73,89 @@ export const CalendarPage: React.FC = () => {
       status: 'scheduled',
       notes
     });
-    setShowAddModal(false);
+    handleCloseModal();
   };
 
-  const handleCompleteLesson = (lesson: Lesson) => {
-    updateLesson(lesson.id, { status: 'completed' });
+  // Month navigation
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
-  const handleCancelLesson = (lesson: Lesson) => {
-    updateLesson(lesson.id, { status: 'cancelled' });
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // Get lessons matching a specific date string
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Generate grid days: 42 cells (previous month pad + current month + next month pad)
+  const getMonthDays = (date: Date): { date: Date; isCurrentMonth: boolean }[] => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    // First day of current month
+    const firstDayOfMonth = new Date(year, month, 1);
+    
+    // Day of the week of first day (Monday start adjust: Mon=0, Tue=1 ... Sun=6)
+    let startDayOfWeek = firstDayOfMonth.getDay() - 1;
+    if (startDayOfWeek < 0) startDayOfWeek = 6; // Sunday becomes 6
+
+    // Previous month total days
+    const prevMonthLastDate = new Date(year, month, 0).getDate();
+
+    // Current month total days
+    const currentMonthLastDate = new Date(year, month + 1, 0).getDate();
+
+    const days = [];
+
+    // 1. Padding from previous month
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const prevDate = new Date(year, month - 1, prevMonthLastDate - i);
+      days.push({ date: prevDate, isCurrentMonth: false });
+    }
+
+    // 2. Days of current month
+    for (let i = 1; i <= currentMonthLastDate; i++) {
+      const currDate = new Date(year, month, i);
+      days.push({ date: currDate, isCurrentMonth: true });
+    }
+
+    // 3. Padding from next month (fill up to multiples of 7, usually 35 or 42)
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      const nextDate = new Date(year, month + 1, i);
+      days.push({ date: nextDate, isCurrentMonth: false });
+    }
+
+    return days;
+  };
+
+  const calendarDays = getMonthDays(currentDate);
+  const weekdays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
   const getLessonsForDate = (dateStr: string) => {
     return lessons.filter(l => l.date === dateStr);
   };
 
-  // Render status badge inside lists
-  const getLessonStatusLabel = (status: Lesson['status']) => {
-    switch (status) {
-      case 'completed':
-        return <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold">Tamamlandı</span>;
-      case 'cancelled':
-        return <span className="bg-red-500/10 text-red-400 text-[10px] px-2 py-0.5 rounded-full font-bold">İptal Edildi</span>;
-      case 'scheduled':
-        return <span className="bg-amber-500/10 text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold">Planlandı</span>;
-    }
+  const formatDateString = (d: Date): string => {
+    const offset = d.getTimezoneOffset();
+    const adjustedDate = new Date(d.getTime() - (offset * 60 * 1000));
+    return adjustedDate.toISOString().split('T')[0];
+  };
+
+  const handleLessonBubbleClick = (e: React.MouseEvent, lesson: Lesson) => {
+    e.stopPropagation(); // Avoid triggering day cell click
+    setSelectedLesson(lesson);
   };
 
   return (
     <div className="space-y-6">
-      {/* Calendar Controls */}
+      {/* Month Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-card/40 p-4 border border-border/80 rounded-2xl">
         <div className="flex items-center gap-2">
           <button 
-            onClick={handlePrevWeek}
+            onClick={prevMonth}
             className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
           >
             <ChevronLeft size={16} />
@@ -141,14 +167,14 @@ export const CalendarPage: React.FC = () => {
             Bugün
           </button>
           <button 
-            onClick={handleNextWeek}
+            onClick={nextMonth}
             className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
           >
             <ChevronRight size={16} />
           </button>
 
-          <span className="font-bold text-sm text-text-primary ml-2">
-            {weekDates[0].toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })} - {weekDates[6].toLocaleDateString('tr-TR', { month: 'short', day: 'numeric', year: 'numeric' })}
+          <span className="font-bold text-base text-text-primary ml-2 uppercase tracking-wide">
+            {currentDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
           </span>
         </div>
 
@@ -161,146 +187,188 @@ export const CalendarPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Week Grid Layout (Desktop View) */}
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-        {weekDates.map((date) => {
-          const dateStr = formatDateString(date);
-          const dayLessons = getLessonsForDate(dateStr);
-          const isToday = new Date().toDateString() === date.toDateString();
+      {/* 30-Day Monthly Calendar Grid */}
+      <div className="bg-surface-card border border-border/80 rounded-2xl overflow-hidden shadow-xl">
+        {/* Weekday headers */}
+        <div className="grid grid-cols-7 border-b border-border bg-surface/50">
+          {weekdays.map((day) => (
+            <div key={day} className="py-3 text-center text-xs font-bold text-text-secondary border-r border-border/30 last:border-r-0 uppercase tracking-wider">
+              {day}
+            </div>
+          ))}
+        </div>
 
-          return (
-            <div 
-              key={dateStr}
-              className={`bg-surface-card border rounded-2xl p-4 min-h-[300px] flex flex-col justify-between transition-all ${
-                isToday 
-                  ? 'border-primary/50 bg-surface-card/70 shadow-lg shadow-primary/5' 
-                  : 'border-border/60 hover:border-border'
-              }`}
-            >
-              {/* Day Header */}
-              <div className="border-b border-border/50 pb-2.5 mb-3 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-text-muted uppercase font-bold block">
-                    {date.toLocaleDateString('tr-TR', { weekday: 'short' })}
-                  </span>
-                  <span className={`text-base font-bold font-sans ${isToday ? 'text-primary' : 'text-text-primary'}`}>
+        {/* Days grid */}
+        <div className="grid grid-cols-7 grid-rows-6 divide-x divide-y divide-border/40 bg-surface-card">
+          {calendarDays.map(({ date, isCurrentMonth }, index) => {
+            const dateStr = formatDateString(date);
+            const dayLessons = getLessonsForDate(dateStr);
+            const isToday = new Date().toDateString() === date.toDateString();
+
+            return (
+              <div 
+                key={`${dateStr}-${index}`}
+                onClick={() => handleOpenAddModal(dateStr)}
+                className={`min-h-[105px] p-2 flex flex-col justify-between transition-all group relative cursor-pointer hover:bg-surface-hover/30 border-r border-b border-border/20 ${
+                  !isCurrentMonth ? 'bg-surface/10 opacity-40' : ''
+                } ${isToday ? 'bg-primary/5 border-primary/20' : ''}`}
+              >
+                {/* Cell Header: Day Number */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={`text-xs font-bold font-sans rounded-full w-5 h-5 flex items-center justify-center ${
+                    isToday 
+                      ? 'bg-primary text-black font-bold glow-primary' 
+                      : isCurrentMonth ? 'text-text-primary' : 'text-text-muted'
+                  }`}>
                     {date.getDate()}
+                  </span>
+                  
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-text-muted hover:text-text-primary">
+                    + Ekle
                   </span>
                 </div>
 
-                <button 
-                  onClick={() => handleOpenAddModal(dateStr)}
-                  className="p-1 hover:bg-surface-hover text-text-muted hover:text-text-primary rounded-lg transition-all"
-                  title="Ders Ekle"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-
-              {/* Day's Lessons Container */}
-              <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[220px] pr-0.5">
-                {dayLessons.length > 0 ? (
-                  dayLessons.map((lesson) => (
+                {/* Cell Content: Day's Lessons */}
+                <div className="flex-1 space-y-1 overflow-y-auto max-h-[70px] pr-0.5 scrollbar-thin">
+                  {dayLessons.map((lesson) => (
                     <div 
                       key={lesson.id}
-                      className={`p-3 rounded-xl border transition-all flex flex-col justify-between relative group ${
+                      onClick={(e) => handleLessonBubbleClick(e, lesson)}
+                      className={`px-2 py-0.5 rounded-lg border text-[9px] font-medium truncate flex items-center justify-between transition-all hover:scale-[1.02] ${
                         lesson.status === 'completed'
-                          ? 'bg-emerald-500/5 border-emerald-500/10 hover:border-emerald-500/20'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                           : lesson.status === 'cancelled'
-                          ? 'bg-red-500/5 border-red-500/10 hover:border-red-500/20'
-                          : 'bg-surface-hover/40 border-border/80 hover:border-primary/20'
+                          ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                          : 'bg-primary/10 text-primary border-primary/20'
                       }`}
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-semibold text-xs text-text-primary truncate block">
-                            {lesson.studentName}
-                          </span>
-                          <span className="text-[9px] text-text-muted font-bold flex items-center gap-0.5 flex-shrink-0">
-                            <Clock size={8} />
-                            {lesson.startTime}
-                          </span>
-                        </div>
-                        {lesson.notes && (
-                          <p className="text-[10px] text-text-secondary line-clamp-1 italic">
-                            {lesson.notes}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Action status tags or click actions */}
-                      <div className="mt-2.5 flex items-center justify-between border-t border-border/20 pt-2">
-                        {getLessonStatusLabel(lesson.status)}
-
-                        {/* Complete/Cancel controls shown on hover/active for scheduled items */}
-                        {lesson.status === 'scheduled' && (
-                          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
-                              onClick={() => handleCompleteLesson(lesson)}
-                              className="p-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-md transition-all"
-                              title="Tamamlandı"
-                            >
-                              <Check size={11} />
-                            </button>
-                            <button 
-                              onClick={() => handleCancelLesson(lesson)}
-                              className="p-0.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-md transition-all"
-                              title="İptal Et"
-                            >
-                              <X size={11} />
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Completed or Cancelled delete option */}
-                        {lesson.status !== 'scheduled' && (
-                          <button 
-                            onClick={() => {
-                              if (confirm('Bu ders kaydını programdan kaldırmak istiyor musunuz?')) {
-                                deleteLesson(lesson.id);
-                              }
-                            }}
-                            className="text-[9px] text-text-muted hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            Kaldır
-                          </button>
-                        )}
-                      </div>
+                      <span className="truncate flex-1 font-semibold">{lesson.studentName}</span>
+                      <span className="text-[8px] opacity-70 ml-1 flex-shrink-0">{lesson.startTime}</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6 text-[10px] text-text-muted italic bg-surface/10 rounded-xl border border-border/30">
-                    Ders yok
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Daily list details view for selected day */}
-      <div className="bg-surface-card border border-border/80 rounded-2xl p-5 space-y-4">
+      {/* Information Banner */}
+      <div className="bg-surface-card border border-border/80 rounded-2xl p-5 space-y-3">
         <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
           <BookOpen className="text-primary w-4.5 h-4.5" />
-          <span>Haftalık Genel Ders Dağılımı</span>
+          <span>Aylık Ders Yönetim Rehberi</span>
         </h3>
-        <p className="text-xs text-text-secondary">
-          Derslerinizi tamamlandığında yeşil çek işaretine tıklayarak onaylayın. Bu işlem, öğrenci bakiyesine ders ücretini otomatik olarak yansıtacaktır.
+        <p className="text-xs text-text-secondary leading-relaxed">
+          Takvimdeki ders kutucuklarına tıklayarak detayları görebilir, tamamlandı ya da iptal durumunu güncelleyebilirsiniz. Ders tamamlandığında ücret otomatik olarak öğrencinin borç bakiyesine eklenir. Boş gün kutucuklarına tıklayarak doğrudan o güne ders programlayabilirsiniz.
         </p>
       </div>
 
-      {/* --- ADD LESSON SCHEDULE MODAL --- */}
-      {showAddModal && (
+      {/* --- LESSON DETAIL POPOVER MODAL --- */}
+      {selectedLesson && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setSelectedLesson(null)} />
+          <div className="bg-surface border border-border w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative z-10">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
+              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                <Clock className="text-primary w-5 h-5" />
+                <span>Ders Detayları</span>
+              </h3>
+              <button onClick={() => setSelectedLesson(null)} className="text-text-muted hover:text-text-primary transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between border-b border-border/50 pb-2">
+                  <span className="text-xs text-text-secondary">Öğrenci</span>
+                  <span className="text-sm font-bold text-text-primary">{selectedLesson.studentName}</span>
+                </div>
+                <div className="flex justify-between border-b border-border/50 pb-2">
+                  <span className="text-xs text-text-secondary">Tarih / Saat</span>
+                  <span className="text-sm font-semibold text-text-primary">
+                    {formatReadableDate(selectedLesson.date)}, {selectedLesson.startTime}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-border/50 pb-2">
+                  <span className="text-xs text-text-secondary">Süre</span>
+                  <span className="text-sm font-semibold text-text-primary">{selectedLesson.durationMinutes} dakika</span>
+                </div>
+                <div className="flex justify-between border-b border-border/50 pb-2">
+                  <span className="text-xs text-text-secondary">Ders Ücreti</span>
+                  <span className="text-sm font-bold text-primary">{formatCurrency(selectedLesson.rate)}</span>
+                </div>
+                <div className="flex justify-between border-b border-border/50 pb-2">
+                  <span className="text-xs text-text-secondary">Durum</span>
+                  <span className="text-sm font-bold">
+                    {selectedLesson.status === 'completed' && <span className="text-emerald-400">Tamamlandı</span>}
+                    {selectedLesson.status === 'cancelled' && <span className="text-red-400">İptal Edildi</span>}
+                    {selectedLesson.status === 'scheduled' && <span className="text-amber-400">Planlandı</span>}
+                  </span>
+                </div>
+                {selectedLesson.notes && (
+                  <div className="bg-surface-card p-3 rounded-xl border border-border text-xs text-text-secondary italic">
+                    {selectedLesson.notes}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {selectedLesson.status === 'scheduled' && (
+                  <>
+                    <button 
+                      onClick={() => {
+                        updateLesson(selectedLesson.id, { status: 'completed' });
+                        setSelectedLesson(null);
+                      }}
+                      className="flex-1 py-2.5 bg-emerald-500 text-black hover:bg-emerald-600 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1 shadow-md shadow-emerald-500/10"
+                    >
+                      <Check size={14} />
+                      <span>Tamamla</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        updateLesson(selectedLesson.id, { status: 'cancelled' });
+                        setSelectedLesson(null);
+                      }}
+                      className="flex-1 py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1"
+                    >
+                      <X size={14} />
+                      <span>İptal Et</span>
+                    </button>
+                  </>
+                )}
+                
+                <button 
+                  onClick={() => {
+                    if (confirm('Bu ders planını silmek istiyor musunuz?')) {
+                      deleteLesson(selectedLesson.id);
+                      setSelectedLesson(null);
+                    }
+                  }}
+                  className="py-2.5 px-3 bg-surface-card border border-border text-text-muted hover:text-red-400 rounded-xl transition-all"
+                  title="Dersi Sil"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- ADD LESSON SCHEDULE MODAL (Triggered by Local or Global Topbar) --- */}
+      {activeModal === 'lesson' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={handleCloseModal} />
           <div className="bg-surface border border-border w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative z-10">
             <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
               <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
                 <CalendarIcon className="text-primary w-5 h-5" />
                 <span>Yeni Ders Planla</span>
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
+              <button onClick={handleCloseModal} className="text-text-muted hover:text-text-primary transition-colors">
                 <X size={18} />
               </button>
             </div>
