@@ -170,7 +170,16 @@ export const storageService = {
       return initialMockState;
     }
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return {
+        teachers: parsed.teachers || initialMockState.teachers,
+        activeTeacherId: parsed.activeTeacherId || initialMockState.activeTeacherId,
+        students: parsed.students || [],
+        lessons: parsed.lessons || [],
+        homeworks: parsed.homeworks || [],
+        transactions: parsed.transactions || [],
+        notifications: parsed.notifications || []
+      };
     } catch {
       return initialMockState;
     }
