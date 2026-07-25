@@ -5,6 +5,7 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/Ozel-Ders-Takip/',
   plugins: [
     react(),
     VitePWA({
@@ -17,7 +18,7 @@ export default defineConfig({
         theme_color: '#121212',
         background_color: '#121212',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/Ozel-Ders-Takip/',
         icons: [
           {
             src: 'pwa-192x192.png',
