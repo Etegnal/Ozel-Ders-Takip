@@ -15,7 +15,6 @@ import {
   Award
 } from 'lucide-react';
 import { formatReadableDate, getWhatsAppLink, getHomeworkTemplate } from '../utils/helpers';
-import { GLOBAL_CONFIG } from '../config';
 
 export const HomeworksPage: React.FC = () => {
   const { 
@@ -83,8 +82,8 @@ export const HomeworksPage: React.FC = () => {
     const teacherName = activeTeacher ? activeTeacher.name : 'Coach';
     const text = getHomeworkTemplate(student.name, title, dueDate, dueTime, teacherName);
 
-    if (GLOBAL_CONFIG.whatsapp.enabled && GLOBAL_CONFIG.whatsapp.idInstance && GLOBAL_CONFIG.whatsapp.apiTokenInstance) {
-      const { idInstance, apiTokenInstance } = GLOBAL_CONFIG.whatsapp;
+    if (activeTeacher?.whatsappSettings?.enabled && activeTeacher.whatsappSettings.idInstance && activeTeacher.whatsappSettings.apiTokenInstance) {
+      const { idInstance, apiTokenInstance } = activeTeacher.whatsappSettings;
       const cleanPhone = student.phone.replace('+', '');
       
       const sendAutoMessage = async () => {

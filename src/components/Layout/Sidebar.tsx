@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   Calendar, 
@@ -9,6 +9,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   LogOut, 
+  Settings,
   ChevronDown,
   UserPlus,
   X
@@ -30,17 +31,83 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     setActiveTeacherId, 
     activeTeacher,
     logout,
-    register
+    register,
+    updateTeacherSettings
   } = useApp();
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // New Teacher form state
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newTeacherEmail, setNewTeacherEmail] = useState('');
   const [newTeacherSubject, setNewTeacherSubject] = useState('Matematik');
   const [newTeacherPassword, setNewTeacherPassword] = useState('');
+
+  // Green-API Settings state
+  const [waEnabled, setWaEnabled] = useState(false);
+  const [idInstance, setIdInstance] = useState('');
+  const [apiTokenInstance, setApiTokenInstance] = useState('');
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState(false);
+
+  // Populate settings form when activeTeacher or settings modal changes
+  useEffect(() => {
+    if (activeTeacher?.whatsappSettings) {
+      setWaEnabled(activeTeacher.whatsappSettings.enabled);
+      setIdInstance(activeTeacher.whatsappSettings.idInstance);
+      setApiTokenInstance(activeTeacher.whatsappSettings.apiTokenInstance);
+    } else {
+      setWaEnabled(false);
+      setIdInstance('');
+      setApiTokenInstance('');
+    }
+  }, [showSettingsModal, activeTeacher]);
+
+  const handleSaveSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateTeacherSettings({
+      enabled: waEnabled,
+      idInstance: idInstance.trim(),
+      apiTokenInstance: apiTokenInstance.trim()
+    });
+    setShowSettingsModal(false);
+  };
+
+  const handleTestConnection = async () => {
+    if (!idInstance.trim() || !apiTokenInstance.trim() || !testPhone.trim()) {
+      alert('Lütfen Instance ID, Token ve test telefon numarasını doldurun.');
+      return;
+    }
+    setTestSending(true);
+    try {
+      let cleanedPhone = testPhone.replace(/\D/g, '');
+      if (cleanedPhone.startsWith('90') && cleanedPhone.length > 10) cleanedPhone = cleanedPhone.substring(2);
+      if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1);
+      const targetPhone = '90' + cleanedPhone;
+
+      const url = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: `${targetPhone}@c.us`,
+          message: 'Coach uygulamasından gönderilen test mesajı! Yeşil API bağlantısı başarıyla kuruldu. ✅'
+        })
+      });
+      if (response.ok) {
+        alert('Bağlantı başarılı! Test mesajı WhatsApp üzerinden gönderildi.');
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        alert(`Hata: Mesaj gönderilemedi. Yeşil API yanıtı: ${JSON.stringify(errData)}`);
+      }
+    } catch (err) {
+      alert('Bağlantı hatası! Lütfen internetinizi ve API ayarlarınızı kontrol edin.');
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
@@ -214,7 +281,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               </p>
             </div>
           )}
-
+          {!collapsed && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSettingsModal(true);
+              }}
+              className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+            >
+              <Settings size={16} />
+            </button>
+          )}
         </div>
 
 
@@ -322,6 +399,92 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         </div>
       )}
 
+      {/* --- WHATSAPP GREEN-API SETTINGS MODAL --- */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setShowSettingsModal(false)} />
+          <div className="bg-surface border border-border w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative z-10">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
+              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                <Settings className="text-primary w-5 h-5" />
+                <span>WhatsApp API Ayarları</span>
+              </h3>
+              <button onClick={() => setShowSettingsModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveSettings} className="p-6 space-y-4">
+              {/* Enable/Disable Toggle */}
+              <div className="flex items-center justify-between bg-surface-card/50 p-3 rounded-xl border border-border/50">
+                <span className="text-xs text-text-secondary font-semibold">OTOMATİK GÖNDERİM AKTİF</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={waEnabled}
+                    onChange={(e) => setWaEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-text-secondary font-semibold">GREEN-API INSTANCE ID</label>
+                <input 
+                  type="text" 
+                  required={waEnabled}
+                  placeholder="Örn: 1101824732"
+                  value={idInstance}
+                  onChange={(e) => setIdInstance(e.target.value)}
+                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-text-secondary font-semibold">GREEN-API TOKEN INSTANCE</label>
+                <input 
+                  type="text" 
+                  required={waEnabled}
+                  placeholder="Örn: d75b3b..."
+                  value={apiTokenInstance}
+                  onChange={(e) => setApiTokenInstance(e.target.value)}
+                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
+                />
+              </div>
+
+              {/* Test Section */}
+              <div className="border-t border-border/50 pt-4 space-y-3">
+                <div className="text-xs font-bold text-text-secondary">BAĞLANTIYI TEST ET</div>
+                <div className="flex gap-2">
+                  <input 
+                    type="tel" 
+                    placeholder="Test Numarası (Örn: 5078234071)"
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    className="flex-1 bg-surface-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestConnection}
+                    disabled={testSending}
+                    className="bg-surface-card border border-border hover:bg-border/30 text-text-primary px-3 py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {testSending ? 'Gönderiliyor...' : 'Test Et'}
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10"
+              >
+                Ayarları Kaydet
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };
