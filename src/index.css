@@ -7,7 +7,7 @@
 @layer base {
   body {
     @apply bg-background text-text-primary antialiased font-sans;
-    background-color: #031427;
+    background-color: #060913;
   }
 
   /* Custom thin dark scrollbar */
@@ -17,30 +17,30 @@
   }
   
   ::-webkit-scrollbar-track {
-    background: #031427;
+    background: #060913;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: #0f3769;
+    background: #19253d;
     border-radius: 9999px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: #0e315b;
+    background: #233352;
   }
 }
 
 /* Glassmorphic card styling utilities */
 .glass-card {
-  background: rgba(9, 36, 70, 0.7);
+  background: rgba(16, 23, 40, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .glass-sidebar {
-  background: rgba(6, 26, 51, 0.95);
-  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  background: rgba(11, 16, 29, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Glowing effects for active navigation icons and notifications */

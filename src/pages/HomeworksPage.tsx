@@ -264,7 +264,7 @@ export const HomeworksPage: React.FC = () => {
               </div>
 
               {/* Actions & Status */}
-              <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 border-t md:border-t-0 border-border/50 pt-3 md:pt-0">
+              <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5 border-t md:border-t-0 border-border/50 pt-3 md:pt-0">
                 {/* Status indicator click triggers toggle */}
                 <button 
                   onClick={() => toggleStatus(hw)}
@@ -275,35 +275,38 @@ export const HomeworksPage: React.FC = () => {
                 </button>
 
                 {/* Quick actions row */}
-                <div className="flex items-center gap-1">
-                  {/* Evaluate trigger */}
-                  <button 
-                    onClick={() => handleOpenEvalModal(hw)}
-                    className="p-2 hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl transition-all"
-                    title="Ödevi Değerlendir"
-                  >
-                    <Award size={16} />
-                  </button>
-
-                  {/* Copy WhatsApp template text */}
-                  <button 
-                    onClick={() => handleCopyText(hw)}
-                    className="p-2 hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl transition-all"
-                    title="Şablonu Kopyala"
-                  >
-                    <Copy size={16} />
-                  </button>
-
-                  {/* Send directly to WhatsApp Web */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* WhatsApp Action Button */}
                   <a 
                     href={getWhatsAppHref(hw)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 hover:bg-emerald-500/10 text-emerald-500 hover:text-emerald-400 rounded-xl transition-all"
-                    title="WhatsApp'tan Ödevi Gönder"
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all text-xs flex items-center gap-2 shadow-md shadow-emerald-900/30 hover:shadow-emerald-600/20"
+                    title="WhatsApp Web Üzerinden Ödevi Mesaj At"
                   >
-                    <MessageSquare size={16} />
+                    <MessageSquare size={15} />
+                    <span>WhatsApp'a Gönder</span>
                   </a>
+
+                  {/* Copy WhatsApp template text */}
+                  <button 
+                    onClick={() => handleCopyText(hw)}
+                    className="px-3 py-2 bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border/80 rounded-xl transition-all font-semibold text-xs flex items-center gap-1.5"
+                    title="Mesaj Şablonunu Kopyala"
+                  >
+                    <Copy size={14} />
+                    <span className="hidden sm:inline">Kopyala</span>
+                  </button>
+
+                  {/* Evaluate trigger */}
+                  <button 
+                    onClick={() => handleOpenEvalModal(hw)}
+                    className="px-3 py-2 bg-surface hover:bg-purple-500/20 text-purple-300 border border-border/80 hover:border-purple-500/40 rounded-xl transition-all font-semibold text-xs flex items-center gap-1.5"
+                    title="Ödevi Değerlendir"
+                  >
+                    <Award size={14} />
+                    <span className="hidden sm:inline">Değerlendir</span>
+                  </button>
 
                   {/* Delete homework */}
                   <button 
@@ -312,10 +315,10 @@ export const HomeworksPage: React.FC = () => {
                         deleteHomework(hw.id);
                       }
                     }}
-                    className="p-2 hover:bg-red-500/10 text-text-secondary hover:text-red-400 rounded-xl transition-all"
+                    className="p-2 bg-surface hover:bg-red-500/20 text-text-muted hover:text-red-400 border border-border/80 hover:border-red-500/30 rounded-xl transition-all"
                     title="Ödevi Sil"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>

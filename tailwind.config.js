@@ -8,22 +8,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#031427",
+        background: "#060913",
         surface: {
-          DEFAULT: "#061a33",
-          card: "#092446",
-          hover: "#0e315b",
+          DEFAULT: "#0b101d",
+          card: "#101728",
+          hover: "#172138",
         },
-        border: "#0f3769",
+        border: "#19253d",
         primary: {
           DEFAULT: "#FF8830",
-          hover: "#e36e19",
+          hover: "#E0721D",
           light: "#A6DFFF",
         },
         text: {
-          primary: "#FFFFFF",
-          secondary: "#A6DFFF",
-          muted: "#668bb5",
+          primary: "#F8FAFC",
+          secondary: "#94A3B8",
+          muted: "#64748B",
         }
       },
       fontFamily: {
