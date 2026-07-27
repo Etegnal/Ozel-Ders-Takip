@@ -34,7 +34,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     logout,
     register,
     deleteTeacher,
-    updateTeacherSettings
+    updateTeacherSettings,
+    isAdmin
   } = useApp();
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
@@ -219,7 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
       <div className="p-3 border-t border-border space-y-4 relative">
         
         {/* Dynamic Teacher Switcher Dropdown */}
-        {showTeacherDropdown && !collapsed && (
+        {showTeacherDropdown && !collapsed && isAdmin && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setShowTeacherDropdown(false)} />
             <div className="absolute bottom-28 left-4 right-4 bg-surface-card border border-border rounded-xl shadow-xl p-2 z-20 space-y-1">
@@ -275,8 +276,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
         {/* User Card with click to Switch Teacher */}
         <div 
-          onClick={() => !collapsed && setShowTeacherDropdown(!showTeacherDropdown)}
-          className={`flex items-center gap-3 bg-surface-card/60 p-2.5 rounded-xl border border-border/45 overflow-hidden cursor-pointer hover:border-primary/20 hover:bg-surface-card transition-all ${
+          onClick={() => !collapsed && isAdmin && setShowTeacherDropdown(!showTeacherDropdown)}
+          className={`flex items-center gap-3 bg-surface-card/60 p-2.5 rounded-xl border border-border/45 overflow-hidden transition-all ${isAdmin ? 'cursor-pointer hover:border-primary/20 hover:bg-surface-card' : ''} ${
             collapsed ? 'justify-center' : ''
           }`}
         >
@@ -287,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 text-sm font-semibold truncate">
                 <span>{activeTeacher ? activeTeacher.name : 'Yükleniyor...'}</span>
-                <ChevronDown size={14} className="text-text-muted flex-shrink-0" />
+                {isAdmin && <ChevronDown size={14} className="text-text-muted flex-shrink-0" />}
               </div>
               <p className="text-xs text-text-muted truncate">
                 {activeTeacher ? activeTeacher.subject : 'Öğretmen'} · {activeTeacher ? activeTeacher.email : ''}

@@ -11,6 +11,7 @@ interface AppContextType {
   userRole: 'teacher' | 'student';
   activeStudentId: string | null;
   activeStudent: Student | undefined;
+  isAdmin: boolean;
   setActiveTeacherId: (id: string) => void;
   login: (email: string, password: string) => boolean;
   register: (name: string, email: string, subject: string, password: string) => boolean;
@@ -78,6 +79,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Active Teacher details
   const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
+
+  // Super Admin Check: Only Yasin Eren Alacahan has platform-wide management permissions
+  const isAdmin = Boolean(
+    activeTeacher && (
+      activeTeacher.name.toLowerCase().includes('yasin eren') ||
+      activeTeacher.name.toLowerCase().includes('alacahan') ||
+      activeTeacher.email.toLowerCase().includes('yasinalacahan')
+    )
+  );
+
+  // Admin sees all teachers in the switcher; normal teachers only see themselves
+  const teachers = isAdmin ? state.teachers : (activeTeacher ? [activeTeacher] : []);
 
   // Filtered lists for the active teacher
   const students = state.students.filter(s => s.teacherId === state.activeTeacherId);
@@ -508,12 +521,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider
       value={{
-        teachers: state.teachers,
+        teachers,
         activeTeacherId: state.activeTeacherId,
         activeTeacher,
         userRole: state.userRole || 'teacher',
         activeStudentId: state.activeStudentId || null,
         activeStudent,
+        isAdmin,
         setActiveTeacherId,
         login,
         register,
