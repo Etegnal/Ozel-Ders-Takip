@@ -1,21 +1,38 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Mail, Lock, User, Sparkles, BookOpen, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, BookOpen, AlertCircle, GraduationCap, School } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
-  const { login, register } = useApp();
+  const { login, register, loginAsStudent } = useApp();
+  const [authRole, setAuthRole] = useState<'teacher' | 'student'>('teacher');
   const [isLoginView, setIsLoginView] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Form states
+  // Teacher Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [subject, setSubject] = useState('Matematik');
 
+  // Student Form states
+  const [studentIdInput, setStudentIdInput] = useState('');
+  const [studentPassword, setStudentPassword] = useState('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (authRole === 'student') {
+      if (!studentIdInput.trim() || !studentPassword.trim()) {
+        setErrorMsg('Lütfen adınızı/e-postanızı ve şifrenizi girin.');
+        return;
+      }
+      const success = loginAsStudent(studentIdInput, studentPassword);
+      if (!success) {
+        setErrorMsg('Öğrenci kaydı bulunamadı veya şifre hatalı. (Varsayılan şifre: 123456)');
+      }
+      return;
+    }
 
     if (isLoginView) {
       const success = login(email, password);
@@ -57,8 +74,43 @@ export const AuthPage: React.FC = () => {
             Coach<span className="text-primary">.</span>
           </h2>
           <p className="text-xs text-text-secondary uppercase tracking-widest font-semibold">
-            {isLoginView ? 'ÖĞRETMEN GİRİŞİ' : 'ÖĞRETMEN KAYIT EKRANI'}
+            {authRole === 'student' ? 'ÖĞRENCİ PORTAL GİRİŞİ' : isLoginView ? 'ÖĞRETMEN GİRİŞİ' : 'ÖĞRETMEN KAYIT EKRANI'}
           </p>
+        </div>
+
+        {/* Role Switcher Tabs */}
+        <div className="grid grid-cols-2 p-1.5 bg-background border border-border/70 rounded-2xl gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthRole('teacher');
+              setErrorMsg('');
+            }}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              authRole === 'teacher'
+                ? 'bg-primary text-black shadow-md'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <School size={15} />
+            <span>Öğretmen</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAuthRole('student');
+              setErrorMsg('');
+            }}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              authRole === 'student'
+                ? 'bg-primary text-black shadow-md'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <GraduationCap size={15} />
+            <span>Öğrenci</span>
+          </button>
         </div>
 
         {/* Error Message Alert Banner */}
@@ -72,111 +124,145 @@ export const AuthPage: React.FC = () => {
         {/* Form elements */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Register Mode Inputs */}
-          {!isLoginView && (
+          {/* STUDENT LOGIN FORM */}
+          {authRole === 'student' ? (
             <>
-              {/* Teacher Name */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">AD SOYAD</label>
+                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">ÖĞRENCİ ADI / E-POSTA / TELEFON</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
                   <input
                     type="text"
                     required
-                    placeholder="Örn: Rahmi KOÇ"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Örn: Rahmi Koç"
+                    value={studentIdInput}
+                    onChange={(e) => setStudentIdInput(e.target.value)}
                     className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
                   />
                 </div>
               </div>
 
-              {/* Subject Dropdown */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">BRANŞ / ALAN</label>
+                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">ŞİFRE</label>
                 <div className="relative">
-                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
-                  <select
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors appearance-none"
-                  >
-                    <option value="Matematik">Matematik</option>
-                    <option value="Fizik">Fizik</option>
-                    <option value="Kimya">Kimya</option>
-                    <option value="Biyoloji">Biyoloji</option>
-                    <option value="Türkçe / Edebiyat">Türkçe / Edebiyat</option>
-                    <option value="İngilizce">İngilizce</option>
-                    <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
-                    <option value="Sınıf Öğretmenliği">Sınıf Öğretmenliği</option>
-                  </select>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••"
+                    value={studentPassword}
+                    onChange={(e) => setStudentPassword(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
                 </div>
+                <p className="text-[11px] text-text-muted text-right pt-0.5">
+                  Varsayılan Şifre: <span className="text-primary font-bold">123456</span>
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm"
+              >
+                <span>Öğrenci Paneline Giriş Yap</span>
+              </button>
+            </>
+          ) : (
+            /* TEACHER LOGIN / REGISTER FORM */
+            <>
+              {!isLoginView && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">AD SOYAD</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Örn: Rahmi KOÇ"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">BRANŞ / DERS</label>
+                    <div className="relative">
+                      <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                      <select
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors appearance-none cursor-pointer"
+                      >
+                        <option value="Matematik">Matematik</option>
+                        <option value="Fizik">Fizik</option>
+                        <option value="Kimya">Kimya</option>
+                        <option value="Biyoloji">Biyoloji</option>
+                        <option value="Türkçe / Edebiyat">Türkçe / Edebiyat</option>
+                        <option value="İngilizce">İngilizce</option>
+                        <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
+                        <option value="Sınıf Öğretmenliği">Sınıf Öğretmenliği</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">E-POSTA ADRESİ</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="ornek@ogretmen.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">ŞİFRE</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm"
+              >
+                <span>{isLoginView ? 'Giriş Yap' : 'Kayıt Ol & Başla'}</span>
+              </button>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLoginView(!isLoginView);
+                    setErrorMsg('');
+                  }}
+                  className="text-xs text-text-secondary hover:text-text-primary transition-colors underline underline-offset-4"
+                >
+                  {isLoginView ? 'Hesabınız yok mu? Yeni öğretmen kaydı oluşturun' : 'Zaten hesabınız var mı? Giriş yapın'}
+                </button>
               </div>
             </>
           )}
 
-          {/* Email input */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">E-POSTA ADRESİ</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
-              <input
-                type="email"
-                required
-                placeholder="Örn: rahmik93@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
-              />
-            </div>
-          </div>
-
-          {/* Password Input */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">ŞİFRE</label>
-              {isLoginView && (
-                <button type="button" className="text-[10px] text-primary hover:underline">Şifremi Unuttum</button>
-              )}
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
-              <input
-                type="password"
-                required
-                placeholder="••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
-              />
-            </div>
-          </div>
-
-          {/* Action button */}
-          <button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/10 mt-2 flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles size={16} />
-            <span>{isLoginView ? 'Giriş Yap' : 'Kayıt Ol ve Başla'}</span>
-          </button>
         </form>
-
-        {/* View Toggle */}
-        <div className="text-center pt-2">
-          <p className="text-xs text-text-secondary">
-            {isLoginView ? 'Hesabınız yok mu?' : 'Zaten üye misiniz?'}{' '}
-            <button
-              onClick={() => {
-                setIsLoginView(!isLoginView);
-                setErrorMsg('');
-              }}
-              className="text-primary hover:underline font-semibold"
-            >
-              {isLoginView ? 'Hemen Kayıt Olun' : 'Giriş Yapın'}
-            </button>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ const STORAGE_KEY = 'coach_app_state';
 const initialMockState: AppState = {
   teachers: [],
   activeTeacherId: '',
+  userRole: 'teacher',
+  activeStudentId: null,
   students: [],
   lessons: [],
   homeworks: [],
@@ -24,7 +26,12 @@ export const storageService = {
       return {
         teachers: parsed.teachers || initialMockState.teachers,
         activeTeacherId: parsed.activeTeacherId || initialMockState.activeTeacherId,
-        students: parsed.students || [],
+        userRole: parsed.userRole || 'teacher',
+        activeStudentId: parsed.activeStudentId || null,
+        students: (parsed.students || []).map((s: Student) => ({
+          ...s,
+          password: s.password || '123456'
+        })),
         lessons: parsed.lessons || [],
         homeworks: parsed.homeworks || [],
         transactions: parsed.transactions || [],

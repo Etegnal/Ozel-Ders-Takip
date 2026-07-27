@@ -9,8 +9,14 @@ import { FinancePage } from './pages/FinancePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { AuthPage } from './pages/AuthPage';
 
+import { StudentDashboard } from './pages/StudentDashboard';
+
 const AppContent: React.FC = () => {
-  const { activeTeacherId } = useApp();
+  const { activeTeacherId, userRole, activeStudentId } = useApp();
+
+  if (userRole === 'student' && activeStudentId) {
+    return <StudentDashboard />;
+  }
 
   if (!activeTeacherId) {
     return <AuthPage />;

@@ -19,6 +19,8 @@ export interface Student {
   teacherId: string;
   name: string;
   phone: string;
+  email?: string;
+  password?: string;
   parentName?: string;
   parentPhone?: string;
   grade: string; // e.g., "8. Sınıf"
@@ -88,6 +90,8 @@ export interface AppNotification {
 export interface AppState {
   teachers: Teacher[];
   activeTeacherId: string;
+  userRole: 'teacher' | 'student';
+  activeStudentId: string | null;
   students: Student[];
   lessons: Lesson[];
   homeworks: Homework[];

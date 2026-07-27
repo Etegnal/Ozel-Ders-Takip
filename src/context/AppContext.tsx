@@ -8,11 +8,17 @@ interface AppContextType {
   teachers: Teacher[];
   activeTeacherId: string;
   activeTeacher: Teacher | undefined;
+  userRole: 'teacher' | 'student';
+  activeStudentId: string | null;
+  activeStudent: Student | undefined;
   setActiveTeacherId: (id: string) => void;
   login: (email: string, password: string) => boolean;
   register: (name: string, email: string, subject: string, password: string) => boolean;
   logout: () => void;
   updateTeacherSettings: (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => void;
+  loginAsStudent: (identifier: string, password: string) => boolean;
+  logoutStudent: () => void;
+  toggleStudentHomeworkStatus: (homeworkId: string) => void;
 
   students: Student[];
   lessons: Lesson[];
@@ -70,6 +76,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Active Teacher details
   const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
+  const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
   // Filtered lists for the active teacher
   const students = state.students.filter(s => s.teacherId === state.activeTeacherId);
@@ -91,7 +98,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       t => t.email.toLowerCase() === email.toLowerCase() && t.password === password
     );
     if (teacher) {
-      setActiveTeacherId(teacher.id);
+      setState(prev => ({
+        ...prev,
+        userRole: 'teacher',
+        activeStudentId: null,
+        activeTeacherId: teacher.id
+      }));
       return true;
     }
     return false;
@@ -115,19 +127,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(prev => ({
       ...prev,
       teachers: [...prev.teachers, newTeacher],
+      userRole: 'teacher',
+      activeStudentId: null,
       activeTeacherId: newTeacher.id
     }));
     return true;
   };
 
   const logout = () => {
-    setActiveTeacherId('');
+    setState(prev => ({
+      ...prev,
+      userRole: 'teacher',
+      activeStudentId: null,
+      activeTeacherId: ''
+    }));
   };
 
   const updateTeacherSettings = (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => {
     setState(prev => ({
       ...prev,
       teachers: prev.teachers.map(t => t.id === state.activeTeacherId ? { ...t, whatsappSettings: settings } : t)
+    }));
+  };
+
+  // --- Student Auth Actions ---
+  const loginAsStudent = (identifier: string, password: string): boolean => {
+    const cleanId = identifier.trim().toLowerCase();
+    const student = state.students.find(s => {
+      const matchName = s.name.toLowerCase() === cleanId;
+      const matchEmail = s.email?.toLowerCase() === cleanId;
+      const matchPhone = s.phone.replace(/\D/g, '').includes(cleanId.replace(/\D/g, ''));
+      const studentPass = s.password || '123456';
+      return (matchName || matchEmail || (cleanId.length > 3 && matchPhone)) && studentPass === password;
+    });
+
+    if (student) {
+      setState(prev => ({
+        ...prev,
+        userRole: 'student',
+        activeStudentId: student.id,
+        activeTeacherId: student.teacherId
+      }));
+      return true;
+    }
+    return false;
+  };
+
+  const logoutStudent = () => {
+    setState(prev => ({
+      ...prev,
+      userRole: 'teacher',
+      activeStudentId: null
+    }));
+  };
+
+  const toggleStudentHomeworkStatus = (homeworkId: string) => {
+    setState(prev => ({
+      ...prev,
+      homeworks: prev.homeworks.map(h => {
+        if (h.id === homeworkId) {
+          const nextStatus = h.status === 'completed' ? 'pending' : 'completed';
+          return { ...h, status: nextStatus };
+        }
+        return h;
+      })
     }));
   };
 
@@ -432,11 +495,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         teachers: state.teachers,
         activeTeacherId: state.activeTeacherId,
         activeTeacher,
+        userRole: state.userRole || 'teacher',
+        activeStudentId: state.activeStudentId || null,
+        activeStudent,
         setActiveTeacherId,
         login,
         register,
         logout,
         updateTeacherSettings,
+        loginAsStudent,
+        logoutStudent,
+        toggleStudentHomeworkStatus,
 
         students,
         lessons,
