@@ -23,9 +23,16 @@ export const storageService = {
     }
     try {
       const parsed = JSON.parse(raw);
+      const filteredTeachers = (parsed.teachers || []).filter(
+        (t: Teacher) => !t.name.toLowerCase().includes('rahmi koç') && !t.name.toLowerCase().includes('rahmi koc')
+      );
+      const activeTeacherId = filteredTeachers.some((t: Teacher) => t.id === parsed.activeTeacherId)
+        ? parsed.activeTeacherId
+        : (filteredTeachers[0]?.id || '');
+
       return {
-        teachers: parsed.teachers || initialMockState.teachers,
-        activeTeacherId: parsed.activeTeacherId || initialMockState.activeTeacherId,
+        teachers: filteredTeachers,
+        activeTeacherId: activeTeacherId,
         userRole: parsed.userRole || 'teacher',
         activeStudentId: parsed.activeStudentId || null,
         students: (parsed.students || []).map((s: Student) => ({

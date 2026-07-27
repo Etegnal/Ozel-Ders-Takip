@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronDown,
   UserPlus,
+  Trash2,
   X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     activeTeacher,
     logout,
     register,
+    deleteTeacher,
     updateTeacherSettings
   } = useApp();
 
@@ -224,18 +226,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               <p className="text-[10px] text-text-muted font-bold px-2 py-1 uppercase">Öğretmen Değiştir</p>
               <div className="max-h-40 overflow-y-auto space-y-0.5">
                 {teachers.map((t) => (
-                  <button
+                  <div
                     key={t.id}
-                    onClick={() => handleSwitchTeacher(t.id)}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex flex-col transition-all ${
+                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition-all ${
                       t.id === activeTeacherId
                         ? 'bg-primary/10 border border-primary/20 text-text-primary font-semibold'
                         : 'hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-transparent'
                     }`}
                   >
-                    <span>{t.name}</span>
-                    <span className="text-[10px] text-text-muted">{t.subject} · {t.email}</span>
-                  </button>
+                    <button
+                      onClick={() => handleSwitchTeacher(t.id)}
+                      className="flex-1 text-left flex flex-col min-w-0"
+                    >
+                      <span className="truncate">{t.name}</span>
+                      <span className="text-[10px] text-text-muted truncate">{t.subject} · {t.email}</span>
+                    </button>
+                    {teachers.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`${t.name} isimli öğretmeni silmek istediğinizden emin misiniz?`)) {
+                            deleteTeacher(t.id);
+                          }
+                        }}
+                        className="p-1 hover:bg-red-500/20 text-text-muted hover:text-red-400 rounded-md transition-all ml-1 flex-shrink-0"
+                        title="Öğretmeni Sil"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
               <div className="h-px bg-border my-1" />

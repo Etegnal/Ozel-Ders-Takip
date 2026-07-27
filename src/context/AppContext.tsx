@@ -15,6 +15,7 @@ interface AppContextType {
   login: (email: string, password: string) => boolean;
   register: (name: string, email: string, subject: string, password: string) => boolean;
   logout: () => void;
+  deleteTeacher: (id: string) => void;
   updateTeacherSettings: (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => void;
   loginAsStudent: (identifier: string, password: string) => boolean;
   logoutStudent: () => void;
@@ -141,6 +142,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       activeStudentId: null,
       activeTeacherId: ''
     }));
+  };
+
+  const deleteTeacher = (id: string) => {
+    setState(prev => {
+      const remainingTeachers = prev.teachers.filter(t => t.id !== id);
+      const nextActiveId = prev.activeTeacherId === id 
+        ? (remainingTeachers[0]?.id || '') 
+        : prev.activeTeacherId;
+
+      return {
+        ...prev,
+        teachers: remainingTeachers,
+        activeTeacherId: nextActiveId
+      };
+    });
   };
 
   const updateTeacherSettings = (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => {
@@ -502,6 +518,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         login,
         register,
         logout,
+        deleteTeacher,
         updateTeacherSettings,
         loginAsStudent,
         logoutStudent,
