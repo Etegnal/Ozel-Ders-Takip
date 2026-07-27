@@ -79,11 +79,46 @@ export const HomeworksPage: React.FC = () => {
       status: 'pending'
     });
 
-    // Auto-trigger WhatsApp message redirect in new tab
     const teacherName = activeTeacher ? activeTeacher.name : 'Coach';
     const text = getHomeworkTemplate(student.name, title, dueDate, dueTime, teacherName);
-    const link = getWhatsAppLink(student.phone, text);
-    window.open(link, '_blank');
+
+    if (activeTeacher?.whatsappSettings?.enabled && activeTeacher.whatsappSettings.idInstance && activeTeacher.whatsappSettings.apiTokenInstance) {
+      const { idInstance, apiTokenInstance } = activeTeacher.whatsappSettings;
+      const cleanPhone = student.phone.replace('+', '');
+      
+      const sendAutoMessage = async () => {
+        try {
+          const url = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chatId: `${cleanPhone}@c.us`,
+              message: text
+            })
+          });
+          if (response.ok) {
+            alert('Ödev kaydedildi ve öğrenciye WhatsApp üzerinden otomatik olarak gönderildi! 🚀');
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            console.error('Green-API auto-send failed:', errData);
+            const link = getWhatsAppLink(student.phone, text);
+            window.open(link, '_blank');
+            alert('Yeşil API ile otomatik gönderim başarısız oldu. Mesajı manuel iletmeniz için yönlendirme sayfası açılıyor...');
+          }
+        } catch (err) {
+          console.error('Green-API connection error:', err);
+          const link = getWhatsAppLink(student.phone, text);
+          window.open(link, '_blank');
+          alert('Yeşil API bağlantı hatası. Mesajı manuel iletmeniz için yönlendirme sayfası açılıyor...');
+        }
+      };
+
+      sendAutoMessage();
+    } else {
+      const link = getWhatsAppLink(student.phone, text);
+      window.open(link, '_blank');
+    }
 
     setShowAddModal(false);
     setActiveModal(null);

@@ -5,6 +5,11 @@ export interface Teacher {
   subject: string;
   password?: string; // Optional if we want, but required for registration. Let's make it optional or required. Let's make it required.
   createdAt: string;
+  whatsappSettings?: {
+    enabled: boolean;
+    idInstance: string;
+    apiTokenInstance: string;
+  };
 }
 
 export type StudentStatus = 'active' | 'archive';

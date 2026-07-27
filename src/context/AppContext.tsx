@@ -12,6 +12,7 @@ interface AppContextType {
   login: (email: string, password: string) => boolean;
   register: (name: string, email: string, subject: string, password: string) => boolean;
   logout: () => void;
+  updateTeacherSettings: (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => void;
 
   students: Student[];
   lessons: Lesson[];
@@ -121,6 +122,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     setActiveTeacherId('');
+  };
+
+  const updateTeacherSettings = (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => {
+    setState(prev => ({
+      ...prev,
+      teachers: prev.teachers.map(t => t.id === state.activeTeacherId ? { ...t, whatsappSettings: settings } : t)
+    }));
   };
 
   // --- Student Actions ---
@@ -428,6 +436,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         login,
         register,
         logout,
+        updateTeacherSettings,
 
         students,
         lessons,
