@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Coach</string>
+    <string name="title_activity_main">Coach</string>
+    <string name="package_name">com.ozelders.app</string>
+    <string name="custom_url_scheme">com.ozelders.app</string>
+</resources>

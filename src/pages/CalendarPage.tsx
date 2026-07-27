@@ -152,35 +152,37 @@ export const CalendarPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Month Controls Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-card/40 p-4 border border-border/80 rounded-2xl">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={prevMonth}
-            className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button 
-            onClick={handleToday}
-            className="px-4 py-2 bg-surface-card border border-border text-xs rounded-xl font-bold text-text-secondary hover:text-text-primary transition-all"
-          >
-            Bugün
-          </button>
-          <button 
-            onClick={nextMonth}
-            className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
-          >
-            <ChevronRight size={16} />
-          </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card/40 p-4 border border-border/80 rounded-2xl">
+        <div className="flex items-center justify-between sm:justify-start gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={prevMonth}
+              className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button 
+              onClick={handleToday}
+              className="px-3 py-2 bg-surface-card border border-border text-xs rounded-xl font-bold text-text-secondary hover:text-text-primary transition-all"
+            >
+              Bugün
+            </button>
+            <button 
+              onClick={nextMonth}
+              className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
 
-          <span className="font-bold text-base text-text-primary ml-2 uppercase tracking-wide">
+          <span className="font-bold text-sm md:text-base text-text-primary uppercase tracking-wide">
             {currentDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
           </span>
         </div>
 
         <button 
           onClick={() => handleOpenAddModal()}
-          className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-black font-bold text-xs rounded-xl transition-all shadow-md shadow-primary/10 self-start sm:self-auto cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-hover text-black font-bold text-xs rounded-xl transition-all shadow-md shadow-primary/10 self-start sm:self-auto cursor-pointer"
         >
           <Plus size={14} />
           <span>Yeni Ders Planla</span>

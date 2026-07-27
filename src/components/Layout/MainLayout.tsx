@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import { Menu, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 interface MainLayoutProps {
@@ -84,19 +84,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         }`}
       >
         {/* Top Header */}
-        <div className="flex items-center">
-          {/* Mobile Menu Trigger */}
-          <button 
-            onClick={() => setMobileOpen(true)}
-            className="p-3.5 border-b border-border text-text-secondary hover:text-text-primary bg-surface/40 md:hidden animate-fade-in"
-          >
-            <Menu size={22} />
-          </button>
-
-          <div className="flex-1">
-            <Topbar />
-          </div>
-        </div>
+        <Topbar onMobileMenuToggle={() => setMobileOpen(true)} />
 
         {/* Viewport Content */}
         <main className="flex-grow p-6 overflow-y-auto max-w-7xl mx-auto w-full">
