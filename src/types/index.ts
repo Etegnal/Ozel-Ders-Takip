@@ -18,7 +18,7 @@ export interface Student {
   parentPhone?: string;
   grade: string; // e.g., "8. Sınıf"
   hourlyRate: number; // rate per hour e.g. 1000
-  monthlyRate?: number; // optional fixed monthly fee e.g. 4000
+  monthlyHours?: number; // optional monthly target hours e.g. 8
   balance: number; // accumulated balance: positive means debt/due, negative means prepaid
   status: StudentStatus;
   weeklySchedule?: string[]; // e.g., ["Pazartesi 17:00", "Çarşamba 18:00"]

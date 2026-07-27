@@ -24,7 +24,8 @@ export const HomeworksPage: React.FC = () => {
     updateHomework, 
     deleteHomework,
     activeModal,
-    setActiveModal
+    setActiveModal,
+    activeTeacher
   } = useApp();
 
   // Page level states
@@ -77,6 +78,13 @@ export const HomeworksPage: React.FC = () => {
       dueTime,
       status: 'pending'
     });
+
+    // Auto-trigger WhatsApp message redirect in new tab
+    const teacherName = activeTeacher ? activeTeacher.name : 'Coach';
+    const text = getHomeworkTemplate(student.name, title, dueDate, dueTime, teacherName);
+    const link = getWhatsAppLink(student.phone, text);
+    window.open(link, '_blank');
+
     setShowAddModal(false);
     setActiveModal(null);
   };
@@ -108,7 +116,8 @@ export const HomeworksPage: React.FC = () => {
   };
 
   const handleCopyText = (hw: Homework) => {
-    const text = getHomeworkTemplate(hw.studentName, hw.title, hw.dueDate, hw.dueTime, 'Rahmi');
+    const teacherName = activeTeacher ? activeTeacher.name : 'Coach';
+    const text = getHomeworkTemplate(hw.studentName, hw.title, hw.dueDate, hw.dueTime, teacherName);
     navigator.clipboard.writeText(text);
     alert('Ödev mesaj şablonu kopyalandı!');
   };
@@ -116,7 +125,8 @@ export const HomeworksPage: React.FC = () => {
   const getWhatsAppHref = (hw: Homework) => {
     const student = students.find(s => s.id === hw.studentId);
     const phone = student ? student.phone : '';
-    const text = getHomeworkTemplate(hw.studentName, hw.title, hw.dueDate, hw.dueTime, 'Rahmi');
+    const teacherName = activeTeacher ? activeTeacher.name : 'Coach';
+    const text = getHomeworkTemplate(hw.studentName, hw.title, hw.dueDate, hw.dueTime, teacherName);
     return getWhatsAppLink(phone, text);
   };
 
@@ -407,7 +417,7 @@ export const HomeworksPage: React.FC = () => {
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10"
               >
-                Ödev Gönder & WhatsApp Şablonunu Hazırla
+                Ödev Gönder & WhatsApp Mesajı Aç
               </button>
             </form>
           </div>

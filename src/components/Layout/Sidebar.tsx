@@ -10,7 +10,6 @@ import {
   ChevronRight, 
   LogOut, 
   Settings,
-  Sparkles,
   ChevronDown,
   UserPlus,
   X
@@ -223,22 +222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           )}
         </div>
 
-        {/* Subscription Meter */}
-        {!collapsed && (
-          <div className="bg-surface-card/40 p-3 rounded-xl border border-border/30 space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text-muted">DENEME SÜRESİ</span>
-              <span className="text-emerald-500 font-bold">21 gün kaldı</span>
-            </div>
-            <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
-              <div className="bg-emerald-500 h-full w-[70%]" />
-            </div>
-            <button className="w-full bg-primary hover:bg-primary-hover text-black font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-primary/20">
-              <Sparkles size={14} />
-              <span>Abone Ol</span>
-            </button>
-          </div>
-        )}
+
 
         {/* Log Out Button */}
         <button 

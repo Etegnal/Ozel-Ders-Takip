@@ -124,9 +124,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- Student Actions ---
+  const normalizePhone = (phoneStr: string): string => {
+    if (!phoneStr) return '';
+    let cleaned = phoneStr.replace(/\D/g, ''); // strip non-numeric
+    // If it starts with country code 90 (e.g. 90507...), remove the 90 prefix for normalization
+    if (cleaned.startsWith('90') && cleaned.length > 10) {
+      cleaned = cleaned.substring(2);
+    }
+    // If it starts with leading zero (e.g. 0507...), remove the 0
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+    return '+90' + cleaned;
+  };
+
   const addStudent = (studentData: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => {
     const newStudent: Student = {
       ...studentData,
+      phone: normalizePhone(studentData.phone),
+      parentPhone: studentData.parentPhone ? normalizePhone(studentData.parentPhone) : undefined,
       teacherId: state.activeTeacherId,
       id: `student-${Date.now()}`,
       balance: 0,
@@ -139,9 +155,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateStudent = (id: string, updates: Partial<Student>) => {
+    const formattedUpdates = { ...updates };
+    if (updates.phone !== undefined) {
+      formattedUpdates.phone = normalizePhone(updates.phone);
+    }
+    if (updates.parentPhone !== undefined) {
+      formattedUpdates.parentPhone = updates.parentPhone ? normalizePhone(updates.parentPhone) : undefined;
+    }
+
     setState(prev => ({
       ...prev,
-      students: prev.students.map(s => (s.id === id ? { ...s, ...updates } : s))
+      students: prev.students.map(s => (s.id === id ? { ...s, ...formattedUpdates } : s))
     }));
   };
 

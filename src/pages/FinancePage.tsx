@@ -54,10 +54,10 @@ export const FinancePage: React.FC = () => {
   // Calculations
   const activeStudentsCount = students.filter(s => s.status === 'active').length;
   
-  // Total expected monthly revenue based on students' monthlyRate field
+  // Total expected monthly revenue based on students' hourlyRate * monthlyHours
   const expectedMonthlyRevenue = students
     .filter(s => s.status === 'active')
-    .reduce((sum, s) => sum + (s.monthlyRate || 0), 0);
+    .reduce((sum, s) => sum + (s.hourlyRate * (s.monthlyHours || 0)), 0);
 
   // Accrued revenue is the sum rate of completed lessons
   const completedLessons = lessons.filter(l => l.status === 'completed');

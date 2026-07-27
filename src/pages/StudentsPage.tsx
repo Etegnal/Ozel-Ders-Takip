@@ -47,7 +47,7 @@ export const StudentsPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [grade, setGrade] = useState('8. Sınıf');
   const [hourlyRate, setHourlyRate] = useState(1000);
-  const [monthlyRate, setMonthlyRate] = useState(4000);
+  const [monthlyHours, setMonthlyHours] = useState(8);
   const [notes, setNotes] = useState('');
   const [parentName, setParentName] = useState('');
   const [parentPhone, setParentPhone] = useState('');
@@ -66,7 +66,7 @@ export const StudentsPage: React.FC = () => {
     setPhone('');
     setGrade('8. Sınıf');
     setHourlyRate(1000);
-    setMonthlyRate(4000);
+    setMonthlyHours(8);
     setNotes('');
     setShowAddModal(true);
   };
@@ -79,7 +79,7 @@ export const StudentsPage: React.FC = () => {
       phone,
       grade,
       hourlyRate: Number(hourlyRate),
-      monthlyRate: monthlyRate ? Number(monthlyRate) : undefined,
+      monthlyHours: monthlyHours ? Number(monthlyHours) : undefined,
       status: 'active',
       notes
     });
@@ -93,7 +93,7 @@ export const StudentsPage: React.FC = () => {
     setPhone(student.phone);
     setGrade(student.grade);
     setHourlyRate(student.hourlyRate);
-    setMonthlyRate(student.monthlyRate || 0);
+    setMonthlyHours(student.monthlyHours || 0);
     setNotes(student.notes || '');
     setShowEditModal(true);
     setActiveMenuId(null);
@@ -107,7 +107,7 @@ export const StudentsPage: React.FC = () => {
       phone,
       grade,
       hourlyRate: Number(hourlyRate),
-      monthlyRate: monthlyRate ? Number(monthlyRate) : undefined,
+      monthlyHours: monthlyHours ? Number(monthlyHours) : undefined,
       notes
     });
     setShowEditModal(false);
@@ -249,9 +249,9 @@ export const StudentsPage: React.FC = () => {
                   <div className="text-sm font-medium text-text-primary">
                     {formatCurrency(student.hourlyRate)}<span className="text-text-muted text-xs">/60dk</span>
                   </div>
-                  {student.monthlyRate && (
-                    <div className="text-xs text-emerald-500 font-medium">
-                      {formatCurrency(student.monthlyRate)}/ay
+                  {student.monthlyHours && (
+                    <div className="text-xs text-amber-500 font-medium">
+                      {student.monthlyHours} Saat/ay
                     </div>
                   )}
                 </div>
@@ -379,7 +379,7 @@ export const StudentsPage: React.FC = () => {
                 <input 
                   type="tel" 
                   required
-                  placeholder="Örn: +905435269142"
+                  placeholder="Örn: 5435269142"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
@@ -425,17 +425,17 @@ export const StudentsPage: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="text-xs text-text-secondary font-semibold flex items-center justify-between">
-                  <span>AYLIK BEKLENEN KAZANÇ (OPSİYONEL)</span>
+                  <span>AYLIK HEDEF DERS SAATİ (OPSİYONEL)</span>
                   <span className="text-[10px] text-text-muted">Boş bırakılırsa 0 kabul edilir</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-bold">₺</span>
                   <input 
                     type="number" 
                     min="0"
-                    value={monthlyRate}
-                    onChange={(e) => setMonthlyRate(Number(e.target.value))}
-                    className="w-full bg-surface-card border border-border rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
+                    placeholder="Örn: 8"
+                    value={monthlyHours || ''}
+                    onChange={(e) => setMonthlyHours(Number(e.target.value))}
+                    className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
                   />
                 </div>
               </div>
@@ -493,6 +493,7 @@ export const StudentsPage: React.FC = () => {
                 <input 
                   type="tel" 
                   required
+                  placeholder="Örn: 5435269142"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
@@ -537,15 +538,15 @@ export const StudentsPage: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs text-text-secondary font-semibold">AYLIK BEKLENEN KAZANÇ</label>
+                <label className="text-xs text-text-secondary font-semibold">AYLIK HEDEF DERS SAATİ</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-bold">₺</span>
                   <input 
                     type="number" 
                     min="0"
-                    value={monthlyRate}
-                    onChange={(e) => setMonthlyRate(Number(e.target.value))}
-                    className="w-full bg-surface-card border border-border rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
+                    placeholder="Örn: 8"
+                    value={monthlyHours || ''}
+                    onChange={(e) => setMonthlyHours(Number(e.target.value))}
+                    className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
                   />
                 </div>
               </div>
@@ -604,7 +605,7 @@ export const StudentsPage: React.FC = () => {
                 <input 
                   type="tel" 
                   required
-                  placeholder="Örn: +905..."
+                  placeholder="Örn: 5435269142"
                   value={parentPhone}
                   onChange={(e) => setParentPhone(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
