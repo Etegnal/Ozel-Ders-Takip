@@ -8,22 +8,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#121212",
+        background: "#031427",
         surface: {
-          DEFAULT: "#18181b",
-          card: "#1e1e24",
-          hover: "#27272a",
+          DEFAULT: "#061a33",
+          card: "#092446",
+          hover: "#0e315b",
         },
-        border: "#27272a",
+        border: "#0f3769",
         primary: {
-          DEFAULT: "#f97316", // Amber / orange-500
-          hover: "#ea580c", // orange-600
-          light: "#ffedd5", // orange-100
+          DEFAULT: "#FF8830",
+          hover: "#e36e19",
+          light: "#A6DFFF",
         },
         text: {
-          primary: "#f4f4f5",
-          secondary: "#a1a1aa",
-          muted: "#71717a",
+          primary: "#FFFFFF",
+          secondary: "#A6DFFF",
+          muted: "#668bb5",
         }
       },
       fontFamily: {

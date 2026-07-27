@@ -50,15 +50,8 @@ export const AuthPage: React.FC = () => {
         
         {/* Brand Logo & Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 mx-auto glow-primary">
-            {/* SVG Whistle/Coach Logo */}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-primary">
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-              <path d="M9 14h6"/>
-              <path d="M9 18h6"/>
-              <path d="M9 10h6"/>
-            </svg>
+          <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/20 mx-auto overflow-hidden">
+            <img src={`${(import.meta as any).env.BASE_URL}logo.png`} className="w-full h-full object-cover" alt="Coach Logo" />
           </div>
           <h2 className="text-2xl font-bold font-sans tracking-tight">
             Coach<span className="text-primary">.</span>
