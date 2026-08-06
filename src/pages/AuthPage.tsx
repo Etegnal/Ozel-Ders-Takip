@@ -224,13 +224,15 @@ export const AuthPage: React.FC = () => {
               )}
 
               <div className="space-y-1.5">
-                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">E-POSTA ADRESİ</label>
+                <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">
+                  {isLoginView ? 'E-POSTA VEYA AD SOYAD' : 'E-POSTA ADRESİ'}
+                </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
                   <input
-                    type="email"
+                    type={isLoginView ? "text" : "email"}
                     required
-                    placeholder="ornek@ogretmen.com"
+                    placeholder={isLoginView ? "E-Posta adresi veya Ad Soyad" : "ornek@ogretmen.com"}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"

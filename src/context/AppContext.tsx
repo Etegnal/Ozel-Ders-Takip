@@ -137,21 +137,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const cleanEmail = email.trim().toLowerCase();
+  const login = async (identifier: string, password: string): Promise<boolean> => {
+    const cleanInput = identifier.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    let teacher = state.teachers.find(
-      t => t.email.trim().toLowerCase() === cleanEmail && t.password === cleanPassword
-    );
+    const findTeacher = (teachersList: Teacher[]) => {
+      return teachersList.find(t => {
+        const matchEmail = t.email.trim().toLowerCase() === cleanInput;
+        const matchName = t.name.trim().toLowerCase() === cleanInput;
+        const matchPartialName = cleanInput.length > 2 && t.name.trim().toLowerCase().includes(cleanInput);
+        const matchPassword = t.password === cleanPassword;
+        return (matchEmail || matchName || matchPartialName) && matchPassword;
+      });
+    };
+
+    let teacher = findTeacher(state.teachers);
 
     if (!teacher) {
       const cloudState = await storageService.fetchCloudState();
       if (cloudState) {
         setState(cloudState);
-        teacher = cloudState.teachers.find(
-          t => t.email.trim().toLowerCase() === cleanEmail && t.password === cleanPassword
-        );
+        teacher = findTeacher(cloudState.teachers);
       }
     }
 
