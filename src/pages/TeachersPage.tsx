@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { Teacher } from '../types';
 import { 
   Users, 
   ShieldCheck, 
@@ -10,6 +11,7 @@ import {
   EyeOff, 
   UserCheck, 
   Trash2, 
+  Edit3,
   Mail, 
   BookOpen, 
   Lock, 
@@ -24,9 +26,10 @@ export const TeachersPage: React.FC = () => {
     activeTeacherId, 
     setActiveTeacherId, 
     deleteTeacher, 
+    updateTeacher,
     register, 
     syncCloudNow, 
-    students, 
+    allStudents, 
     lessons
   } = useApp();
 
@@ -43,6 +46,14 @@ export const TeachersPage: React.FC = () => {
   const [newTeacherSubject, setNewTeacherSubject] = useState('Matematik');
   const [newTeacherPassword, setNewTeacherPassword] = useState('');
   const [addErrorMsg, setAddErrorMsg] = useState('');
+
+  // Modal State for editing teacher
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editSubject, setEditSubject] = useState('Matematik');
+  const [editPassword, setEditPassword] = useState('');
 
   const toggleShowPassword = (id: string) => {
     setShowPassMap(prev => ({
@@ -88,6 +99,31 @@ export const TeachersPage: React.FC = () => {
     setNewTeacherEmail('');
     setNewTeacherPassword('');
     setShowAddModal(false);
+  };
+
+  const handleOpenEditModal = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    setEditName(teacher.name);
+    setEditEmail(teacher.email);
+    setEditSubject(teacher.subject);
+    setEditPassword(teacher.password || '123456');
+    setShowEditModal(true);
+  };
+
+  const handleEditTeacherSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeacher) return;
+    if (!editName.trim() || !editEmail.trim() || !editPassword.trim()) return;
+
+    updateTeacher(editingTeacher.id, {
+      name: editName.trim(),
+      email: editEmail.trim().toLowerCase(),
+      subject: editSubject,
+      password: editPassword.trim()
+    });
+
+    setShowEditModal(false);
+    setEditingTeacher(null);
   };
 
   // Filtered teachers list
@@ -153,7 +189,7 @@ export const TeachersPage: React.FC = () => {
         )}
       </div>
 
-      {/* Metrics Row */}
+      {/* Top Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-surface-card p-4 rounded-xl border border-border/80 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
@@ -171,7 +207,7 @@ export const TeachersPage: React.FC = () => {
           </div>
           <div>
             <p className="text-xs text-text-muted font-medium">Toplam Kayıtlı Öğrenci</p>
-            <h3 className="text-xl font-bold text-text-primary mt-0.5">{students.length} Öğrenci</h3>
+            <h3 className="text-xl font-bold text-text-primary mt-0.5">{allStudents.length} Öğrenci</h3>
           </div>
         </div>
 
@@ -225,7 +261,7 @@ export const TeachersPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredTeachers.map((teacher) => {
             const isSelf = teacher.id === activeTeacherId;
-            const teacherStudentsCount = students.filter(s => s.teacherId === teacher.id).length;
+            const teacherStudentsCount = allStudents.filter(s => s.teacherId === teacher.id).length;
             const teacherLessonsCount = lessons.filter(l => l.teacherId === teacher.id).length;
             const showPass = Boolean(showPassMap[teacher.id]);
 
@@ -246,7 +282,7 @@ export const TeachersPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <h3 className="font-bold text-sm text-text-primary">{teacher.name}</h3>
-                          {teacher.name.toLowerCase().includes('yasin') && (
+                          {(teacher.name.toLowerCase().includes('yasin') || teacher.email.toLowerCase().includes('yasinalacahan')) && (
                             <span className="text-xs" title="Super Admin">👑</span>
                           )}
                         </div>
@@ -279,7 +315,7 @@ export const TeachersPage: React.FC = () => {
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-bold text-primary select-all">
-                          {showPass ? teacher.password : '••••••••'}
+                          {showPass ? (teacher.password || '123456') : '••••••••'}
                         </span>
                         <button
                           onClick={() => toggleShowPassword(teacher.id)}
@@ -326,7 +362,15 @@ export const TeachersPage: React.FC = () => {
                     <span>{isSelf ? 'Şu An Seçili' : 'Hesabına Geçiş Yap'}</span>
                   </button>
 
-                  {teachers.length > 1 && (
+                  <button
+                    onClick={() => handleOpenEditModal(teacher)}
+                    className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl transition-all cursor-pointer"
+                    title="Öğretmen Bilgilerini Düzenle"
+                  >
+                    <Edit3 size={15} />
+                  </button>
+
+                  {teachers.length > 1 && teacher.id !== 'teacher-yasin-1' && (
                     <button
                       onClick={() => {
                         if (confirm(`${teacher.name} isimli öğretmeni silmek istediğinizden emin misiniz?`)) {
@@ -343,6 +387,95 @@ export const TeachersPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Edit Teacher Modal */}
+      {showEditModal && editingTeacher && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                <Edit3 size={18} className="text-primary" />
+                <span>Öğretmen Bilgilerini Düzenle</span>
+              </h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-text-muted hover:text-text-primary p-1 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditTeacherSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="text-text-secondary font-bold uppercase tracking-wider">AD SOYAD</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-background border border-border text-text-primary rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-text-secondary font-bold uppercase tracking-wider">BRANŞ</label>
+                <select
+                  value={editSubject}
+                  onChange={(e) => setEditSubject(e.target.value)}
+                  className="w-full bg-background border border-border text-text-primary rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary/50 cursor-pointer"
+                >
+                  <option value="Matematik">Matematik</option>
+                  <option value="Fizik">Fizik</option>
+                  <option value="Kimya">Kimya</option>
+                  <option value="Biyoloji">Biyoloji</option>
+                  <option value="Türkçe / Edebiyat">Türkçe / Edebiyat</option>
+                  <option value="İngilizce">İngilizce</option>
+                  <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
+                  <option value="Sınıf Öğretmenliği">Sınıf Öğretmenliği</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-text-secondary font-bold uppercase tracking-wider">E-POSTA ADRESİ</label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full bg-background border border-border text-text-primary rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-text-secondary font-bold uppercase tracking-wider">ŞİFRE</label>
+                <input
+                  type="text"
+                  required
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  className="w-full bg-background border border-border text-text-primary rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-primary/50 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2.5 bg-surface-hover text-text-secondary text-xs rounded-xl font-bold hover:text-text-primary transition-all"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-black text-xs font-bold rounded-xl transition-all shadow-md shadow-primary/20 cursor-pointer"
+                >
+                  Güncelle
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -446,3 +579,5 @@ export const TeachersPage: React.FC = () => {
     </div>
   );
 };
+
+export default TeachersPage;

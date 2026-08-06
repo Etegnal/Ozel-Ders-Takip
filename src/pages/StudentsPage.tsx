@@ -18,6 +18,9 @@ import { formatCurrency, getWhatsAppLink } from '../utils/helpers';
 export const StudentsPage: React.FC = () => {
   const { 
     students, 
+    allStudents,
+    teachers,
+    isAdmin,
     searchQuery, 
     statusFilter, 
     addStudent, 
@@ -30,6 +33,7 @@ export const StudentsPage: React.FC = () => {
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [teacherFilter, setTeacherFilter] = useState<string>('all');
 
   // Detect Topbar "+" click (via Context activeModal)
   useEffect(() => {
@@ -138,6 +142,7 @@ export const StudentsPage: React.FC = () => {
     setLessonDuration(60);
     setLessonNotes('');
     setShowScheduleLessonModal(true);
+    setActiveMenuId(null);
   };
 
   const handleScheduleLesson = (e: React.FormEvent) => {
@@ -149,7 +154,7 @@ export const StudentsPage: React.FC = () => {
       date: lessonDate,
       startTime: lessonTime,
       durationMinutes: Number(lessonDuration),
-      rate: selectedStudent.hourlyRate,
+      rate: Number(selectedStudent.hourlyRate * (lessonDuration / 60)),
       status: 'scheduled',
       notes: lessonNotes
     });
@@ -170,17 +175,43 @@ export const StudentsPage: React.FC = () => {
     setActiveMenuId(null);
   };
 
-  // Filter students based on status and search query
-  const filteredStudents = students.filter(student => {
+  // Filter students based on status, teacher (for Admin), and search query
+  const studentListToUse = isAdmin ? allStudents : students;
+  const filteredStudents = studentListToUse.filter(student => {
     const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
+    const matchesTeacher = !isAdmin || teacherFilter === 'all' || student.teacherId === teacherFilter;
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           student.phone.includes(searchQuery) ||
                           (student.grade && student.grade.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesTeacher && matchesSearch;
   });
 
   return (
     <div className="space-y-6">
+      {/* Admin Teacher Filter Bar */}
+      {isAdmin && (
+        <div className="bg-surface-card/60 border border-primary/20 p-4 rounded-2xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-primary">👑 Super Admin Öğretmen Filtresi:</span>
+            <select
+              value={teacherFilter}
+              onChange={(e) => setTeacherFilter(e.target.value)}
+              className="bg-background border border-border text-text-primary text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-primary/50 cursor-pointer"
+            >
+              <option value="all">Tüm Öğretmenlerin Öğrencileri ({allStudents.length})</option>
+              {teachers.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.subject}) - {allStudents.filter(s => s.teacherId === t.id).length} Öğrenci
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="text-xs text-text-muted">
+            Gösterilen: <strong className="text-text-primary">{filteredStudents.length}</strong> öğrenci
+          </span>
+        </div>
+      )}
+
       {/* Student List */}
       <div className="grid grid-cols-1 gap-4">
         {filteredStudents.length > 0 ? (

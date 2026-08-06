@@ -3,7 +3,7 @@ import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, App
 const STORAGE_KEY = 'coach_app_state';
 const CLOUD_OBJECT_URL = 'https://jsonblob.com/api/jsonBlob/019fd8d2-78a8-7163-8bad-2e10a963783c';
 
-const defaultTeachers: Teacher[] = [
+export const defaultTeachers: Teacher[] = [
   {
     id: 'teacher-yasin-1',
     name: 'Yasin Eren Alacahan',
@@ -50,16 +50,40 @@ const initialMockState: AppState = {
   notifications: []
 };
 
-// Helper to merge items by id (preserves local & remote additions)
-function mergeById<T extends { id: string }>(localArr: T[] = [], remoteArr: T[] = []): T[] {
+// Helper to merge items by id / key preserving latest properties
+function mergeById<T extends { id: string }>(primaryArr: T[] = [], secondaryArr: T[] = []): T[] {
   const map = new Map<string, T>();
-  for (const item of localArr) {
-    if (item && item.id) map.set(item.id, item);
+  for (const item of primaryArr) {
+    if (item && item.id) map.set(item.id, { ...item });
   }
-  for (const item of remoteArr) {
-    if (item && item.id) map.set(item.id, item);
+  for (const item of secondaryArr) {
+    if (item && item.id) {
+      const existing = map.get(item.id);
+      map.set(item.id, existing ? { ...existing, ...item } : { ...item });
+    }
   }
   return Array.from(map.values());
+}
+
+// Helper to ensure Yasin Eren Alacahan Admin Teacher is ALWAYS present
+function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
+  let list = Array.isArray(teachers) ? [...teachers] : [];
+  const adminIndex = list.findIndex(t => 
+    t.id === 'teacher-yasin-1' || 
+    t.email.toLowerCase().includes('yasinalacahan') || 
+    t.name.toLowerCase().includes('yasin eren alacahan')
+  );
+
+  if (adminIndex === -1) {
+    list.unshift(defaultTeachers[0]);
+  } else {
+    list[adminIndex] = {
+      ...defaultTeachers[0],
+      ...list[adminIndex],
+      email: 'yasinalacahan23@gmail.com'
+    };
+  }
+  return list;
 }
 
 export const storageService = {
@@ -72,9 +96,8 @@ export const storageService = {
     try {
       const parsed = JSON.parse(raw);
       let teachersList = mergeById(defaultTeachers, parsed.teachers || []);
-      teachersList = teachersList.filter(
-        (t: Teacher) => !t.name.toLowerCase().includes('rahmi koç') && !t.name.toLowerCase().includes('rahmi koc')
-      );
+      teachersList = ensureAdminTeacher(teachersList);
+
       const activeTeacherId = teachersList.some((t: Teacher) => t.id === parsed.activeTeacherId)
         ? parsed.activeTeacherId
         : (teachersList[0]?.id || 'teacher-yasin-1');
@@ -99,9 +122,22 @@ export const storageService = {
   },
 
   saveState(state: AppState): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    
-    // Asynchronously push to central jsonblob.com cloud DB for multi-device sync
+    const sanitizedState = {
+      ...state,
+      teachers: ensureAdminTeacher(state.teachers)
+    };
+
+    // 1. Instant local persistence
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedState));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+
+    // 2. Non-blocking Async Cloud Push with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
     fetch(CLOUD_OBJECT_URL, {
       method: 'PUT',
       headers: { 
@@ -109,29 +145,39 @@ export const storageService = {
         'Accept': 'application/json' 
       },
       body: JSON.stringify({
-        teachers: state.teachers,
-        students: state.students,
-        lessons: state.lessons,
-        homeworks: state.homeworks,
-        transactions: state.transactions,
-        notifications: state.notifications
-      })
-    }).catch(() => {});
+        teachers: sanitizedState.teachers,
+        students: sanitizedState.students,
+        lessons: sanitizedState.lessons,
+        homeworks: sanitizedState.homeworks,
+        transactions: sanitizedState.transactions,
+        notifications: sanitizedState.notifications
+      }),
+      signal: controller.signal
+    }).catch(() => {})
+      .finally(() => clearTimeout(timeoutId));
   },
 
   // Fetch and merge cloud state with local storage
   async fetchCloudState(): Promise<AppState | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
     try {
       const res = await fetch(CLOUD_OBJECT_URL, {
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       if (!res.ok) return null;
       const cloudData = await res.json();
-      if (!cloudData) return null;
+      if (!cloudData || typeof cloudData !== 'object') return null;
 
       const currentState = this.getState();
 
-      const mergedTeachers = mergeById(defaultTeachers, mergeById(currentState.teachers, cloudData.teachers || []));
+      const mergedTeachers = ensureAdminTeacher(
+        mergeById(currentState.teachers, cloudData.teachers || [])
+      );
 
       const mergedState: AppState = {
         teachers: mergedTeachers,
@@ -145,15 +191,10 @@ export const storageService = {
         notifications: mergeById(currentState.notifications, cloudData.notifications || [])
       };
 
-      // Filter out deleted test users if any
-      mergedState.teachers = mergedState.teachers.filter(
-        (t: Teacher) => !t.name.toLowerCase().includes('rahmi koç') && !t.name.toLowerCase().includes('rahmi koc')
-      );
-
       // Save merged result back to localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedState));
 
-      // Push merged state back to cloud DB
+      // Asynchronously sync back merged state
       fetch(CLOUD_OBJECT_URL, {
         method: 'PUT',
         headers: { 
@@ -172,6 +213,7 @@ export const storageService = {
 
       return mergedState;
     } catch {
+      clearTimeout(timeoutId);
       return null;
     }
   },
@@ -183,7 +225,7 @@ export const storageService = {
 
   saveTeachers(teachers: Teacher[]): void {
     const state = this.getState();
-    state.teachers = teachers;
+    state.teachers = ensureAdminTeacher(teachers);
     this.saveState(state);
   },
 
@@ -252,3 +294,4 @@ export const storageService = {
     this.saveState(state);
   }
 };
+
