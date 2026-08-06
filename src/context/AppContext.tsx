@@ -119,8 +119,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     )
   );
 
-  // Admin sees all teachers in the switcher; normal teachers only see themselves
-  const teachers = isAdmin ? state.teachers : (activeTeacher ? [activeTeacher] : []);
+  // Return all registered teachers in the system
+  const teachers = state.teachers;
 
   // Filtered lists for the active teacher
   const students = state.students.filter(s => s.teacherId === state.activeTeacherId);

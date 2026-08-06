@@ -3,9 +3,44 @@ import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, App
 const STORAGE_KEY = 'coach_app_state';
 const CLOUD_OBJECT_URL = 'https://jsonblob.com/api/jsonBlob/019fd8d2-78a8-7163-8bad-2e10a963783c';
 
+const defaultTeachers: Teacher[] = [
+  {
+    id: 'teacher-yasin-1',
+    name: 'Yasin Eren Alacahan',
+    email: 'yasinalacahan23@gmail.com',
+    subject: 'Fizik / Matematik',
+    password: '123456',
+    createdAt: '2026-07-25T10:00:00.000Z'
+  },
+  {
+    id: 'teacher-ayse-2',
+    name: 'Ayşe Yılmaz',
+    email: 'ayse@ogretmen.com',
+    subject: 'Matematik',
+    password: '123456',
+    createdAt: '2026-07-26T12:00:00.000Z'
+  },
+  {
+    id: 'teacher-mehmet-3',
+    name: 'Mehmet Demir',
+    email: 'mehmet@ogretmen.com',
+    subject: 'Kimya',
+    password: '123456',
+    createdAt: '2026-07-27T14:30:00.000Z'
+  },
+  {
+    id: 'teacher-elif-4',
+    name: 'Elif Kaya',
+    email: 'elif@ogretmen.com',
+    subject: 'Biyoloji',
+    password: '123456',
+    createdAt: '2026-07-28T09:15:00.000Z'
+  }
+];
+
 const initialMockState: AppState = {
-  teachers: [],
-  activeTeacherId: '',
+  teachers: defaultTeachers,
+  activeTeacherId: 'teacher-yasin-1',
   userRole: 'teacher',
   activeStudentId: null,
   students: [],
@@ -36,15 +71,16 @@ export const storageService = {
     }
     try {
       const parsed = JSON.parse(raw);
-      const filteredTeachers = (parsed.teachers || []).filter(
+      let teachersList = mergeById(defaultTeachers, parsed.teachers || []);
+      teachersList = teachersList.filter(
         (t: Teacher) => !t.name.toLowerCase().includes('rahmi koç') && !t.name.toLowerCase().includes('rahmi koc')
       );
-      const activeTeacherId = filteredTeachers.some((t: Teacher) => t.id === parsed.activeTeacherId)
+      const activeTeacherId = teachersList.some((t: Teacher) => t.id === parsed.activeTeacherId)
         ? parsed.activeTeacherId
-        : (filteredTeachers[0]?.id || '');
+        : (teachersList[0]?.id || 'teacher-yasin-1');
 
       return {
-        teachers: filteredTeachers,
+        teachers: teachersList,
         activeTeacherId: activeTeacherId,
         userRole: parsed.userRole || 'teacher',
         activeStudentId: parsed.activeStudentId || null,
@@ -95,9 +131,11 @@ export const storageService = {
 
       const currentState = this.getState();
 
+      const mergedTeachers = mergeById(defaultTeachers, mergeById(currentState.teachers, cloudData.teachers || []));
+
       const mergedState: AppState = {
-        teachers: mergeById(currentState.teachers, cloudData.teachers || []),
-        activeTeacherId: currentState.activeTeacherId || cloudData.teachers?.[0]?.id || '',
+        teachers: mergedTeachers,
+        activeTeacherId: currentState.activeTeacherId || mergedTeachers[0]?.id || 'teacher-yasin-1',
         userRole: currentState.userRole || 'teacher',
         activeStudentId: currentState.activeStudentId,
         students: mergeById(currentState.students, cloudData.students || []),

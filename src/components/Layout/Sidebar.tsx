@@ -36,7 +36,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     register,
     deleteTeacher,
     updateTeacherSettings,
-    isAdmin,
     syncCloudNow
   } = useApp();
 
@@ -134,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
     { to: '/finance', icon: Wallet, label: 'Finans' },
     { to: '/notifications', icon: Bell, label: 'Bildirimler', badge: unreadNotificationsCount },
-    ...(isAdmin ? [{ to: '/teachers', icon: Users, label: 'Öğretmenler' }] : [])
+    { to: '/teachers', icon: Users, label: 'Öğretmenler' }
   ];
 
   const handleSwitchTeacher = (id: string) => {
@@ -252,11 +251,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
       <div className="p-3 border-t border-border space-y-4 relative">
         
         {/* Dynamic Teacher Switcher Dropdown */}
-        {showTeacherDropdown && !collapsed && isAdmin && (
+        {showTeacherDropdown && !collapsed && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setShowTeacherDropdown(false)} />
             <div className="absolute bottom-28 left-4 right-4 bg-surface-card border border-border rounded-xl shadow-xl p-2 z-20 space-y-1">
-              <p className="text-[10px] text-text-muted font-bold px-2 py-1 uppercase">Öğretmen Değiştir</p>
+              <p className="text-[10px] text-text-muted font-bold px-2 py-1 uppercase">Öğretmen Değiştir ({teachers.length})</p>
               <div className="max-h-40 overflow-y-auto space-y-0.5">
                 {teachers.map((t) => (
                   <div
@@ -297,7 +296,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                   setShowAddTeacherModal(true);
                   setShowTeacherDropdown(false);
                 }}
-                className="w-full py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <UserPlus size={12} />
                 <span>Yeni Öğretmen Ekle</span>
@@ -308,8 +307,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
         {/* User Card with click to Switch Teacher */}
         <div 
-          onClick={() => !collapsed && isAdmin && setShowTeacherDropdown(!showTeacherDropdown)}
-          className={`flex items-center gap-3 bg-surface-card/60 p-2.5 rounded-xl border border-border/45 overflow-hidden transition-all ${isAdmin ? 'cursor-pointer hover:border-primary/20 hover:bg-surface-card' : ''} ${
+          onClick={() => !collapsed && setShowTeacherDropdown(!showTeacherDropdown)}
+          className={`flex items-center gap-3 bg-surface-card/60 p-2.5 rounded-xl border border-border/45 overflow-hidden transition-all cursor-pointer hover:border-primary/20 hover:bg-surface-card ${
             collapsed ? 'justify-center' : ''
           }`}
         >
@@ -320,7 +319,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 text-sm font-semibold truncate">
                 <span>{activeTeacher ? activeTeacher.name : 'Yükleniyor...'}</span>
-                {isAdmin && <ChevronDown size={14} className="text-text-muted flex-shrink-0" />}
+                <ChevronDown size={14} className="text-text-muted flex-shrink-0" />
               </div>
               <p className="text-xs text-text-muted truncate">
                 {activeTeacher ? activeTeacher.subject : 'Öğretmen'} · {activeTeacher ? activeTeacher.email : ''}
