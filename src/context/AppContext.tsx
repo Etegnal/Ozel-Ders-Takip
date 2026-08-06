@@ -22,6 +22,7 @@ interface AppContextType {
   logoutStudent: () => void;
   toggleStudentHomeworkStatus: (homeworkId: string) => void;
 
+  syncCloudNow: () => Promise<void>;
   students: Student[];
   lessons: Lesson[];
   homeworks: Homework[];
@@ -99,12 +100,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
+  // Manual cloud sync handler
+  const syncCloudNow = async () => {
+    const cloudState = await storageService.fetchCloudState();
+    if (cloudState) {
+      setState(cloudState);
+    }
+  };
+
   // Super Admin Check: Only Yasin Eren Alacahan has platform-wide management permissions
   const isAdmin = Boolean(
     activeTeacher && (
-      activeTeacher.name.toLowerCase().includes('yasin eren') ||
+      activeTeacher.name.toLowerCase().includes('yasin') ||
+      activeTeacher.name.toLowerCase().includes('eren') ||
       activeTeacher.name.toLowerCase().includes('alacahan') ||
-      activeTeacher.email.toLowerCase().includes('yasinalacahan')
+      activeTeacher.email.toLowerCase().includes('yasinalacahan') ||
+      activeTeacher.email.toLowerCase().includes('yasin')
     )
   );
 
@@ -594,6 +605,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginAsStudent,
         logoutStudent,
         toggleStudentHomeworkStatus,
+        syncCloudNow,
 
         students,
         lessons,

@@ -1,7 +1,7 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
 
 const STORAGE_KEY = 'coach_app_state';
-const CLOUD_OBJECT_URL = 'https://api.restful-api.dev/objects/ff8081819f7e10ae019fd8cc67260532';
+const CLOUD_OBJECT_URL = 'https://jsonblob.com/api/jsonBlob/019fd8d2-78a8-7163-8bad-2e10a963783c';
 
 const initialMockState: AppState = {
   teachers: [],
@@ -65,20 +65,20 @@ export const storageService = {
   saveState(state: AppState): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     
-    // Asynchronously push to central cloud DB for multi-device sync
+    // Asynchronously push to central jsonblob.com cloud DB for multi-device sync
     fetch(CLOUD_OBJECT_URL, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json' 
+      },
       body: JSON.stringify({
-        name: 'coach_app_state',
-        data: {
-          teachers: state.teachers,
-          students: state.students,
-          lessons: state.lessons,
-          homeworks: state.homeworks,
-          transactions: state.transactions,
-          notifications: state.notifications
-        }
+        teachers: state.teachers,
+        students: state.students,
+        lessons: state.lessons,
+        homeworks: state.homeworks,
+        transactions: state.transactions,
+        notifications: state.notifications
       })
     }).catch(() => {});
   },
@@ -86,10 +86,11 @@ export const storageService = {
   // Fetch and merge cloud state with local storage
   async fetchCloudState(): Promise<AppState | null> {
     try {
-      const res = await fetch(CLOUD_OBJECT_URL);
+      const res = await fetch(CLOUD_OBJECT_URL, {
+        headers: { 'Accept': 'application/json' }
+      });
       if (!res.ok) return null;
-      const json = await res.json();
-      const cloudData = json.data;
+      const cloudData = await res.json();
       if (!cloudData) return null;
 
       const currentState = this.getState();
@@ -117,17 +118,17 @@ export const storageService = {
       // Push merged state back to cloud DB
       fetch(CLOUD_OBJECT_URL, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
         body: JSON.stringify({
-          name: 'coach_app_state',
-          data: {
-            teachers: mergedState.teachers,
-            students: mergedState.students,
-            lessons: mergedState.lessons,
-            homeworks: mergedState.homeworks,
-            transactions: mergedState.transactions,
-            notifications: mergedState.notifications
-          }
+          teachers: mergedState.teachers,
+          students: mergedState.students,
+          lessons: mergedState.lessons,
+          homeworks: mergedState.homeworks,
+          transactions: mergedState.transactions,
+          notifications: mergedState.notifications
         })
       }).catch(() => {});
 
