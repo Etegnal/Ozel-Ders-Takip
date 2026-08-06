@@ -1,6 +1,7 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
 
 const STORAGE_KEY = 'coach_app_state';
+const CLOUD_OBJECT_URL = 'https://api.restful-api.dev/objects/ff8081819f7e10ae019fd8cc67260532';
 
 const initialMockState: AppState = {
   teachers: [],
@@ -13,6 +14,18 @@ const initialMockState: AppState = {
   transactions: [],
   notifications: []
 };
+
+// Helper to merge items by id (preserves local & remote additions)
+function mergeById<T extends { id: string }>(localArr: T[] = [], remoteArr: T[] = []): T[] {
+  const map = new Map<string, T>();
+  for (const item of localArr) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  for (const item of remoteArr) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  return Array.from(map.values());
+}
 
 export const storageService = {
   getState(): AppState {
@@ -51,6 +64,77 @@ export const storageService = {
 
   saveState(state: AppState): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    
+    // Asynchronously push to central cloud DB for multi-device sync
+    fetch(CLOUD_OBJECT_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'coach_app_state',
+        data: {
+          teachers: state.teachers,
+          students: state.students,
+          lessons: state.lessons,
+          homeworks: state.homeworks,
+          transactions: state.transactions,
+          notifications: state.notifications
+        }
+      })
+    }).catch(() => {});
+  },
+
+  // Fetch and merge cloud state with local storage
+  async fetchCloudState(): Promise<AppState | null> {
+    try {
+      const res = await fetch(CLOUD_OBJECT_URL);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const cloudData = json.data;
+      if (!cloudData) return null;
+
+      const currentState = this.getState();
+
+      const mergedState: AppState = {
+        teachers: mergeById(currentState.teachers, cloudData.teachers || []),
+        activeTeacherId: currentState.activeTeacherId || cloudData.teachers?.[0]?.id || '',
+        userRole: currentState.userRole || 'teacher',
+        activeStudentId: currentState.activeStudentId,
+        students: mergeById(currentState.students, cloudData.students || []),
+        lessons: mergeById(currentState.lessons, cloudData.lessons || []),
+        homeworks: mergeById(currentState.homeworks, cloudData.homeworks || []),
+        transactions: mergeById(currentState.transactions, cloudData.transactions || []),
+        notifications: mergeById(currentState.notifications, cloudData.notifications || [])
+      };
+
+      // Filter out deleted test users if any
+      mergedState.teachers = mergedState.teachers.filter(
+        (t: Teacher) => !t.name.toLowerCase().includes('rahmi koç') && !t.name.toLowerCase().includes('rahmi koc')
+      );
+
+      // Save merged result back to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedState));
+
+      // Push merged state back to cloud DB
+      fetch(CLOUD_OBJECT_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'coach_app_state',
+          data: {
+            teachers: mergedState.teachers,
+            students: mergedState.students,
+            lessons: mergedState.lessons,
+            homeworks: mergedState.homeworks,
+            transactions: mergedState.transactions,
+            notifications: mergedState.notifications
+          }
+        })
+      }).catch(() => {});
+
+      return mergedState;
+    } catch {
+      return null;
+    }
   },
 
   // Teachers CRUD

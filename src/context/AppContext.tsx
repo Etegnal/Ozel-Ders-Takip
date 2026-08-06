@@ -13,12 +13,12 @@ interface AppContextType {
   activeStudent: Student | undefined;
   isAdmin: boolean;
   setActiveTeacherId: (id: string) => void;
-  login: (email: string, password: string) => boolean;
-  register: (name: string, email: string, subject: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean> | boolean;
+  register: (name: string, email: string, subject: string, password: string) => Promise<boolean> | boolean;
   logout: () => void;
   deleteTeacher: (id: string) => void;
   updateTeacherSettings: (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => void;
-  loginAsStudent: (identifier: string, password: string) => boolean;
+  loginAsStudent: (identifier: string, password: string) => Promise<boolean> | boolean;
   logoutStudent: () => void;
   toggleStudentHomeworkStatus: (homeworkId: string) => void;
 
@@ -76,6 +76,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     storageService.saveState(state);
   }, [state]);
 
+  // Initial and periodic central cloud database sync
+  useEffect(() => {
+    storageService.fetchCloudState().then(cloudState => {
+      if (cloudState) {
+        setState(cloudState);
+      }
+    });
+
+    const interval = setInterval(() => {
+      storageService.fetchCloudState().then(cloudState => {
+        if (cloudState) {
+          setState(cloudState);
+        }
+      });
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Active Teacher details
   const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
@@ -107,10 +126,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const login = (email: string, password: string): boolean => {
-    const teacher = state.teachers.find(
-      t => t.email.toLowerCase() === email.toLowerCase() && t.password === password
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    let teacher = state.teachers.find(
+      t => t.email.trim().toLowerCase() === cleanEmail && t.password === cleanPassword
     );
+
+    if (!teacher) {
+      const cloudState = await storageService.fetchCloudState();
+      if (cloudState) {
+        setState(cloudState);
+        teacher = cloudState.teachers.find(
+          t => t.email.trim().toLowerCase() === cleanEmail && t.password === cleanPassword
+        );
+      }
+    }
+
     if (teacher) {
       setState(prev => ({
         ...prev,
@@ -123,28 +156,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
-  const register = (name: string, email: string, subject: string, password: string): boolean => {
-    const exists = state.teachers.some(t => t.email.toLowerCase() === email.toLowerCase());
+  const register = async (name: string, email: string, subject: string, password: string): Promise<boolean> => {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    const cloudState = await storageService.fetchCloudState();
+    const currentTeachers = cloudState ? cloudState.teachers : state.teachers;
+
+    const exists = currentTeachers.some(t => t.email.trim().toLowerCase() === cleanEmail);
     if (exists) {
       return false;
     }
 
     const newTeacher: Teacher = {
       id: `teacher-${Date.now()}`,
-      name,
-      email,
+      name: cleanName,
+      email: cleanEmail,
       subject,
-      password,
+      password: cleanPassword,
       createdAt: new Date().toISOString()
     };
 
-    setState(prev => ({
-      ...prev,
-      teachers: [...prev.teachers, newTeacher],
+    const updatedState: AppState = {
+      ...(cloudState || state),
+      teachers: [...currentTeachers, newTeacher],
       userRole: 'teacher',
       activeStudentId: null,
       activeTeacherId: newTeacher.id
-    }));
+    };
+
+    setState(updatedState);
+    storageService.saveState(updatedState);
     return true;
   };
 
@@ -180,15 +223,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- Student Auth Actions ---
-  const loginAsStudent = (identifier: string, password: string): boolean => {
+  const loginAsStudent = async (identifier: string, password: string): Promise<boolean> => {
     const cleanId = identifier.trim().toLowerCase();
-    const student = state.students.find(s => {
-      const matchName = s.name.toLowerCase() === cleanId;
-      const matchEmail = s.email?.toLowerCase() === cleanId;
-      const matchPhone = s.phone.replace(/\D/g, '').includes(cleanId.replace(/\D/g, ''));
-      const studentPass = s.password || '123456';
-      return (matchName || matchEmail || (cleanId.length > 3 && matchPhone)) && studentPass === password;
-    });
+    const cleanPassword = password.trim();
+
+    const findStudent = (studentsList: Student[]) => {
+      return studentsList.find(s => {
+        const matchName = s.name.trim().toLowerCase() === cleanId;
+        const matchEmail = s.email?.trim().toLowerCase() === cleanId;
+        const matchPhone = s.phone.replace(/\D/g, '').includes(cleanId.replace(/\D/g, ''));
+        const studentPass = s.password || '123456';
+        return (matchName || matchEmail || (cleanId.length > 3 && matchPhone)) && studentPass === cleanPassword;
+      });
+    };
+
+    let student = findStudent(state.students);
+
+    if (!student) {
+      const cloudState = await storageService.fetchCloudState();
+      if (cloudState) {
+        setState(cloudState);
+        student = findStudent(cloudState.students);
+      }
+    }
 
     if (student) {
       setState(prev => ({

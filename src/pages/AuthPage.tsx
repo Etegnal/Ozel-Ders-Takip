@@ -18,40 +18,52 @@ export const AuthPage: React.FC = () => {
   const [studentIdInput, setStudentIdInput] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Loading state
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setLoading(true);
 
-    if (authRole === 'student') {
-      if (!studentIdInput.trim() || !studentPassword.trim()) {
-        setErrorMsg('Lütfen adınızı/e-postanızı ve şifrenizi girin.');
+    try {
+      if (authRole === 'student') {
+        if (!studentIdInput.trim() || !studentPassword.trim()) {
+          setErrorMsg('Lütfen adınızı/e-postanızı ve şifrenizi girin.');
+          setLoading(false);
+          return;
+        }
+        const success = await loginAsStudent(studentIdInput, studentPassword);
+        if (!success) {
+          setErrorMsg('Öğrenci kaydı bulunamadı veya şifre hatalı. (Varsayılan şifre: 123456)');
+        }
+        setLoading(false);
         return;
       }
-      const success = loginAsStudent(studentIdInput, studentPassword);
-      if (!success) {
-        setErrorMsg('Öğrenci kaydı bulunamadı veya şifre hatalı. (Varsayılan şifre: 123456)');
-      }
-      return;
-    }
 
-    if (isLoginView) {
-      const success = login(email, password);
-      if (!success) {
-        setErrorMsg('E-posta adresi veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.');
+      if (isLoginView) {
+        const success = await login(email, password);
+        if (!success) {
+          setErrorMsg('E-posta adresi veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.');
+        }
+      } else {
+        if (!name.trim() || !email.trim() || !password.trim()) {
+          setErrorMsg('Lütfen tüm zorunlu alanları doldurun.');
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setErrorMsg('Şifre en az 6 karakterden oluşmalıdır.');
+          setLoading(false);
+          return;
+        }
+        const success = await register(name, email, subject, password);
+        if (!success) {
+          setErrorMsg('Bu e-posta adresi zaten kullanımda.');
+        }
       }
-    } else {
-      if (!name.trim() || !email.trim() || !password.trim()) {
-        setErrorMsg('Lütfen tüm zorunlu alanları doldurun.');
-        return;
-      }
-      if (password.length < 6) {
-        setErrorMsg('Şifre en az 6 karakterden oluşmalıdır.');
-        return;
-      }
-      const success = register(name, email, subject, password);
-      if (!success) {
-        setErrorMsg('Bu e-posta adresi zaten kullanımda.');
-      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -162,9 +174,10 @@ export const AuthPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm cursor-pointer"
               >
-                <span>Öğrenci Paneline Giriş Yap</span>
+                <span>{loading ? 'Kontrol Ediliyor...' : 'Öğrenci Paneline Giriş Yap'}</span>
               </button>
             </>
           ) : (
@@ -242,9 +255,10 @@ export const AuthPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm cursor-pointer"
               >
-                <span>{isLoginView ? 'Giriş Yap' : 'Kayıt Ol & Başla'}</span>
+                <span>{loading ? 'İşlem Yapılıyor...' : isLoginView ? 'Giriş Yap' : 'Kayıt Ol & Başla'}</span>
               </button>
 
               <div className="pt-2 text-center">
