@@ -134,6 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
     { to: '/finance', icon: Wallet, label: 'Finans' },
     { to: '/notifications', icon: Bell, label: 'Bildirimler', badge: unreadNotificationsCount },
+    ...(isAdmin ? [{ to: '/teachers', icon: Users, label: 'Öğretmenler' }] : [])
   ];
 
   const handleSwitchTeacher = (id: string) => {

@@ -7,6 +7,7 @@ import { StudentsPage } from './pages/StudentsPage';
 import { HomeworksPage } from './pages/HomeworksPage';
 import { FinancePage } from './pages/FinancePage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { TeachersPage } from './pages/TeachersPage';
 import { AuthPage } from './pages/AuthPage';
 
 import { StudentDashboard } from './pages/StudentDashboard';
@@ -30,6 +31,7 @@ const AppContent: React.FC = () => {
         <Route path="/homeworks" element={<HomeworksPage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/teachers" element={<TeachersPage />} />
       </Routes>
     </MainLayout>
   );
