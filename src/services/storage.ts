@@ -50,20 +50,7 @@ const initialMockState: AppState = {
   notifications: []
 };
 
-// Helper to merge items by id / key preserving latest properties
-function mergeById<T extends { id: string }>(primaryArr: T[] = [], secondaryArr: T[] = []): T[] {
-  const map = new Map<string, T>();
-  for (const item of primaryArr) {
-    if (item && item.id) map.set(item.id, { ...item });
-  }
-  for (const item of secondaryArr) {
-    if (item && item.id) {
-      const existing = map.get(item.id);
-      map.set(item.id, existing ? { ...existing, ...item } : { ...item });
-    }
-  }
-  return Array.from(map.values());
-}
+// Helper to merge items b
 
 // Helper to ensure Yasin Eren Alacahan Admin Teacher is ALWAYS present
 function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
@@ -86,57 +73,33 @@ function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   return list;
 }
 
+let inMemoryState: AppState = { ...initialMockState };
+
 export const storageService = {
-  getState(): AppState {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      this.saveState(initialMockState);
-      return initialMockState;
-    }
+  // Clear any legacy localStorage to ensure pure Cloud DB operation
+  clearLegacyLocalStorage(): void {
     try {
-      const parsed = JSON.parse(raw);
-      let teachersList = mergeById(defaultTeachers, parsed.teachers || []);
-      teachersList = ensureAdminTeacher(teachersList);
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+  },
 
-      const activeTeacherId = teachersList.some((t: Teacher) => t.id === parsed.activeTeacherId)
-        ? parsed.activeTeacherId
-        : (teachersList[0]?.id || 'teacher-yasin-1');
-
-      return {
-        teachers: teachersList,
-        activeTeacherId: activeTeacherId,
-        userRole: parsed.userRole || 'teacher',
-        activeStudentId: parsed.activeStudentId || null,
-        students: (parsed.students || []).map((s: Student) => ({
-          ...s,
-          password: s.password || '123456'
-        })),
-        lessons: parsed.lessons || [],
-        homeworks: parsed.homeworks || [],
-        transactions: parsed.transactions || [],
-        notifications: parsed.notifications || []
-      };
-    } catch {
-      return initialMockState;
-    }
+  getState(): AppState {
+    this.clearLegacyLocalStorage();
+    return inMemoryState;
   },
 
   saveState(state: AppState): void {
-    const sanitizedState = {
+    const sanitizedState: AppState = {
       ...state,
       teachers: ensureAdminTeacher(state.teachers)
     };
 
-    // 1. Instant local persistence
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedState));
-    } catch (e) {
-      console.warn('LocalStorage save error:', e);
-    }
+    inMemoryState = sanitizedState;
+    this.clearLegacyLocalStorage();
 
-    // 2. Non-blocking Async Cloud Push with timeout
+    // Direct Sync to Central Cloud DB
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     fetch(CLOUD_OBJECT_URL, {
       method: 'PUT',
@@ -157,10 +120,11 @@ export const storageService = {
       .finally(() => clearTimeout(timeoutId));
   },
 
-  // Fetch and merge cloud state with local storage
+  // Direct Fetch from Central Cloud DB (Single Source of Truth)
   async fetchCloudState(): Promise<AppState | null> {
+    this.clearLegacyLocalStorage();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     try {
       const res = await fetch(CLOUD_OBJECT_URL, {
@@ -169,52 +133,32 @@ export const storageService = {
       });
       clearTimeout(timeoutId);
 
-      if (!res.ok) return null;
+      if (!res.ok) return inMemoryState;
       const cloudData = await res.json();
-      if (!cloudData || typeof cloudData !== 'object') return null;
+      if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
-      const currentState = this.getState();
+      const mergedTeachers = ensureAdminTeacher(cloudData.teachers || defaultTeachers);
 
-      const mergedTeachers = ensureAdminTeacher(
-        mergeById(currentState.teachers, cloudData.teachers || [])
-      );
-
-      const mergedState: AppState = {
+      const updatedState: AppState = {
         teachers: mergedTeachers,
-        activeTeacherId: currentState.activeTeacherId || mergedTeachers[0]?.id || 'teacher-yasin-1',
-        userRole: currentState.userRole || 'teacher',
-        activeStudentId: currentState.activeStudentId,
-        students: mergeById(currentState.students, cloudData.students || []),
-        lessons: mergeById(currentState.lessons, cloudData.lessons || []),
-        homeworks: mergeById(currentState.homeworks, cloudData.homeworks || []),
-        transactions: mergeById(currentState.transactions, cloudData.transactions || []),
-        notifications: mergeById(currentState.notifications, cloudData.notifications || [])
+        activeTeacherId: inMemoryState.activeTeacherId || mergedTeachers[0]?.id || 'teacher-yasin-1',
+        userRole: inMemoryState.userRole || 'teacher',
+        activeStudentId: inMemoryState.activeStudentId || null,
+        students: (cloudData.students || []).map((s: Student) => ({
+          ...s,
+          password: s.password || '123456'
+        })),
+        lessons: cloudData.lessons || [],
+        homeworks: cloudData.homeworks || [],
+        transactions: cloudData.transactions || [],
+        notifications: cloudData.notifications || []
       };
 
-      // Save merged result back to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedState));
-
-      // Asynchronously sync back merged state
-      fetch(CLOUD_OBJECT_URL, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json' 
-        },
-        body: JSON.stringify({
-          teachers: mergedState.teachers,
-          students: mergedState.students,
-          lessons: mergedState.lessons,
-          homeworks: mergedState.homeworks,
-          transactions: mergedState.transactions,
-          notifications: mergedState.notifications
-        })
-      }).catch(() => {});
-
-      return mergedState;
+      inMemoryState = updatedState;
+      return updatedState;
     } catch {
       clearTimeout(timeoutId);
-      return null;
+      return inMemoryState;
     }
   },
 
