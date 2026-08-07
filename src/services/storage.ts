@@ -1,7 +1,7 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
 
-const STORAGE_KEY = 'coach_app_state';
-const CLOUD_OBJECT_URL = 'https://jsonblob.com/api/jsonBlob/019fd8d2-78a8-7163-8bad-2e10a963783c';
+const STORAGE_KEY = 'coach_app_state_v3';
+const CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019fdd5b-5e5b-7c2e-b633-279d274f680c';
 
 export const defaultTeachers: Teacher[] = [
   {
@@ -38,7 +38,7 @@ export const defaultTeachers: Teacher[] = [
   }
 ];
 
-const initialMockState: AppState = {
+export const initialMockState: AppState = {
   teachers: defaultTeachers,
   activeTeacherId: 'teacher-yasin-1',
   userRole: 'teacher',
@@ -50,10 +50,8 @@ const initialMockState: AppState = {
   notifications: []
 };
 
-// Helper to merge items b
-
-// Helper to ensure Yasin Eren Alacahan Admin Teacher is ALWAYS present
-function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
+// Helper: Ensure Super Admin Yasin Eren Alacahan is ALWAYS present
+export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   let list = Array.isArray(teachers) ? [...teachers] : [];
   const adminIndex = list.findIndex(t => 
     t.id === 'teacher-yasin-1' || 
@@ -67,24 +65,83 @@ function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
     list[adminIndex] = {
       ...defaultTeachers[0],
       ...list[adminIndex],
-      email: 'yasinalacahan23@gmail.com'
+      email: 'yasinalacahan23@gmail.com',
+      password: list[adminIndex].password || defaultTeachers[0].password
     };
   }
   return list;
 }
 
+// Smart merger for teachers (merges local + cloud without losing registered accounts)
+export function mergeTeachers(local: Teacher[], cloud: Teacher[]): Teacher[] {
+  const map = new Map<string, Teacher>();
+
+  // Add default teachers first
+  defaultTeachers.forEach(t => map.set(t.id, t));
+
+  // Add local teachers
+  (local || []).forEach(t => {
+    if (!t || !t.id) return;
+    map.set(t.id, t);
+  });
+
+  // Add cloud teachers (merge by id or email)
+  (cloud || []).forEach(t => {
+    if (!t || !t.id) return;
+    const existingByEmail = Array.from(map.values()).find(
+      ex => ex.email.trim().toLowerCase() === t.email.trim().toLowerCase()
+    );
+    const targetId = existingByEmail ? existingByEmail.id : t.id;
+    const existing = map.get(targetId);
+
+    if (!existing) {
+      map.set(t.id, t);
+    } else {
+      map.set(targetId, {
+        ...existing,
+        ...t,
+        password: t.password || existing.password || '123456'
+      });
+    }
+  });
+
+  return ensureAdminTeacher(Array.from(map.values()));
+}
+
+// Smart merger for collections by ID
+export function mergeCollections<T extends { id: string }>(local: T[], cloud: T[]): T[] {
+  const map = new Map<string, T>();
+  (local || []).forEach(item => { if (item && item.id) map.set(item.id, item); });
+  (cloud || []).forEach(item => {
+    if (item && item.id) {
+      const existing = map.get(item.id);
+      map.set(item.id, existing ? { ...existing, ...item } : item);
+    }
+  });
+  return Array.from(map.values());
+}
+
 let inMemoryState: AppState = { ...initialMockState };
 
-export const storageService = {
-  // Clear any legacy localStorage to ensure pure Cloud DB operation
-  clearLegacyLocalStorage(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-  },
+// Try reading local cache on startup
+try {
+  const cached = localStorage.getItem(STORAGE_KEY);
+  if (cached) {
+    const parsed = JSON.parse(cached);
+    if (parsed && Array.isArray(parsed.teachers) && parsed.teachers.length > 0) {
+      inMemoryState = {
+        ...initialMockState,
+        ...parsed,
+        teachers: ensureAdminTeacher(parsed.teachers)
+      };
+    }
+  }
+} catch (e) {
+  console.warn('Failed to load local cache', e);
+}
 
+export const storageService = {
   getState(): AppState {
-    this.clearLegacyLocalStorage();
     return inMemoryState;
   },
 
@@ -95,13 +152,17 @@ export const storageService = {
     };
 
     inMemoryState = sanitizedState;
-    this.clearLegacyLocalStorage();
 
-    // Direct Sync to Central Cloud DB
+    // Save to local cache
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedState));
+    } catch {}
+
+    // Direct Sync to Cloud DB
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    fetch(CLOUD_OBJECT_URL, {
+    fetch(CLOUD_DB_URL, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -120,14 +181,13 @@ export const storageService = {
       .finally(() => clearTimeout(timeoutId));
   },
 
-  // Direct Fetch from Central Cloud DB (Single Source of Truth)
-  async fetchCloudState(): Promise<AppState | null> {
-    this.clearLegacyLocalStorage();
+  // Fetch Cloud State with Smart Merge
+  async fetchCloudState(): Promise<AppState> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     try {
-      const res = await fetch(CLOUD_OBJECT_URL, {
+      const res = await fetch(CLOUD_DB_URL, {
         headers: { 'Accept': 'application/json' },
         signal: controller.signal
       });
@@ -137,24 +197,35 @@ export const storageService = {
       const cloudData = await res.json();
       if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
-      const mergedTeachers = ensureAdminTeacher(cloudData.teachers || defaultTeachers);
+      const mergedTeachers = mergeTeachers(inMemoryState.teachers, cloudData.teachers);
+      const mergedStudents = mergeCollections(inMemoryState.students, cloudData.students || []).map((s: Student) => ({
+        ...s,
+        password: s.password || '123456'
+      }));
+      const mergedLessons = mergeCollections(inMemoryState.lessons, cloudData.lessons || []);
+      const mergedHomeworks = mergeCollections(inMemoryState.homeworks, cloudData.homeworks || []);
+      const mergedTransactions = mergeCollections(inMemoryState.transactions, cloudData.transactions || []);
+      const mergedNotifications = mergeCollections(inMemoryState.notifications, cloudData.notifications || []);
 
       const updatedState: AppState = {
         teachers: mergedTeachers,
         activeTeacherId: inMemoryState.activeTeacherId || mergedTeachers[0]?.id || 'teacher-yasin-1',
         userRole: inMemoryState.userRole || 'teacher',
         activeStudentId: inMemoryState.activeStudentId || null,
-        students: (cloudData.students || []).map((s: Student) => ({
-          ...s,
-          password: s.password || '123456'
-        })),
-        lessons: cloudData.lessons || [],
-        homeworks: cloudData.homeworks || [],
-        transactions: cloudData.transactions || [],
-        notifications: cloudData.notifications || []
+        students: mergedStudents,
+        lessons: mergedLessons,
+        homeworks: mergedHomeworks,
+        transactions: mergedTransactions,
+        notifications: mergedNotifications
       };
 
       inMemoryState = updatedState;
+
+      // Update local cache
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
+      } catch {}
+
       return updatedState;
     } catch {
       clearTimeout(timeoutId);
@@ -238,4 +309,5 @@ export const storageService = {
     this.saveState(state);
   }
 };
+
 
