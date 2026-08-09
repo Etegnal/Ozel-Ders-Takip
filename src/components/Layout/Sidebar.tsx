@@ -14,7 +14,7 @@ import {
   UserPlus,
   Trash2,
   X,
-  RefreshCw
+  ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -36,20 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     register,
     deleteTeacher,
     updateTeacherSettings,
-    syncCloudNow
+    isAdmin
   } = useApp();
-
-  const [syncing, setSyncing] = useState(false);
-  const [syncSuccessMsg, setSyncSuccessMsg] = useState('');
-
-  const handleManualSync = async () => {
-    setSyncing(true);
-    setSyncSuccessMsg('');
-    await syncCloudNow();
-    setSyncing(false);
-    setSyncSuccessMsg('Veriler Eşitlendi!');
-    setTimeout(() => setSyncSuccessMsg(''), 3000);
-  };
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
@@ -133,7 +121,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
     { to: '/finance', icon: Wallet, label: 'Finans' },
     { to: '/notifications', icon: Bell, label: 'Bildirimler', badge: unreadNotificationsCount },
-    { to: '/teachers', icon: Users, label: 'Öğretmenler' }
+    { to: '/teachers', icon: Users, label: 'Öğretmenler' },
+    ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Super Admin' }] : [])
   ];
 
   const handleSwitchTeacher = (id: string) => {
@@ -228,23 +217,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             </NavLink>
           );
         })}
-
-        {/* Cloud Sync Button */}
-        <div className="pt-2">
-          <button
-            onClick={handleManualSync}
-            disabled={syncing}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl transition-all text-xs font-bold cursor-pointer ${
-              collapsed ? 'justify-center' : ''
-            }`}
-            title="Canlı Bulut Verilerini Yenile"
-          >
-            <RefreshCw size={15} className={`flex-shrink-0 ${syncing ? 'animate-spin' : ''}`} />
-            {!collapsed && (
-              <span className="truncate">{syncing ? 'Eşitleniyor...' : syncSuccessMsg || 'Canlı Veri Eşitle'}</span>
-            )}
-          </button>
-        </div>
       </nav>
 
       {/* Bottom Profile and Subscription Area */}

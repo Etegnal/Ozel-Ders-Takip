@@ -8,12 +8,13 @@ import { HomeworksPage } from './pages/HomeworksPage';
 import { FinancePage } from './pages/FinancePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { TeachersPage } from './pages/TeachersPage';
+import { AdminPage } from './pages/AdminPage';
 import { AuthPage } from './pages/AuthPage';
 
 import { StudentDashboard } from './pages/StudentDashboard';
 
 const AppContent: React.FC = () => {
-  const { activeTeacherId, userRole, activeStudentId } = useApp();
+  const { activeTeacherId, userRole, activeStudentId, isAdmin } = useApp();
 
   if (userRole === 'student' && activeStudentId) {
     return <StudentDashboard />;
@@ -32,6 +33,7 @@ const AppContent: React.FC = () => {
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/teachers" element={<TeachersPage />} />
+        {isAdmin && <Route path="/admin" element={<AdminPage />} />}
       </Routes>
     </MainLayout>
   );
