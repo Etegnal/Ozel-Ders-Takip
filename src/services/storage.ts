@@ -70,7 +70,7 @@ export const defaultTeachers: Teacher[] = [
 
 export const initialMockState: AppState = {
   teachers: defaultTeachers,
-  activeTeacherId: 'teacher-yasin-1',
+  activeTeacherId: '',
   userRole: 'teacher',
   activeStudentId: null,
   students: [],
@@ -264,7 +264,7 @@ export const storageService = {
 
       const updatedState: AppState = {
         teachers: mergedTeachers,
-        activeTeacherId: inMemoryState.activeTeacherId || mergedTeachers[0]?.id || 'teacher-yasin-1',
+        activeTeacherId: typeof inMemoryState.activeTeacherId === 'string' ? inMemoryState.activeTeacherId : '',
         userRole: inMemoryState.userRole || 'teacher',
         activeStudentId: inMemoryState.activeStudentId || null,
         students: mergedStudents,
