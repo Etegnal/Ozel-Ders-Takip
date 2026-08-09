@@ -204,6 +204,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (teacher) {
+      try {
+        localStorage.setItem('coach_user_logged_in', 'true');
+      } catch {}
+
       const updatedTeacher = { ...teacher, password: cleanPassword || teacher.password || '123456' };
       const updatedTeachers = state.teachers.map(t => t.id === teacher.id ? updatedTeacher : t);
       if (!updatedTeachers.some(t => t.id === teacher.id)) {
@@ -243,6 +247,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return false;
     }
 
+    try {
+      localStorage.setItem('coach_user_logged_in', 'true');
+    } catch {}
+
     const newTeacher: Teacher = {
       id: `teacher-${Date.now()}`,
       name: cleanName,
@@ -266,12 +274,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
-    setState(prev => ({
-      ...prev,
+    try {
+      localStorage.removeItem('coach_user_logged_in');
+    } catch {}
+
+    const loggedOutState: AppState = {
+      ...state,
       userRole: 'teacher',
       activeStudentId: null,
       activeTeacherId: ''
-    }));
+    };
+
+    setState(loggedOutState);
+    storageService.saveState(loggedOutState);
   };
 
   const deleteTeacher = (id: string) => {

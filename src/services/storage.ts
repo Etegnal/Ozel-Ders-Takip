@@ -172,13 +172,15 @@ let inMemoryState: AppState = { ...initialMockState };
 // Try reading local cache on startup
 try {
   const cached = localStorage.getItem(STORAGE_KEY);
+  const isLoggedIn = localStorage.getItem('coach_user_logged_in') === 'true';
   if (cached) {
     const parsed = JSON.parse(cached);
     if (parsed && Array.isArray(parsed.teachers) && parsed.teachers.length > 0) {
       inMemoryState = {
         ...initialMockState,
         ...parsed,
-        teachers: ensureAdminTeacher(parsed.teachers)
+        teachers: ensureAdminTeacher(parsed.teachers),
+        activeTeacherId: isLoggedIn ? (parsed.activeTeacherId || '') : ''
       };
     }
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
+  LayoutDashboard,
   Calendar, 
   Users, 
   BookOpen, 
@@ -116,7 +117,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   const navItems = [
-    { to: '/', icon: Calendar, label: 'Takvim' },
+    { to: '/', icon: LayoutDashboard, label: 'Ana Sayfa' },
+    { to: '/calendar', icon: Calendar, label: 'Takvim' },
     { to: '/students', icon: Users, label: 'Öğrenciler' },
     { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
     { to: '/finance', icon: Wallet, label: 'Finans' },

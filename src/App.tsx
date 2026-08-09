@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { MainLayout } from './components/Layout/MainLayout';
 import { CalendarPage } from './pages/CalendarPage';
+import { TeacherDashboard } from './pages/TeacherDashboard';
 import { StudentsPage } from './pages/StudentsPage';
 import { HomeworksPage } from './pages/HomeworksPage';
 import { FinancePage } from './pages/FinancePage';
@@ -27,7 +28,8 @@ const AppContent: React.FC = () => {
   return (
     <MainLayout>
       <Routes>
-        <Route path="/" element={<CalendarPage />} />
+        <Route path="/" element={<TeacherDashboard />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/students" element={<StudentsPage />} />
         <Route path="/homeworks" element={<HomeworksPage />} />
         <Route path="/finance" element={<FinancePage />} />
