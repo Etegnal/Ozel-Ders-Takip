@@ -121,7 +121,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
     { to: '/finance', icon: Wallet, label: 'Finans' },
     { to: '/notifications', icon: Bell, label: 'Bildirimler', badge: unreadNotificationsCount },
-    { to: '/teachers', icon: Users, label: 'Öğretmenler' },
     ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Super Admin' }] : [])
   ];
 
@@ -222,8 +221,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
       {/* Bottom Profile and Subscription Area */}
       <div className="p-3 border-t border-border space-y-4 relative">
         
-        {/* Dynamic Teacher Switcher Dropdown */}
-        {showTeacherDropdown && !collapsed && (
+        {/* Dynamic Teacher Switcher Dropdown (Super Admin ONLY) */}
+        {isAdmin && showTeacherDropdown && !collapsed && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setShowTeacherDropdown(false)} />
             <div className="absolute bottom-28 left-4 right-4 bg-surface-card border border-border rounded-xl shadow-xl p-2 z-20 space-y-1">
@@ -277,34 +276,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           </>
         )}
 
-        {/* User Card with click to Switch Teacher */}
+        {/* User Card */}
         <div 
-          onClick={() => !collapsed && setShowTeacherDropdown(!showTeacherDropdown)}
-          className={`flex items-center gap-3 bg-surface-card/60 p-2.5 rounded-xl border border-border/45 overflow-hidden transition-all cursor-pointer hover:border-primary/20 hover:bg-surface-card ${
+          onClick={() => !collapsed && isAdmin && setShowTeacherDropdown(!showTeacherDropdown)}
+          className={`flex items-center justify-between gap-3 bg-surface-card/60 p-2.5 rounded-xl border border-border/45 overflow-hidden transition-all ${
+            isAdmin ? 'cursor-pointer hover:border-primary/20 hover:bg-surface-card' : 'cursor-default'
+          } ${
             collapsed ? 'justify-center' : ''
           }`}
         >
-          <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold font-sans flex-shrink-0">
-            {activeTeacher ? activeTeacher.name.charAt(0) : 'C'}
-          </div>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 text-sm font-semibold truncate">
-                <span>{activeTeacher ? activeTeacher.name : 'Yükleniyor...'}</span>
-                <ChevronDown size={14} className="text-text-muted flex-shrink-0" />
-              </div>
-              <p className="text-xs text-text-muted truncate">
-                {activeTeacher ? activeTeacher.subject : 'Öğretmen'} · {activeTeacher ? activeTeacher.email : ''}
-              </p>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold font-sans flex-shrink-0">
+              {activeTeacher ? activeTeacher.name.charAt(0) : 'C'}
             </div>
-          )}
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 text-sm font-semibold truncate">
+                  <span>{activeTeacher ? activeTeacher.name : 'Yükleniyor...'}</span>
+                  {isAdmin && <ChevronDown size={14} className="text-text-muted flex-shrink-0" />}
+                </div>
+                <p className="text-xs text-text-muted truncate">
+                  {activeTeacher ? activeTeacher.subject : 'Öğretmen'} · {activeTeacher ? activeTeacher.email : ''}
+                </p>
+              </div>
+            )}
+          </div>
           {!collapsed && (
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 setShowSettingsModal(true);
               }}
-              className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+              className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0 p-1 hover:bg-surface-hover rounded-md"
+              title="Yeşil API WhatsApp Ayarları"
             >
               <Settings size={16} />
             </button>

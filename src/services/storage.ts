@@ -1,7 +1,7 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
 
 const STORAGE_KEY = 'coach_app_state_v3';
-const CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019fdd5b-5e5b-7c2e-b633-279d274f680c';
+let CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019fe6de-273f-726c-accf-f6e89ecfe9ca';
 
 // Turkish-safe string normalizer (handles İ/i, I/ı, Ğ/g, Ü/u, Ş/s, Ö/o, Ç/c, whitespace)
 export function normalizeStr(str: string | undefined | null): string {
@@ -57,6 +57,14 @@ export const defaultTeachers: Teacher[] = [
     subject: 'Biyoloji',
     password: '123456',
     createdAt: '2026-07-28T09:15:00.000Z'
+  },
+  {
+    id: 'teacher-rahmi-5',
+    name: 'Rahmi Koç',
+    email: 'rahmik93@gmail.com',
+    subject: 'Matematik',
+    password: '123456',
+    createdAt: '2026-08-01T10:00:00.000Z'
   }
 ];
 
