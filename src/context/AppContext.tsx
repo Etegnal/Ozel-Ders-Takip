@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState } from '../types';
-import { storageService } from '../services/storage';
+import { storageService, normalizeStr } from '../services/storage';
 
 export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | null;
 
@@ -113,11 +113,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Super Admin Check: Yasin Eren Alacahan (`yasinalacahan23@gmail.com`) has platform-wide management permissions
   const isAdmin = Boolean(
     (activeTeacher && (
-      activeTeacher.name.toLowerCase().includes('yasin') ||
-      activeTeacher.name.toLowerCase().includes('eren') ||
-      activeTeacher.name.toLowerCase().includes('alacahan') ||
-      activeTeacher.email.toLowerCase().includes('yasinalacahan') ||
-      activeTeacher.email.toLowerCase().includes('yasin')
+      normalizeStr(activeTeacher.name).includes('yasin') ||
+      normalizeStr(activeTeacher.name).includes('eren') ||
+      normalizeStr(activeTeacher.name).includes('alacahan') ||
+      normalizeStr(activeTeacher.email).includes('yasinalacahan')
     )) ||
     state.activeTeacherId === 'teacher-yasin-1'
   );
@@ -142,39 +141,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = async (identifier: string, password: string): Promise<boolean> => {
-    const cleanInput = identifier.trim().toLowerCase();
+    const normInput = normalizeStr(identifier);
     const cleanPassword = password.trim();
 
-    const findTeacher = (teachersList: Teacher[]) => {
+    if (!normInput || !cleanPassword) return false;
+
+    const findTeacherInList = (teachersList: Teacher[]) => {
       return teachersList.find(t => {
-        const matchEmail = t.email.trim().toLowerCase() === cleanInput;
-        const matchName = t.name.trim().toLowerCase() === cleanInput;
-        const matchPartialName = cleanInput.length > 2 && t.name.trim().toLowerCase().includes(cleanInput);
-        const matchPassword = !t.password || t.password === cleanPassword || cleanPassword === '123456';
-        return (matchEmail || matchName || matchPartialName) && matchPassword;
+        const normEmail = normalizeStr(t.email);
+        const normName = normalizeStr(t.name);
+
+        const matchEmail = normEmail === normInput;
+        const matchName = normName === normInput;
+        const matchPartialName = normInput.length >= 3 && (normName.includes(normInput) || normInput.includes(normName));
+
+        if (!matchEmail && !matchName && !matchPartialName) {
+          return false;
+        }
+
+        const teacherPass = t.password || '123456';
+        const matchPass = (teacherPass === cleanPassword) || (cleanPassword === '123456');
+
+        return matchPass;
       });
     };
 
-    let teacher = findTeacher(state.teachers);
+    let teacher = findTeacherInList(state.teachers);
 
     if (!teacher) {
       const cloudState = await storageService.fetchCloudState();
-      if (cloudState) {
+      if (cloudState && Array.isArray(cloudState.teachers)) {
         setState(cloudState);
-        teacher = findTeacher(cloudState.teachers);
+        teacher = findTeacherInList(cloudState.teachers);
       }
     }
 
     // Fail-safe Super Admin Login for Yasin Eren Alacahan
     const isYasinAdminInput = 
-      cleanInput.includes('yasinalacahan') || 
-      cleanInput === 'yasin' || 
-      cleanInput.includes('yasin eren') ||
-      cleanInput === 'yasinalacahan23@gmail.com';
+      normInput.includes('yasinalacahan') || 
+      normInput === 'yasin' || 
+      normInput.includes('yasin eren') ||
+      normInput === 'yasinalacahan23@gmail.com';
 
     if (!teacher && isYasinAdminInput) {
       let yasinTeacher = state.teachers.find(t => 
-        t.email.toLowerCase().includes('yasinalacahan') || t.name.toLowerCase().includes('yasin')
+        normalizeStr(t.email).includes('yasinalacahan') || normalizeStr(t.name).includes('yasin')
       );
 
       if (!yasinTeacher) {
@@ -193,22 +204,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (teacher) {
-      const updatedTeachers = state.teachers.map(t => 
-        t.id === teacher.id ? { ...t, password: cleanPassword || t.password || '123456' } : t
-      );
+      const updatedTeacher = { ...teacher, password: cleanPassword || teacher.password || '123456' };
+      const updatedTeachers = state.teachers.map(t => t.id === teacher.id ? updatedTeacher : t);
       if (!updatedTeachers.some(t => t.id === teacher.id)) {
-        updatedTeachers.unshift(teacher);
+        updatedTeachers.unshift(updatedTeacher);
       }
 
-      setState(prev => ({
-        ...prev,
+      const newState: AppState = {
+        ...state,
         teachers: updatedTeachers,
         userRole: 'teacher',
         activeStudentId: null,
         activeTeacherId: teacher.id
-      }));
+      };
+
+      setState(newState);
+      await storageService.saveState(newState);
       return true;
     }
+
     return false;
   };
 
@@ -217,10 +231,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
+    if (!cleanName || !cleanEmail || !cleanPassword) return false;
+
+    const normEmail = normalizeStr(cleanEmail);
+
     const cloudState = await storageService.fetchCloudState();
     const currentTeachers = cloudState ? cloudState.teachers : state.teachers;
 
-    const exists = currentTeachers.some(t => t.email.trim().toLowerCase() === cleanEmail);
+    const exists = currentTeachers.some(t => normalizeStr(t.email) === normEmail);
     if (exists) {
       return false;
     }
@@ -243,7 +261,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setState(updatedState);
-    storageService.saveState(updatedState);
+    await storageService.saveState(updatedState);
     return true;
   };
 
@@ -288,16 +306,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Student Auth Actions ---
   const loginAsStudent = async (identifier: string, password: string): Promise<boolean> => {
-    const cleanId = identifier.trim().toLowerCase();
+    const normId = normalizeStr(identifier);
     const cleanPassword = password.trim();
 
     const findStudent = (studentsList: Student[]) => {
       return studentsList.find(s => {
-        const matchName = s.name.trim().toLowerCase() === cleanId;
-        const matchEmail = s.email?.trim().toLowerCase() === cleanId;
-        const matchPhone = s.phone.replace(/\D/g, '').includes(cleanId.replace(/\D/g, ''));
+        const normName = normalizeStr(s.name);
+        const normEmail = normalizeStr(s.email);
+        const matchName = normName === normId;
+        const matchEmail = normEmail === normId;
+        const matchPhone = s.phone.replace(/\D/g, '').includes(normId.replace(/\D/g, ''));
         const studentPass = s.password || '123456';
-        return (matchName || matchEmail || (cleanId.length > 3 && matchPhone)) && studentPass === cleanPassword;
+        return (matchName || matchEmail || (normId.length > 3 && matchPhone)) && studentPass === cleanPassword;
       });
     };
 

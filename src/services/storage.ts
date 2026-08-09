@@ -3,6 +3,28 @@ import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, App
 const STORAGE_KEY = 'coach_app_state_v3';
 const CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019fdd5b-5e5b-7c2e-b633-279d274f680c';
 
+// Turkish-safe string normalizer (handles İ/i, I/ı, Ğ/g, Ü/u, Ş/s, Ö/o, Ç/c, whitespace)
+export function normalizeStr(str: string | undefined | null): string {
+  if (!str) return '';
+  return str
+    .trim()
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'ı')
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/Ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/Ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/Ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/Ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/Ç/g, 'c')
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
 export const defaultTeachers: Teacher[] = [
   {
     id: 'teacher-yasin-1',
@@ -55,8 +77,8 @@ export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   let list = Array.isArray(teachers) ? [...teachers] : [];
   const adminIndex = list.findIndex(t => 
     t.id === 'teacher-yasin-1' || 
-    t.email.toLowerCase().includes('yasinalacahan') || 
-    t.name.toLowerCase().includes('yasin eren alacahan')
+    normalizeStr(t.email).includes('yasinalacahan') || 
+    normalizeStr(t.name).includes('yasin eren alacahan')
   );
 
   if (adminIndex === -1) {
@@ -72,24 +94,34 @@ export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   return list;
 }
 
-// Smart merger for teachers (merges local + cloud without losing registered accounts)
+// Smart merger for teachers (merges local + cloud without losing registered accounts or custom passwords)
 export function mergeTeachers(local: Teacher[], cloud: Teacher[]): Teacher[] {
   const map = new Map<string, Teacher>();
 
-  // Add default teachers first
+  // 1. Add default teachers
   defaultTeachers.forEach(t => map.set(t.id, t));
 
-  // Add local teachers
+  // 2. Add local teachers (local custom passwords ALWAYS take priority over default '123456')
   (local || []).forEach(t => {
     if (!t || !t.id) return;
-    map.set(t.id, t);
+    const existing = map.get(t.id);
+    if (!existing) {
+      map.set(t.id, t);
+    } else {
+      map.set(t.id, {
+        ...existing,
+        ...t,
+        password: (t.password && t.password !== '123456') ? t.password : (existing.password || t.password || '123456')
+      });
+    }
   });
 
-  // Add cloud teachers (merge by id or email)
+  // 3. Add cloud teachers (merge by id or email)
   (cloud || []).forEach(t => {
     if (!t || !t.id) return;
+    const normCloudEmail = normalizeStr(t.email);
     const existingByEmail = Array.from(map.values()).find(
-      ex => ex.email.trim().toLowerCase() === t.email.trim().toLowerCase()
+      ex => normalizeStr(ex.email) === normCloudEmail
     );
     const targetId = existingByEmail ? existingByEmail.id : t.id;
     const existing = map.get(targetId);
@@ -97,10 +129,16 @@ export function mergeTeachers(local: Teacher[], cloud: Teacher[]): Teacher[] {
     if (!existing) {
       map.set(t.id, t);
     } else {
+      // PRESERVE CUSTOM PASSWORD if present in either local or cloud!
+      const customPassword = 
+        (existing.password && existing.password !== '123456') ? existing.password :
+        (t.password && t.password !== '123456') ? t.password :
+        (existing.password || t.password || '123456');
+
       map.set(targetId, {
         ...existing,
         ...t,
-        password: t.password || existing.password || '123456'
+        password: customPassword
       });
     }
   });
@@ -145,7 +183,7 @@ export const storageService = {
     return inMemoryState;
   },
 
-  saveState(state: AppState): void {
+  async saveState(state: AppState): Promise<boolean> {
     const sanitizedState: AppState = {
       ...state,
       teachers: ensureAdminTeacher(state.teachers)
@@ -158,27 +196,36 @@ export const storageService = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedState));
     } catch {}
 
-    // Direct Sync to Cloud DB
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    // Direct Sync to Cloud DB with Retries
+    const payload = JSON.stringify({
+      teachers: sanitizedState.teachers,
+      students: sanitizedState.students,
+      lessons: sanitizedState.lessons,
+      homeworks: sanitizedState.homeworks,
+      transactions: sanitizedState.transactions,
+      notifications: sanitizedState.notifications
+    });
 
-    fetch(CLOUD_DB_URL, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json' 
-      },
-      body: JSON.stringify({
-        teachers: sanitizedState.teachers,
-        students: sanitizedState.students,
-        lessons: sanitizedState.lessons,
-        homeworks: sanitizedState.homeworks,
-        transactions: sanitizedState.transactions,
-        notifications: sanitizedState.notifications
-      }),
-      signal: controller.signal
-    }).catch(() => {})
-      .finally(() => clearTimeout(timeoutId));
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(CLOUD_DB_URL, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: payload,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) return true;
+      } catch {
+        // Silent retry
+      }
+    }
+    return false;
   },
 
   // Fetch Cloud State with Smart Merge
@@ -197,7 +244,7 @@ export const storageService = {
       const cloudData = await res.json();
       if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
-      const mergedTeachers = mergeTeachers(inMemoryState.teachers, cloudData.teachers);
+      const mergedTeachers = mergeTeachers(inMemoryState.teachers, cloudData.teachers || []);
       const mergedStudents = mergeCollections(inMemoryState.students, cloudData.students || []).map((s: Student) => ({
         ...s,
         password: s.password || '123456'
