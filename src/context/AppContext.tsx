@@ -91,27 +91,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     storageService.saveState(state);
   }, [state]);
 
-  // Initial and periodic central cloud database sync
+  // Initial and periodic central cloud database sync (polling every 4s)
   useEffect(() => {
-    storageService.fetchCloudState().then(cloudState => {
+    const handleCloudSync = async () => {
+      const cloudState = await storageService.fetchCloudState();
       if (cloudState) {
-        setState(cloudState);
+        setState(prev => ({
+          ...cloudState,
+          activeTeacherId: prev.activeTeacherId || cloudState.activeTeacherId || (cloudState.teachers && cloudState.teachers[0] ? cloudState.teachers[0].id : 'teacher-yasin-1'),
+          userRole: prev.userRole || cloudState.userRole || 'teacher',
+          activeStudentId: prev.activeStudentId || cloudState.activeStudentId || null
+        }));
       }
-    });
+    };
 
-    const interval = setInterval(() => {
-      storageService.fetchCloudState().then(cloudState => {
-        if (cloudState) {
-          setState(cloudState);
-        }
-      });
-    }, 10000);
-
+    handleCloudSync();
+    const interval = setInterval(handleCloudSync, 4000);
     return () => clearInterval(interval);
   }, []);
 
   // Active Teacher details
-  const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
+  const teachers = state.teachers;
+  const allStudents = state.students;
+
+  const effectiveTeacherId = state.activeTeacherId || (teachers.length > 0 ? teachers[0].id : 'teacher-yasin-1');
+  const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId) || state.teachers[0];
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
   const [syncCode, setSyncCodeState] = useState(() => storageService.getSyncCode());
@@ -130,7 +134,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const syncCloudNow = async () => {
     const cloudState = await storageService.fetchCloudState();
     if (cloudState) {
-      setState(cloudState);
+      setState(prev => ({
+        ...cloudState,
+        activeTeacherId: prev.activeTeacherId || cloudState.activeTeacherId || 'teacher-yasin-1'
+      }));
     }
   };
 
@@ -146,6 +153,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateFirebaseUrl = async (url: string) => {
     storageService.setFirebaseUrl(url);
     setFirebaseUrlState(url);
+    await storageService.saveState(state);
     const cloudState = await storageService.fetchCloudState();
     if (cloudState) {
       setState(cloudState);
@@ -160,20 +168,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       normalizeStr(activeTeacher.name).includes('alacahan') ||
       normalizeStr(activeTeacher.email).includes('yasinalacahan')
     )) ||
+    effectiveTeacherId === 'teacher-yasin-1' ||
     state.activeTeacherId === 'teacher-yasin-1'
   );
 
-  // Return all registered teachers in the system
-  const teachers = state.teachers;
-  const allStudents = state.students;
-
-  // Filtered lists for the active teacher
-  const students = state.students.filter(s => s.teacherId === state.activeTeacherId);
-  const lessons = state.lessons.filter(l => l.teacherId === state.activeTeacherId);
-  const homeworks = state.homeworks.filter(h => h.teacherId === state.activeTeacherId);
-  const transactions = state.transactions.filter(t => t.teacherId === state.activeTeacherId);
-  const notifications = state.notifications.filter(n => n.teacherId === state.activeTeacherId);
-  const questions = (state.questions || []).filter(q => q.teacherId === state.activeTeacherId);
+  // Filtered lists for the active teacher (Fail-safe: Admin or matching teacherId sees all relevant records)
+  const students = state.students.filter(s => 
+    s.teacherId === effectiveTeacherId || 
+    (isAdmin && (s.teacherId === 'teacher-yasin-1' || !s.teacherId))
+  );
+  const lessons = state.lessons.filter(l => 
+    l.teacherId === effectiveTeacherId || (isAdmin && (l.teacherId === 'teacher-yasin-1' || !l.teacherId))
+  );
+  const homeworks = state.homeworks.filter(h => 
+    h.teacherId === effectiveTeacherId || (isAdmin && (h.teacherId === 'teacher-yasin-1' || !h.teacherId))
+  );
+  const transactions = state.transactions.filter(t => 
+    t.teacherId === effectiveTeacherId || (isAdmin && (t.teacherId === 'teacher-yasin-1' || !t.teacherId))
+  );
+  const notifications = state.notifications.filter(n => 
+    n.teacherId === effectiveTeacherId || (isAdmin && (n.teacherId === 'teacher-yasin-1' || !n.teacherId))
+  );
+  const questions = (state.questions || []).filter(q => 
+    q.teacherId === effectiveTeacherId || (isAdmin && (q.teacherId === 'teacher-yasin-1' || !q.teacherId))
+  );
 
   // --- Teacher / Auth Actions ---
   const setActiveTeacherId = (id: string) => {
