@@ -255,7 +255,7 @@ export const storageService = {
     return false;
   },
 
-  // Fetch Cloud State with Smart Merge
+  // Fetch Cloud State with Overwrite-Fallback Logic
   async fetchCloudState(): Promise<AppState> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -274,36 +274,53 @@ export const storageService = {
       const cloudData = jsonResponse.data;
       if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
-      const mergedTeachers = mergeTeachers(inMemoryState.teachers, cloudData.teachers || []);
-      const mergedStudents = mergeCollections(inMemoryState.students, cloudData.students || []).map((s: Student) => ({
-        ...s,
-        password: s.password || '123456'
-      }));
-      const mergedLessons = mergeCollections(inMemoryState.lessons, cloudData.lessons || []);
-      const mergedHomeworks = mergeCollections(inMemoryState.homeworks, cloudData.homeworks || []);
-      const mergedTransactions = mergeCollections(inMemoryState.transactions, cloudData.transactions || []);
-      const mergedNotifications = mergeCollections(inMemoryState.notifications, cloudData.notifications || []);
-      const mergedQuestions = pruneOldQuestions(mergeCollections(inMemoryState.questions || [], cloudData.questions || []));
+      // Check if the cloud database is completely empty/uninitialized
+      const isCloudEmpty = 
+        (!cloudData.students || cloudData.students.length === 0) &&
+        (!cloudData.lessons || cloudData.lessons.length === 0) &&
+        (!cloudData.homeworks || cloudData.homeworks.length === 0) &&
+        (!cloudData.transactions || cloudData.transactions.length === 0) &&
+        (!cloudData.questions || cloudData.questions.length === 0);
 
-      const updatedState: AppState = {
-        teachers: mergedTeachers,
-        activeTeacherId: typeof inMemoryState.activeTeacherId === 'string' ? inMemoryState.activeTeacherId : '',
-        userRole: inMemoryState.userRole || 'teacher',
-        activeStudentId: inMemoryState.activeStudentId || null,
-        students: mergedStudents,
-        lessons: mergedLessons,
-        homeworks: mergedHomeworks,
-        transactions: mergedTransactions,
-        notifications: mergedNotifications,
-        questions: mergedQuestions
-      };
+      // Check if local cache has any student or lesson records
+      const isLocalEmpty = 
+        (!inMemoryState.students || inMemoryState.students.length === 0) &&
+        (!inMemoryState.lessons || inMemoryState.lessons.length === 0) &&
+        (!inMemoryState.homeworks || inMemoryState.homeworks.length === 0) &&
+        (!inMemoryState.transactions || inMemoryState.transactions.length === 0) &&
+        (!inMemoryState.questions || inMemoryState.questions.length === 0);
 
-      inMemoryState = updatedState;
+      let updatedState: AppState;
 
-      // Update local cache
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
-      } catch {}
+      if (isCloudEmpty && !isLocalEmpty) {
+        // Cloud is empty but local has data: Upload local data to cloud to migrate
+        await this.saveState(inMemoryState);
+        updatedState = inMemoryState;
+      } else {
+        // Cloud has data or both are empty: Overwrite local with cloud
+        const cloudTeachers = cloudData.teachers || [];
+        const finalTeachers = ensureAdminTeacher(cloudTeachers);
+
+        updatedState = {
+          teachers: finalTeachers,
+          activeTeacherId: typeof inMemoryState.activeTeacherId === 'string' ? inMemoryState.activeTeacherId : '',
+          userRole: inMemoryState.userRole || 'teacher',
+          activeStudentId: inMemoryState.activeStudentId || null,
+          students: cloudData.students || [],
+          lessons: cloudData.lessons || [],
+          homeworks: cloudData.homeworks || [],
+          transactions: cloudData.transactions || [],
+          notifications: cloudData.notifications || [],
+          questions: pruneOldQuestions(cloudData.questions || [])
+        };
+
+        inMemoryState = updatedState;
+
+        // Update local cache
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
+        } catch {}
+      }
 
       return updatedState;
     } catch {
