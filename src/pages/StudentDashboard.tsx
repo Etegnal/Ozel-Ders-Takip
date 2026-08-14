@@ -48,6 +48,39 @@ export const StudentDashboard: React.FC = () => {
   // Weekly Schedule State
   const [showWeeklyScheduleModal, setShowWeeklyScheduleModal] = useState(false);
 
+  // Lightbox & Copy States
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+
+  const copyImageToClipboard = async (base64Data: string) => {
+    try {
+      const response = await fetch(base64Data);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob
+        })
+      ]);
+      alert('Resim panoya kopyalandı! ✅');
+    } catch (err) {
+      console.error(err);
+      try {
+        await navigator.clipboard.writeText(base64Data);
+        alert('Resim linki panoya kopyalandı! 📋');
+      } catch (e) {
+        alert('Resim kopyalanamadı.');
+      }
+    }
+  };
+
+  const openImageInNewTab = (base64Data: string) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`<img src="${base64Data}" style="max-width:100%; height:auto;" />`);
+      newWindow.document.title = "Soru Görseli";
+      newWindow.document.close();
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -641,8 +674,24 @@ export const StudentDashboard: React.FC = () => {
                 {/* Question Section */}
                 <div className="space-y-3">
                   <h4 className="font-bold text-xs text-text-secondary uppercase tracking-wider">SORULAN SORU</h4>
-                  <div className="border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
+                  <div className="relative group border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
                     <img src={selectedQuestion.questionImage} className="max-h-60 object-contain rounded-xl" alt="Soru Resmi" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setZoomImage(selectedQuestion.questionImage)}
+                        className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                      >
+                        Büyüt
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyImageToClipboard(selectedQuestion.questionImage)}
+                        className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                      >
+                        Kopyala
+                      </button>
+                    </div>
                   </div>
                   {selectedQuestion.questionText && (
                     <div className="bg-surface-card border border-border/60 p-3.5 rounded-xl text-xs text-text-primary leading-relaxed">
@@ -659,8 +708,24 @@ export const StudentDashboard: React.FC = () => {
                   {selectedQuestion.status === 'solved' ? (
                     <div className="space-y-4">
                       {selectedQuestion.solutionImage && (
-                        <div className="border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
+                        <div className="relative group border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
                           <img src={selectedQuestion.solutionImage} className="max-h-60 object-contain rounded-xl" alt="Çözüm Resmi" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setZoomImage(selectedQuestion.solutionImage!)}
+                              className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                            >
+                              Büyüt
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => copyImageToClipboard(selectedQuestion.solutionImage!)}
+                              className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                            >
+                              Kopyala
+                            </button>
+                          </div>
                         </div>
                       )}
                       
@@ -742,6 +807,42 @@ export const StudentDashboard: React.FC = () => {
         isOpen={showWeeklyScheduleModal}
         onClose={() => setShowWeeklyScheduleModal(false)}
       />
+
+      {/* --- LIGHTBOX (GÖRSEL BÜYÜTÜCÜ) --- */}
+      {zoomImage && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setZoomImage(null)} />
+          <div className="relative z-10 max-w-4xl max-h-[90vh] flex flex-col items-center justify-center gap-4">
+            <button 
+              onClick={() => setZoomImage(null)}
+              className="absolute top-[-40px] right-0 text-text-primary hover:text-primary transition-colors flex items-center gap-1 text-xs font-bold bg-surface-card px-3 py-1.5 rounded-xl border border-border/80 cursor-pointer"
+            >
+              <X size={14} /> Kapat
+            </button>
+            
+            <div className="border border-border/60 rounded-2xl overflow-hidden bg-background p-2">
+              <img src={zoomImage} className="max-h-[75vh] max-w-full object-contain rounded-lg" alt="Büyütülmüş Görsel" />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => copyImageToClipboard(zoomImage)}
+                className="bg-surface-card border border-border hover:border-primary/30 text-text-primary text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+              >
+                Görseli Panoya Kopyala
+              </button>
+              <button
+                type="button"
+                onClick={() => openImageInNewTab(zoomImage)}
+                className="bg-primary hover:bg-primary-hover text-black text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-primary/10"
+              >
+                Yeni Sekmede Aç
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

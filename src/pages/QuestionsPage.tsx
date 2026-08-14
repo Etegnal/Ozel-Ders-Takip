@@ -37,6 +37,174 @@ export const QuestionsPage: React.FC = () => {
   const [solutionImage, setSolutionImage] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
 
+  // Lightbox & Copy States
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+
+  // Drawing Canvas States
+  const [solutionMethod, setSolutionMethod] = useState<'draw' | 'upload'>('draw');
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawColor, setDrawColor] = useState('#ef4444');
+  const [lineWidth, setLineWidth] = useState(4);
+  const [drawingHistory, setDrawingHistory] = useState<string[]>([]);
+
+  // Helpers for copy & new tab
+  const copyImageToClipboard = async (base64Data: string) => {
+    try {
+      const response = await fetch(base64Data);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob
+        })
+      ]);
+      alert('Resim panoya kopyalandı! ✅');
+    } catch (err) {
+      console.error(err);
+      try {
+        await navigator.clipboard.writeText(base64Data);
+        alert('Resim linki panoya kopyalandı! 📋');
+      } catch (e) {
+        alert('Resim kopyalanamadı.');
+      }
+    }
+  };
+
+  const openImageInNewTab = (base64Data: string) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`<img src="${base64Data}" style="max-width:100%; height:auto;" />`);
+      newWindow.document.title = "Soru Görseli";
+      newWindow.document.close();
+    }
+  };
+
+  // Drawing Canvas logic
+  const initCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !selectedQuestion) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.src = selectedQuestion.questionImage;
+    img.onload = () => {
+      const MAX_W = 500;
+      const MAX_H = 500;
+      let w = img.width;
+      let h = img.height;
+
+      if (w > h) {
+        if (w > MAX_W) {
+          h *= MAX_W / w;
+          w = MAX_W;
+        }
+      } else {
+        if (h > MAX_H) {
+          w *= MAX_H / h;
+          h = MAX_H;
+        }
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      setDrawingHistory([canvas.toDataURL()]);
+    };
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    setIsDrawing(true);
+
+    const coords = getEventCoords(e, canvas);
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+    ctx.strokeStyle = drawColor;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const coords = getEventCoords(e, canvas);
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setDrawingHistory(prev => [...prev, canvas.toDataURL()]);
+    }
+  };
+
+  const getEventCoords = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, 
+    canvas: HTMLCanvasElement
+  ) => {
+    const rect = canvas.getBoundingClientRect();
+    if ('touches' in e) {
+      if (e.touches.length === 0) return { x: 0, y: 0 };
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
+      };
+    } else {
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+  };
+
+  const handleUndo = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || drawingHistory.length <= 1) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const newHistory = [...drawingHistory];
+    newHistory.pop();
+    setDrawingHistory(newHistory);
+
+    const prevState = newHistory[newHistory.length - 1];
+    const img = new Image();
+    img.src = prevState;
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+    };
+  };
+
+  const handleClear = () => {
+    initCanvas();
+  };
+
+  React.useEffect(() => {
+    if (showSolutionModal && solutionMethod === 'draw') {
+      const timer = setTimeout(() => {
+        initCanvas();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showSolutionModal, solutionMethod, selectedQuestion]);
+
   // Compress solution image using Canvas
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -275,8 +443,24 @@ export const QuestionsPage: React.FC = () => {
                     </button>
                   </div>
                   
-                  <div className="border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
+                  <div className="relative group border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
                     <img src={selectedQuestion.questionImage} className="max-h-60 object-contain rounded-xl" alt="Soru Resmi" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setZoomImage(selectedQuestion.questionImage)}
+                        className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                      >
+                        Büyüt
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyImageToClipboard(selectedQuestion.questionImage)}
+                        className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                      >
+                        Kopyala
+                      </button>
+                    </div>
                   </div>
                   <div className="bg-surface-card border border-border/60 p-3 rounded-xl space-y-1">
                     <p className="text-[10px] text-text-muted uppercase">ÖĞRENCİ</p>
@@ -295,8 +479,24 @@ export const QuestionsPage: React.FC = () => {
                   {selectedQuestion.status === 'solved' ? (
                     <div className="space-y-4">
                       {selectedQuestion.solutionImage && (
-                        <div className="border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
+                        <div className="relative group border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
                           <img src={selectedQuestion.solutionImage} className="max-h-60 object-contain rounded-xl" alt="Çözüm Resmi" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setZoomImage(selectedQuestion.solutionImage!)}
+                              className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                            >
+                              Büyüt
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => copyImageToClipboard(selectedQuestion.solutionImage!)}
+                              className="bg-surface hover:bg-primary/20 border border-border hover:border-primary/40 text-text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                            >
+                              Kopyala
+                            </button>
+                          </div>
                         </div>
                       )}
                       
@@ -389,17 +589,24 @@ export const QuestionsPage: React.FC = () => {
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!solutionText && !solutionImage) {
-                  alert('Lütfen çözüm açıklaması yazın veya çözümün fotoğrafını yükleyin.');
+                
+                let finalSolutionImage = solutionImage;
+                if (solutionMethod === 'draw' && canvasRef.current) {
+                  finalSolutionImage = canvasRef.current.toDataURL('image/jpeg', 0.4);
+                }
+
+                if (!solutionText && !finalSolutionImage) {
+                  alert('Lütfen çözüm açıklaması yazın veya çözüm resmi ekleyin.');
                   return;
                 }
-                addSolution(selectedQuestion.id, solutionImage || undefined, solutionText || undefined);
+                
+                addSolution(selectedQuestion.id, finalSolutionImage || undefined, solutionText || undefined);
                 
                 // Update local selectedQuestion object state for display in detail modal
                 setSelectedQuestion(prev => prev ? {
                   ...prev,
                   status: 'solved',
-                  solutionImage: solutionImage || undefined,
+                  solutionImage: finalSolutionImage || undefined,
                   solutionText: solutionText || undefined,
                   solvedAt: new Date().toISOString()
                 } : null);
@@ -413,41 +620,136 @@ export const QuestionsPage: React.FC = () => {
                 <p className="text-xs font-bold text-text-primary">{selectedQuestion.lessonName} - {selectedQuestion.topicName}</p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs text-text-secondary font-semibold">ÇÖZÜM FOTOĞRAFI (OPSİYONEL)</label>
-                <div className="border border-dashed border-border/80 rounded-xl p-4 text-center bg-surface-card/30 flex flex-col items-center justify-center min-h-36 relative">
-                  {solutionImage ? (
-                    <div className="w-full h-full max-h-48 relative overflow-hidden rounded-lg border border-border">
-                      <img src={solutionImage} className="w-full h-full object-contain" alt="Çözüm Fotoğrafı" />
+              {/* Toggle Draw / Upload methods */}
+              <div className="grid grid-cols-2 p-1.5 bg-background border border-border/70 rounded-2xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSolutionMethod('draw')}
+                  className={`py-2 rounded-xl text-[10px] md:text-xs font-bold transition-all cursor-pointer ${
+                    solutionMethod === 'draw'
+                      ? 'bg-primary text-black shadow-md'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Soru Üzerine Çizim Yap
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSolutionMethod('upload')}
+                  className={`py-2 rounded-xl text-[10px] md:text-xs font-bold transition-all cursor-pointer ${
+                    solutionMethod === 'upload'
+                      ? 'bg-primary text-black shadow-md'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Çözüm Görseli Yükle
+                </button>
+              </div>
+
+              {solutionMethod === 'draw' ? (
+                /* DRAWING CANVAS SECTION */
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-text-secondary font-semibold">ÇİZİM TAHTASI</label>
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setSolutionImage('')}
-                        className="absolute top-2 right-2 p-1.5 bg-black/80 hover:bg-black text-text-primary rounded-full transition-all border border-border/20 cursor-pointer"
+                        onClick={handleUndo}
+                        disabled={drawingHistory.length <= 1}
+                        className="text-[10px] font-bold bg-surface-card border border-border hover:border-primary/40 disabled:opacity-50 px-2 py-1 rounded-md transition-all cursor-pointer"
                       >
-                        <X size={14} />
+                        Geri Al
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClear}
+                        className="text-[10px] font-bold bg-surface-card border border-border hover:border-red-400/40 text-text-secondary hover:text-red-400 px-2 py-1 rounded-md transition-all cursor-pointer"
+                      >
+                        Temizle
                       </button>
                     </div>
-                  ) : (
-                    <label className="cursor-pointer flex flex-col items-center space-y-2 p-2">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                        <Upload size={16} />
-                      </div>
-                      <div className="text-xs font-bold text-text-primary">
-                        {isCompressing ? 'Görsel İşleniyor...' : 'Çözüm Fotoğrafı Çek / Yükle'}
-                      </div>
-                      <p className="text-[10px] text-text-muted">Kamera veya Galeri (PNG, JPG)</p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 bg-surface-card/50 p-2.5 rounded-xl border border-border/55">
+                    <div className="flex items-center gap-1.5">
+                      {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#000000'].map(color => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setDrawColor(color)}
+                          className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
+                            drawColor === color ? 'border-primary scale-110 shadow-sm' : 'border-border'
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-text-secondary font-bold">BOYUT:</span>
                       <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileChange}
-                        disabled={isCompressing}
-                        className="hidden"
+                        type="range"
+                        min="2"
+                        max="15"
+                        value={lineWidth}
+                        onChange={(e) => setLineWidth(Number(e.target.value))}
+                        className="w-20 accent-primary cursor-pointer"
                       />
-                    </label>
-                  )}
+                    </div>
+                  </div>
+
+                  <div className="border border-border/85 rounded-xl overflow-hidden bg-background flex items-center justify-center p-2 min-h-[300px]">
+                    <canvas
+                      ref={canvasRef}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={draw}
+                      onTouchEnd={stopDrawing}
+                      className="cursor-crosshair bg-white max-w-full"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* FILE UPLOAD SECTION */
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary font-semibold">ÇÖZÜM FOTOĞRAFI</label>
+                  <div className="border border-dashed border-border/80 rounded-xl p-4 text-center bg-surface-card/30 flex flex-col items-center justify-center min-h-36 relative">
+                    {solutionImage ? (
+                      <div className="w-full h-full max-h-48 relative overflow-hidden rounded-lg border border-border">
+                        <img src={solutionImage} className="w-full h-full object-contain" alt="Çözüm Fotoğrafı" />
+                        <button
+                          type="button"
+                          onClick={() => setSolutionImage('')}
+                          className="absolute top-2 right-2 p-1.5 bg-black/80 hover:bg-black text-text-primary rounded-full transition-all border border-border/20 cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center space-y-2 p-2">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+                          <Upload size={16} />
+                        </div>
+                        <div className="text-xs font-bold text-text-primary">
+                          {isCompressing ? 'Görsel Sıkıştırılıyor...' : 'Çözüm Fotoğrafı Yükle'}
+                        </div>
+                        <p className="text-[10px] text-text-muted">Kamera veya Galeri (PNG, JPG)</p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleFileChange}
+                          disabled={isCompressing}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-xs text-text-secondary font-semibold">ÇÖZÜM AÇIKLAMASI (OPSİYONEL)</label>
@@ -455,19 +757,54 @@ export const QuestionsPage: React.FC = () => {
                   placeholder="Çözüm adımlarını veya açıklamayı buraya yazabilirsiniz..."
                   value={solutionText}
                   onChange={(e) => setSolutionText(e.target.value)}
-                  rows={4}
+                  rows={3}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary/50 text-text-primary resize-none"
                 />
               </div>
 
               <button 
                 type="submit" 
-                disabled={isCompressing || (!solutionText && !solutionImage)}
+                disabled={isCompressing || (solutionMethod === 'upload' && !solutionText && !solutionImage)}
                 className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isCompressing ? 'Görsel Hazırlanıyor...' : 'Çözümü Gönder'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* --- LIGHTBOX (GÖRSEL BÜYÜTÜCÜ) --- */}
+      {zoomImage && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setZoomImage(null)} />
+          <div className="relative z-10 max-w-4xl max-h-[90vh] flex flex-col items-center justify-center gap-4">
+            <button 
+              onClick={() => setZoomImage(null)}
+              className="absolute top-[-40px] right-0 text-text-primary hover:text-primary transition-colors flex items-center gap-1 text-xs font-bold bg-surface-card px-3 py-1.5 rounded-xl border border-border/80 cursor-pointer"
+            >
+              <X size={14} /> Kapat
+            </button>
+            
+            <div className="border border-border/60 rounded-2xl overflow-hidden bg-background p-2">
+              <img src={zoomImage} className="max-h-[75vh] max-w-full object-contain rounded-lg" alt="Büyütülmüş Görsel" />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => copyImageToClipboard(zoomImage)}
+                className="bg-surface-card border border-border hover:border-primary/30 text-text-primary text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+              >
+                Görseli Panoya Kopyala
+              </button>
+              <button
+                type="button"
+                onClick={() => openImageInNewTab(zoomImage)}
+                className="bg-primary hover:bg-primary-hover text-black text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-primary/10"
+              >
+                Yeni Sekmede Aç
+              </button>
+            </div>
           </div>
         </div>
       )}
