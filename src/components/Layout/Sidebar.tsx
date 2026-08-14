@@ -40,7 +40,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     updateTeacherSettings,
     isAdmin,
     syncCode,
-    updateSyncCode
+    updateSyncCode,
+    firebaseUrl,
+    updateFirebaseUrl
   } = useApp();
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
@@ -48,12 +50,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const [tempSyncCode, setTempSyncCode] = useState(syncCode);
+  const [tempFirebaseUrl, setTempFirebaseUrl] = useState(firebaseUrl);
 
   useEffect(() => {
     if (showSettingsModal) {
       setTempSyncCode(syncCode);
+      setTempFirebaseUrl(firebaseUrl);
     }
-  }, [showSettingsModal, syncCode]);
+  }, [showSettingsModal, syncCode, firebaseUrl]);
 
   const handleApplySyncCode = async () => {
     if (!tempSyncCode || tempSyncCode.trim().length < 5) {
@@ -522,6 +526,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                 </div>
               </div>
 
+              {/* Firebase Realtime Database URL */}
+              <div className="border-t border-border/50 pt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-primary font-bold uppercase tracking-wider block">🔥 Firebase Veritabanı URL</label>
+                  {firebaseUrl && (
+                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                      Bağlı ✅
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <input 
+                    type="url" 
+                    placeholder="https://proje-id-default-rtdb.firebaseio.com/"
+                    value={tempFirebaseUrl}
+                    onChange={(e) => setTempFirebaseUrl(e.target.value)}
+                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!tempFirebaseUrl.trim()) {
+                        await updateFirebaseUrl('');
+                        alert('Firebase bağlantısı kaldırıldı.');
+                        return;
+                      }
+                      await updateFirebaseUrl(tempFirebaseUrl.trim());
+                      alert('Firebase Veritabanı URL kaydedildi ve verileriniz canlı senkronize edildi! 🎉');
+                    }}
+                    className="w-full bg-primary hover:bg-primary-hover text-black py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-primary/10"
+                  >
+                    Firebase Bağlantısını Kaydet & Canlı Eşitle
+                  </button>
+                </div>
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  EXE (Masaüstü), Mobil APK ve Web Sitenizde aynı Firebase URL'sini girdiğinizde eklediğiniz tüm öğrenciler ve öğretmenler anında 100% eşitlenir.
+                </p>
+              </div>
+
               {/* Bulut Veri Eşitleme (Senkronizasyon Kodu) */}
               <div className="border-t border-border/50 pt-4 space-y-2">
                 <label className="text-xs text-text-secondary font-semibold uppercase tracking-wider block">Bulut Senkronizasyon Kodu</label>
@@ -536,13 +579,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                   <button
                     type="button"
                     onClick={handleApplySyncCode}
-                    className="bg-primary hover:bg-primary-hover text-black px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/10 cursor-pointer"
+                    className="bg-surface-card border border-border hover:bg-border/30 text-text-primary px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     Uygula
                   </button>
                 </div>
                 <p className="text-[10px] text-text-muted leading-relaxed">
-                  Cihazlarınızı (EXE, Mobil App ve Tarayıcı) eşitlemek için bu kodu diğer cihazlarda da uygulayın.
+                  Cihazlarınızı eşitlemek için alternatif olarak senkronizasyon kodunu kullanabilirsiniz.
                 </p>
               </div>
 

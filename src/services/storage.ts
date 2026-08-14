@@ -2,8 +2,21 @@ import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, App
 
 const STORAGE_KEY = 'coach_app_state_v3';
 
+// Primary Firebase Realtime Database URL
+export const DEFAULT_FIREBASE_URL = 'https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/';
+
+export function getActiveFirebaseUrl(): string {
+  const custom = localStorage.getItem('coach_firebase_db_url');
+  if (custom && custom.trim().length > 5) {
+    let clean = custom.trim();
+    if (!clean.endsWith('/')) clean += '/';
+    return clean;
+  }
+  return DEFAULT_FIREBASE_URL;
+}
+
 // Direct fallback URL if dynamic creation fails
-const FALLBACK_CLOUD_URL = 'https://jsonblob.com/api/jsonBlob/019fd8d2-78a8-7163-8bad-2e10a963783c';
+const FALLBACK_CLOUD_URL = `${DEFAULT_FIREBASE_URL}state.json`;
 
 // Dynamic database creator helper
 export async function getOrCreateCloudUrl(): Promise<string> {
@@ -73,38 +86,6 @@ export const defaultTeachers: Teacher[] = [
     subject: 'Fizik / Matematik',
     password: '123456',
     createdAt: '2026-07-25T10:00:00.000Z'
-  },
-  {
-    id: 'teacher-ayse-2',
-    name: 'Ayşe Yılmaz',
-    email: 'ayse@ogretmen.com',
-    subject: 'Matematik',
-    password: '123456',
-    createdAt: '2026-07-26T12:00:00.000Z'
-  },
-  {
-    id: 'teacher-mehmet-3',
-    name: 'Mehmet Demir',
-    email: 'mehmet@ogretmen.com',
-    subject: 'Kimya',
-    password: '123456',
-    createdAt: '2026-07-27T14:30:00.000Z'
-  },
-  {
-    id: 'teacher-elif-4',
-    name: 'Elif Kaya',
-    email: 'elif@ogretmen.com',
-    subject: 'Biyoloji',
-    password: '123456',
-    createdAt: '2026-07-28T09:15:00.000Z'
-  },
-  {
-    id: 'teacher-rahmi-5',
-    name: 'Rahmi Koç',
-    email: 'rahmik93@gmail.com',
-    subject: 'Matematik',
-    password: '123456',
-    createdAt: '2026-08-01T10:00:00.000Z'
   }
 ];
 
@@ -132,9 +113,11 @@ export const initialMockState: AppState = {
   questions: []
 };
 
+const LEGACY_TEST_IDS = ['teacher-ayse-2', 'teacher-mehmet-3', 'teacher-elif-4', 'teacher-rahmi-5'];
+
 // Helper: Ensure Super Admin Yasin Eren Alacahan is ALWAYS present
 export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
-  let list = Array.isArray(teachers) ? [...teachers] : [];
+  let list = Array.isArray(teachers) ? teachers.filter(t => t && t.id && !LEGACY_TEST_IDS.includes(t.id)) : [];
   const adminIndex = list.findIndex(t => 
     t.id === 'teacher-yasin-1' || 
     normalizeStr(t.email).includes('yasinalacahan') || 
@@ -163,7 +146,7 @@ export function mergeTeachers(local: Teacher[], cloud: Teacher[]): Teacher[] {
 
   // 2. Add local teachers (local custom passwords ALWAYS take priority over default '123456')
   (local || []).forEach(t => {
-    if (!t || !t.id) return;
+    if (!t || !t.id || LEGACY_TEST_IDS.includes(t.id)) return;
     const existing = map.get(t.id);
     if (!existing) {
       map.set(t.id, t);
@@ -178,7 +161,7 @@ export function mergeTeachers(local: Teacher[], cloud: Teacher[]): Teacher[] {
 
   // 3. Add cloud teachers (merge by id or email)
   (cloud || []).forEach(t => {
-    if (!t || !t.id) return;
+    if (!t || !t.id || LEGACY_TEST_IDS.includes(t.id)) return;
     const normCloudEmail = normalizeStr(t.email);
     const existingByEmail = Array.from(map.values()).find(
       ex => normalizeStr(ex.email) === normCloudEmail
@@ -270,7 +253,8 @@ export const storageService = {
       questions: sanitizedState.questions
     });
 
-    const cloudUrl = await getOrCreateCloudUrl();
+    const firebaseUrl = getActiveFirebaseUrl();
+    const cloudUrl = `${firebaseUrl}state.json`;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -300,7 +284,8 @@ export const storageService = {
     const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     try {
-      const cloudUrl = await getOrCreateCloudUrl();
+      const firebaseUrl = getActiveFirebaseUrl();
+      const cloudUrl = `${firebaseUrl}state.json`;
       const res = await fetch(cloudUrl, {
         headers: { 'Accept': 'application/json' },
         signal: controller.signal
@@ -466,6 +451,22 @@ export const storageService = {
     if (cleanCode.length > 5) {
       localStorage.setItem('coach_cloud_db_url', `https://jsonblob.com/api/jsonBlob/${cleanCode}`);
     }
+  },
+
+  getFirebaseUrl(): string {
+    return getActiveFirebaseUrl();
+  },
+
+  setFirebaseUrl(url: string): void {
+    if (!url) {
+      localStorage.removeItem('coach_firebase_db_url');
+      return;
+    }
+    let cleanUrl = url.trim();
+    if (!cleanUrl.endsWith('/')) {
+      cleanUrl += '/';
+    }
+    localStorage.setItem('coach_firebase_db_url', cleanUrl);
   }
 };
 

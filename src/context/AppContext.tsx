@@ -26,6 +26,8 @@ interface AppContextType {
   syncCloudNow: () => Promise<void>;
   syncCode: string;
   updateSyncCode: (code: string) => Promise<void>;
+  firebaseUrl: string;
+  updateFirebaseUrl: (url: string) => Promise<void>;
   students: Student[];
   allStudents: Student[];
   lessons: Lesson[];
@@ -113,11 +115,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
   const [syncCode, setSyncCodeState] = useState(() => storageService.getSyncCode());
+  const [firebaseUrl, setFirebaseUrlState] = useState(() => storageService.getFirebaseUrl());
 
   // We can sync our local code state with storageService
   useEffect(() => {
     const interval = setInterval(() => {
       setSyncCodeState(storageService.getSyncCode());
+      setFirebaseUrlState(storageService.getFirebaseUrl());
     }, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -133,6 +137,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateSyncCode = async (code: string) => {
     storageService.setSyncCode(code);
     setSyncCodeState(code);
+    const cloudState = await storageService.fetchCloudState();
+    if (cloudState) {
+      setState(cloudState);
+    }
+  };
+
+  const updateFirebaseUrl = async (url: string) => {
+    storageService.setFirebaseUrl(url);
+    setFirebaseUrlState(url);
     const cloudState = await storageService.fetchCloudState();
     if (cloudState) {
       setState(cloudState);
@@ -909,6 +922,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         syncCloudNow,
         syncCode,
         updateSyncCode,
+        firebaseUrl,
+        updateFirebaseUrl,
 
         students,
         allStudents,

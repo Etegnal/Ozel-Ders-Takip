@@ -7,6 +7,14 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      zIndex: {
+        '35': '35',
+        '60': '60',
+        '70': '70',
+        '80': '80',
+        '90': '90',
+        '100': '100',
+      },
       colors: {
         background: "#060913",
         surface: {
