@@ -1,0 +1,29 @@
+{
+  "name": "coach-desktop",
+  "version": "1.0.0",
+  "description": "Coach Desktop App Wrapper",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.ozelders.desktop",
+    "productName": "Coach",
+    "win": {
+      "target": "portable",
+      "icon": "../public/logo.png"
+    },
+    "portable": {
+      "artifactName": "${productName}Portable.${ext}"
+    },
+    "directories": {
+      "output": "../dist-desktop"
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

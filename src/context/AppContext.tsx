@@ -50,6 +50,7 @@ interface AppContextType {
   addTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'teacherId'>) => void;
   updateTransaction: (id: string, updates: Partial<FinancialTransaction>) => void;
   deleteTransaction: (id: string) => void;
+  clearTransactions: () => void;
   
   // Notification Actions
   markNotificationRead: (id: string) => void;
@@ -659,6 +660,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const clearTransactions = () => {
+    setState(prev => ({
+      ...prev,
+      transactions: prev.transactions.filter(t => t.teacherId !== state.activeTeacherId)
+    }));
+  };
+
   // --- Notification Actions ---
   const markNotificationRead = (id: string) => {
     setState(prev => ({
@@ -715,6 +723,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addTransaction,
         updateTransaction,
         deleteTransaction,
+        clearTransactions,
         markNotificationRead,
         clearAllNotifications,
         searchQuery,

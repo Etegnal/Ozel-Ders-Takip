@@ -32,6 +32,7 @@ export const FinancePage: React.FC = () => {
     lessons, 
     addTransaction, 
     deleteTransaction,
+    clearTransactions,
     activeModal,
     setActiveModal
   } = useApp();
@@ -78,11 +79,15 @@ export const FinancePage: React.FC = () => {
   const scheduledLessons = lessons.filter(l => l.status === 'scheduled');
   const weeklyScheduledHours = scheduledLessons.reduce((sum, l) => sum + (l.durationMinutes / 60), 0);
 
+  // Active Student Ratio
+  const activeRatio = students.length > 0 
+    ? Math.round((activeStudentsCount / students.length) * 100) 
+    : 0;
+
   // Calculate monthly stats for graph
-  // Let's create mock graph data based on transactions
   const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
   const graphData = months.map((m, index) => {
-    // filter transactions matching this month in 2026
+    // filter transactions matching this month
     const monthIncome = transactions
       .filter(t => {
         const d = new Date(t.date);
@@ -99,7 +104,7 @@ export const FinancePage: React.FC = () => {
 
     return {
       name: m,
-      Gelir: monthIncome || (index === 6 ? 2000 : 0), // Inject the mock 2000 for July if no actuals
+      Gelir: monthIncome,
       Gider: monthExpense
     };
   });
@@ -157,7 +162,7 @@ export const FinancePage: React.FC = () => {
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-2xl font-bold text-text-primary">{formatCurrency(expectedMonthlyRevenue || 4000)}</div>
+            <div className="text-2xl font-bold text-text-primary">{formatCurrency(expectedMonthlyRevenue)}</div>
             <p className="text-[11px] text-text-muted">Aktif öğrenci ücretleri toplamı · aylık</p>
           </div>
         </div>
@@ -171,7 +176,7 @@ export const FinancePage: React.FC = () => {
             </div>
           </div>
           <div className="space-y-1">
-            <div className="text-2xl font-bold text-text-primary">{activeStudentsCount || 1}</div>
+            <div className="text-2xl font-bold text-text-primary">{activeStudentsCount}</div>
             <p className="text-[11px] text-text-muted">Anlık aktif kayıtlı öğrenci sayısı</p>
           </div>
         </div>
@@ -213,7 +218,7 @@ export const FinancePage: React.FC = () => {
             <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
               <span>Bu Ay Özet Raporu</span>
               <span className="bg-orange-500/10 text-orange-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                Temmuz 2026
+                {new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
               </span>
             </h3>
           </div>
@@ -226,7 +231,7 @@ export const FinancePage: React.FC = () => {
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-orange-400 block font-bold">Tahmini (Ay Sonu)</span>
-                <span className="text-xs text-text-secondary">{formatCurrency(expectedMonthlyRevenue || 4000)}</span>
+                <span className="text-xs text-text-secondary">{formatCurrency(expectedMonthlyRevenue)}</span>
               </div>
             </div>
 
@@ -250,7 +255,7 @@ export const FinancePage: React.FC = () => {
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-text-muted block uppercase">Aktif Öğrenci Oranı</span>
-                <span className="text-xs text-text-secondary">100%</span>
+                <span className="text-xs text-text-secondary">{activeRatio}%</span>
               </div>
             </div>
           </div>
@@ -307,6 +312,19 @@ export const FinancePage: React.FC = () => {
       <div className="bg-surface-card border border-border/80 rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-border">
           <h3 className="font-bold text-sm text-text-primary">Son Finansal Hareketler</h3>
+          {transactions.length > 0 && (
+            <button
+              onClick={() => {
+                if (confirm('Tüm finansal hareketleri sıfırlamak istediğinize emin misiniz?')) {
+                  clearTransactions();
+                }
+              }}
+              className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 rounded-lg cursor-pointer border border-red-500/20"
+            >
+              <Trash2 size={13} />
+              <span>Finansı Sıfırla</span>
+            </button>
+          )}
         </div>
 
         <div className="divide-y divide-border/50 max-h-80 overflow-y-auto pr-1">

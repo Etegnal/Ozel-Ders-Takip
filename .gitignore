@@ -121,3 +121,7 @@ dist
 dist
 dist-ssr
 *.local
+
+# Electron build output
+dist-desktop
+
