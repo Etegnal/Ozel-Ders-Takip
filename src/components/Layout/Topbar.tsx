@@ -27,15 +27,21 @@ export const Topbar: React.FC<TopbarProps> = ({ onMobileMenuToggle }) => {
   const getPageInfo = () => {
     switch (path) {
       case '/':
+        return { title: 'Ana Sayfa', showSearch: false, modalType: 'lesson' as const };
+      case '/calendar':
         return { title: 'Takvim ve Planlama', showSearch: false, modalType: 'lesson' as const };
       case '/students':
         return { title: 'Öğrenci Yönetimi', showSearch: true, modalType: 'student' as const };
       case '/homeworks':
         return { title: 'Ödev Takip Paneli', showSearch: false, modalType: 'homework' as const };
+      case '/questions':
+        return { title: 'Soru & Çözüm Havuzu', showSearch: false, modalType: null };
       case '/finance':
         return { title: 'Finansal Analiz', showSearch: false, modalType: 'transaction' as const };
       case '/notifications':
         return { title: 'Bildirimler', showSearch: false, modalType: null };
+      case '/teachers':
+        return { title: 'Öğretmen Profilleri', showSearch: false, modalType: null };
       default:
         return { title: 'Dashboard', showSearch: false, modalType: null };
     }
@@ -110,7 +116,10 @@ export const Topbar: React.FC<TopbarProps> = ({ onMobileMenuToggle }) => {
 
         {path === '/' && (
           <div className="hidden sm:flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-2 bg-surface-card border border-border rounded-xl text-xs text-text-secondary hover:text-text-primary hover:border-border/80 transition-colors">
+            <button 
+              onClick={() => setActiveModal('weekly-schedule')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-surface-card border border-border rounded-xl text-xs text-text-secondary hover:text-text-primary hover:border-border/80 transition-colors cursor-pointer"
+            >
               <CalendarIcon size={14} />
               <span>Haftalık Program</span>
             </button>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion } from '../types';
 import { storageService, normalizeStr } from '../services/storage';
 
-export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | null;
+export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | 'weekly-schedule' | null;
 
 interface AppContextType {
   teachers: Teacher[];
@@ -20,6 +20,7 @@ interface AppContextType {
   updateTeacher: (id: string, updates: Partial<Teacher>) => void;
   updateTeacherSettings: (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => void;
   loginAsStudent: (identifier: string, password: string) => Promise<boolean> | boolean;
+  registerStudent: (name: string, email: string, phone: string, grade: string, password: string, teacherId: string) => Promise<boolean>;
   logoutStudent: () => void;
   toggleStudentHomeworkStatus: (homeworkId: string) => void;
 
@@ -365,6 +366,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return true;
     }
     return false;
+  };
+
+  const registerStudent = async (
+    name: string,
+    email: string,
+    phone: string,
+    grade: string,
+    password: string,
+    teacherId: string
+  ): Promise<boolean> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim();
+
+    const isDuplicate = (studentsList: Student[]) => {
+      return studentsList.some(s => 
+        (s.email && s.email.trim().toLowerCase() === cleanEmail) || 
+        (s.phone && s.phone.trim() === cleanPhone)
+      );
+    };
+
+    let duplicated = isDuplicate(state.students);
+    if (!duplicated) {
+      const cloudState = await storageService.fetchCloudState();
+      if (cloudState) {
+        setState(cloudState);
+        duplicated = isDuplicate(cloudState.students);
+      }
+    }
+
+    if (duplicated) return false;
+
+    const newStudent: Student = {
+      id: 'student-' + Math.random().toString(36).substr(2, 9),
+      teacherId,
+      name: name.trim(),
+      email: cleanEmail,
+      phone: cleanPhone,
+      grade,
+      password: password.trim(),
+      hourlyRate: 0,
+      balance: 0,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+
+    const newNotification: AppNotification = {
+      id: 'notif-' + Math.random().toString(36).substr(2, 9),
+      teacherId,
+      title: 'Yeni Öğrenci Kaydı',
+      message: `${newStudent.name} (${grade}) sisteme kendi kaydını yaptı ve sizinle eşleşti.`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'system'
+    };
+
+    setState(prev => ({
+      ...prev,
+      students: [...prev.students, newStudent],
+      notifications: [newNotification, ...(prev.notifications || [])]
+    }));
+
+    return true;
   };
 
   const logoutStudent = () => {
@@ -820,6 +883,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateTeacher,
         updateTeacherSettings,
         loginAsStudent,
+        registerStudent,
         logoutStudent,
         toggleStudentHomeworkStatus,
         syncCloudNow,

@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { WeeklyScheduleModal } from '../WeeklyScheduleModal';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   
   const location = useLocation();
   const path = location.pathname;
-  const { setActiveModal } = useApp();
+  const { setActiveModal, activeModal } = useApp();
 
   // Automatically collapse sidebar on smaller desktop/tablet resolutions
   useEffect(() => {
@@ -101,6 +102,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </button>
         )}
       </div>
+
+      {/* Weekly Schedule Modal */}
+      <WeeklyScheduleModal
+        isOpen={activeModal === 'weekly-schedule'}
+        onClose={() => setActiveModal(null)}
+      />
     </div>
   );
 };

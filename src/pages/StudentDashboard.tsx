@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { formatReadableDate } from '../utils/helpers';
 import { StudentQuestion } from '../types';
+import { WeeklyScheduleModal } from '../components/WeeklyScheduleModal';
 
 export const StudentDashboard: React.FC = () => {
   const { 
@@ -43,6 +44,9 @@ export const StudentDashboard: React.FC = () => {
   const [questionImage, setQuestionImage] = useState('');
   const [questionText, setQuestionText] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
+
+  // Weekly Schedule State
+  const [showWeeklyScheduleModal, setShowWeeklyScheduleModal] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,14 +148,25 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </div>
 
-          <button
-            onClick={logoutStudent}
-            className="flex items-center gap-2 bg-surface hover:bg-red-500/10 text-text-secondary hover:text-red-400 border border-border/80 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all"
-            title="Çıkış Yap"
-          >
-            <LogOut size={15} />
-            <span className="hidden sm:inline">Çıkış Yap</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowWeeklyScheduleModal(true)}
+              className="flex items-center gap-2 bg-surface hover:bg-primary/10 text-text-secondary hover:text-primary border border-border/80 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              title="Haftalık Program"
+            >
+              <Calendar size={15} />
+              <span className="hidden sm:inline">Haftalık Program</span>
+            </button>
+
+            <button
+              onClick={logoutStudent}
+              className="flex items-center gap-2 bg-surface hover:bg-red-500/10 text-text-secondary hover:text-red-400 border border-border/80 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              title="Çıkış Yap"
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:inline">Çıkış Yap</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -722,6 +737,11 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Weekly Schedule Modal */}
+      <WeeklyScheduleModal
+        isOpen={showWeeklyScheduleModal}
+        onClose={() => setShowWeeklyScheduleModal(false)}
+      />
     </div>
   );
 };
