@@ -319,21 +319,28 @@ export const storageService = {
         await this.saveState(inMemoryState);
         updatedState = inMemoryState;
       } else {
-        // Cloud has data or both are empty: Overwrite local with cloud
+        // Smart merge cloud data with local memory state (preserves all students and teachers without losing data)
         const cloudTeachers = cloudData.teachers || [];
-        const finalTeachers = ensureAdminTeacher(cloudTeachers);
+        const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
+
+        const mergedStudents = mergeCollections(inMemoryState.students || [], cloudData.students || []);
+        const mergedLessons = mergeCollections(inMemoryState.lessons || [], cloudData.lessons || []);
+        const mergedHomeworks = mergeCollections(inMemoryState.homeworks || [], cloudData.homeworks || []);
+        const mergedTransactions = mergeCollections(inMemoryState.transactions || [], cloudData.transactions || []);
+        const mergedNotifications = mergeCollections(inMemoryState.notifications || [], cloudData.notifications || []);
+        const mergedQuestions = pruneOldQuestions(mergeCollections(inMemoryState.questions || [], cloudData.questions || []));
 
         updatedState = {
           teachers: finalTeachers,
-          activeTeacherId: typeof inMemoryState.activeTeacherId === 'string' ? inMemoryState.activeTeacherId : '',
+          activeTeacherId: typeof inMemoryState.activeTeacherId === 'string' && inMemoryState.activeTeacherId ? inMemoryState.activeTeacherId : (finalTeachers[0] ? finalTeachers[0].id : 'teacher-yasin-1'),
           userRole: inMemoryState.userRole || 'teacher',
           activeStudentId: inMemoryState.activeStudentId || null,
-          students: cloudData.students || [],
-          lessons: cloudData.lessons || [],
-          homeworks: cloudData.homeworks || [],
-          transactions: cloudData.transactions || [],
-          notifications: cloudData.notifications || [],
-          questions: pruneOldQuestions(cloudData.questions || [])
+          students: mergedStudents,
+          lessons: mergedLessons,
+          homeworks: mergedHomeworks,
+          transactions: mergedTransactions,
+          notifications: mergedNotifications,
+          questions: mergedQuestions
         };
 
         inMemoryState = updatedState;
