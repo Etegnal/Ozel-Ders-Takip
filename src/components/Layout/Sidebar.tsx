@@ -38,12 +38,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     register,
     deleteTeacher,
     updateTeacherSettings,
-    isAdmin
+    isAdmin,
+    syncCode,
+    updateSyncCode
   } = useApp();
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const [tempSyncCode, setTempSyncCode] = useState(syncCode);
+
+  useEffect(() => {
+    if (showSettingsModal) {
+      setTempSyncCode(syncCode);
+    }
+  }, [showSettingsModal, syncCode]);
+
+  const handleApplySyncCode = async () => {
+    if (!tempSyncCode || tempSyncCode.trim().length < 5) {
+      alert('Lütfen geçerli bir senkronizasyon kodu girin.');
+      return;
+    }
+    if (confirm('Veri tabanı adresini değiştirmek istediğinizden emin misiniz? Sistem verileri yeni kod üzerinden güncellenecektir.')) {
+      await updateSyncCode(tempSyncCode.trim());
+      alert('Senkronizasyon kodu uygulandı! Sayfa güncelleniyor...');
+      window.location.reload();
+    }
+  };
 
   // New Teacher form state
   const [newTeacherName, setNewTeacherName] = useState('');
@@ -498,6 +520,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                     {testSending ? 'Gönderiliyor...' : 'Test Et'}
                   </button>
                 </div>
+              </div>
+
+              {/* Bulut Veri Eşitleme (Senkronizasyon Kodu) */}
+              <div className="border-t border-border/50 pt-4 space-y-2">
+                <label className="text-xs text-text-secondary font-semibold uppercase tracking-wider block">Bulut Senkronizasyon Kodu</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Eşitleme Kodu"
+                    value={tempSyncCode}
+                    onChange={(e) => setTempSyncCode(e.target.value)}
+                    className="flex-1 bg-surface-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplySyncCode}
+                    className="bg-primary hover:bg-primary-hover text-black px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/10 cursor-pointer"
+                  >
+                    Uygula
+                  </button>
+                </div>
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  Cihazlarınızı (EXE, Mobil App ve Tarayıcı) eşitlemek için bu kodu diğer cihazlarda da uygulayın.
+                </p>
               </div>
 
               <button 

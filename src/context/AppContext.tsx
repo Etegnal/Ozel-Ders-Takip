@@ -23,8 +23,9 @@ interface AppContextType {
   registerStudent: (name: string, email: string, phone: string, grade: string, password: string, teacherId: string) => Promise<boolean>;
   logoutStudent: () => void;
   toggleStudentHomeworkStatus: (homeworkId: string) => void;
-
   syncCloudNow: () => Promise<void>;
+  syncCode: string;
+  updateSyncCode: (code: string) => Promise<void>;
   students: Student[];
   allStudents: Student[];
   lessons: Lesson[];
@@ -111,8 +112,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeTeacher = state.teachers.find(t => t.id === state.activeTeacherId);
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
+  const [syncCode, setSyncCodeState] = useState(() => storageService.getSyncCode());
+
+  // We can sync our local code state with storageService
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSyncCodeState(storageService.getSyncCode());
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Manual cloud sync handler
   const syncCloudNow = async () => {
+    const cloudState = await storageService.fetchCloudState();
+    if (cloudState) {
+      setState(cloudState);
+    }
+  };
+
+  const updateSyncCode = async (code: string) => {
+    storageService.setSyncCode(code);
+    setSyncCodeState(code);
     const cloudState = await storageService.fetchCloudState();
     if (cloudState) {
       setState(cloudState);
@@ -887,6 +907,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logoutStudent,
         toggleStudentHomeworkStatus,
         syncCloudNow,
+        syncCode,
+        updateSyncCode,
 
         students,
         allStudents,

@@ -1,7 +1,47 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
 const STORAGE_KEY = 'coach_app_state_v3';
-const CLOUD_DB_URL = 'https://api.restful-api.dev/objects/ff8081819ff5b11001a00226483c204a';
+
+// Direct fallback URL if dynamic creation fails
+const FALLBACK_CLOUD_URL = 'https://jsonblob.com/api/jsonBlob/019fd8d2-78a8-7163-8bad-2e10a963783c';
+
+// Dynamic database creator helper
+export async function getOrCreateCloudUrl(): Promise<string> {
+  let url = localStorage.getItem('coach_cloud_db_url');
+  if (url && url.startsWith('https://jsonblob.com/api/jsonBlob/')) {
+    return url;
+  }
+  
+  try {
+    const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        teachers: defaultTeachers,
+        students: [],
+        lessons: [],
+        homeworks: [],
+        transactions: [],
+        notifications: [],
+        questions: []
+      })
+    });
+    if (res.ok) {
+      const newUrl = res.headers.get('Location');
+      if (newUrl) {
+        localStorage.setItem('coach_cloud_db_url', newUrl);
+        return newUrl;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to dynamically create JSONBlob', e);
+  }
+  
+  return FALLBACK_CLOUD_URL;
+}
 
 // Turkish-safe string normalizer (handles İ/i, I/ı, Ğ/g, Ü/u, Ş/s, Ö/o, Ç/c, whitespace)
 export function normalizeStr(str: string | undefined | null): string {
@@ -221,23 +261,22 @@ export const storageService = {
 
     // Direct Sync to Cloud DB with Retries
     const payload = JSON.stringify({
-      name: 'coach_app_state',
-      data: {
-        teachers: sanitizedState.teachers,
-        students: sanitizedState.students,
-        lessons: sanitizedState.lessons,
-        homeworks: sanitizedState.homeworks,
-        transactions: sanitizedState.transactions,
-        notifications: sanitizedState.notifications,
-        questions: sanitizedState.questions
-      }
+      teachers: sanitizedState.teachers,
+      students: sanitizedState.students,
+      lessons: sanitizedState.lessons,
+      homeworks: sanitizedState.homeworks,
+      transactions: sanitizedState.transactions,
+      notifications: sanitizedState.notifications,
+      questions: sanitizedState.questions
     });
+
+    const cloudUrl = await getOrCreateCloudUrl();
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(CLOUD_DB_URL, {
+        const res = await fetch(cloudUrl, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
@@ -261,17 +300,15 @@ export const storageService = {
     const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     try {
-      const res = await fetch(CLOUD_DB_URL, {
+      const cloudUrl = await getOrCreateCloudUrl();
+      const res = await fetch(cloudUrl, {
         headers: { 'Accept': 'application/json' },
         signal: controller.signal
       });
       clearTimeout(timeoutId);
 
       if (!res.ok) return inMemoryState;
-      const jsonResponse = await res.json();
-      if (!jsonResponse || typeof jsonResponse !== 'object') return inMemoryState;
-      
-      const cloudData = jsonResponse.data;
+      const cloudData = await res.json();
       if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
       // Check if the cloud database is completely empty/uninitialized
@@ -414,6 +451,21 @@ export const storageService = {
     const state = this.getState();
     state.questions = questions;
     this.saveState(state);
+  },
+
+  getSyncCode(): string {
+    const url = localStorage.getItem('coach_cloud_db_url') || '';
+    if (!url) return '';
+    const parts = url.split('/');
+    return parts[parts.length - 1] || '';
+  },
+
+  setSyncCode(code: string): void {
+    if (!code) return;
+    const cleanCode = code.trim();
+    if (cleanCode.length > 5) {
+      localStorage.setItem('coach_cloud_db_url', `https://jsonblob.com/api/jsonBlob/${cleanCode}`);
+    }
   }
 };
 
