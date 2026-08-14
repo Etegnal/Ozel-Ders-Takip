@@ -12,7 +12,7 @@
     "productName": "Coach",
     "win": {
       "target": "portable",
-      "icon": "../public/logo_square.png"
+      "icon": "logo_square.png"
     },
     "portable": {
       "artifactName": "${productName}Portable.${ext}"

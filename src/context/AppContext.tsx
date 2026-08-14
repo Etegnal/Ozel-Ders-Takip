@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState } from '../types';
+import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion } from '../types';
 import { storageService, normalizeStr } from '../services/storage';
 
 export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | null;
@@ -30,6 +30,13 @@ interface AppContextType {
   homeworks: Homework[];
   transactions: FinancialTransaction[];
   notifications: AppNotification[];
+  questions: StudentQuestion[];
+  
+  // Question Actions
+  addQuestion: (lessonName: string, topicName: string, questionImage: string, questionText?: string) => void;
+  addSolution: (questionId: string, solutionImage?: string, solutionText?: string) => void;
+  giveQuestionFeedback: (questionId: string, feedback: 'understood' | 'not_understood') => void;
+  deleteQuestion: (id: string) => void;
   
   // Student Actions
   addStudent: (student: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => void;
@@ -132,6 +139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const homeworks = state.homeworks.filter(h => h.teacherId === state.activeTeacherId);
   const transactions = state.transactions.filter(t => t.teacherId === state.activeTeacherId);
   const notifications = state.notifications.filter(n => n.teacherId === state.activeTeacherId);
+  const questions = (state.questions || []).filter(q => q.teacherId === state.activeTeacherId);
 
   // --- Teacher / Auth Actions ---
   const setActiveTeacherId = (id: string) => {
@@ -682,6 +690,118 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  // --- Question Actions ---
+  const addQuestion = (lessonName: string, topicName: string, questionImage: string, questionText?: string) => {
+    if (!state.activeStudentId || !state.activeTeacherId) return;
+
+    const newQuestion: StudentQuestion = {
+      id: 'question-' + Math.random().toString(36).substr(2, 9),
+      studentId: state.activeStudentId,
+      studentName: activeStudent ? activeStudent.name : 'Öğrenci',
+      teacherId: state.activeTeacherId,
+      lessonName: lessonName.trim(),
+      topicName: topicName.trim(),
+      questionImage,
+      questionText: questionText?.trim(),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    const newNotification: AppNotification = {
+      id: 'notif-' + Math.random().toString(36).substr(2, 9),
+      teacherId: state.activeTeacherId,
+      title: 'Yeni Soru Soruldu',
+      message: `${activeStudent ? activeStudent.name : 'Öğrenci'} yeni bir soru yükledi. Konu: ${topicName}`,
+      date: new Date().toISOString(),
+      read: false,
+      type: 'system'
+    };
+
+    setState(prev => ({
+      ...prev,
+      questions: [newQuestion, ...(prev.questions || [])],
+      notifications: [newNotification, ...(prev.notifications || [])]
+    }));
+  };
+
+  const addSolution = (questionId: string, solutionImage?: string, solutionText?: string) => {
+    setState(prev => {
+      const q = (prev.questions || []).find(x => x.id === questionId);
+      if (!q) return prev;
+
+      const updatedQuestions = (prev.questions || []).map(x => {
+        if (x.id === questionId) {
+          return {
+            ...x,
+            solutionImage,
+            solutionText: solutionText?.trim(),
+            status: 'solved' as const,
+            solvedAt: new Date().toISOString()
+          };
+        }
+        return x;
+      });
+
+      const newNotification: AppNotification = {
+        id: 'notif-' + Math.random().toString(36).substr(2, 9),
+        teacherId: q.teacherId,
+        title: 'Soru Çözüldü',
+        message: `${q.studentName} isimli öğrencinin sorduğu soru çözüldü.`,
+        date: new Date().toISOString(),
+        read: false,
+        type: 'system'
+      };
+
+      return {
+        ...prev,
+        questions: updatedQuestions,
+        notifications: [newNotification, ...(prev.notifications || [])]
+      };
+    });
+  };
+
+  const giveQuestionFeedback = (questionId: string, feedback: 'understood' | 'not_understood') => {
+    setState(prev => {
+      const q = (prev.questions || []).find(x => x.id === questionId);
+      if (!q) return prev;
+
+      const updatedQuestions = (prev.questions || []).map(x => {
+        if (x.id === questionId) {
+          return {
+            ...x,
+            feedback,
+            feedbackAt: new Date().toISOString()
+          };
+        }
+        return x;
+      });
+
+      const feedbackText = feedback === 'understood' ? 'Çözümü Anladım ✅' : 'Çözümü Anlamadım ❌';
+      const newNotification: AppNotification = {
+        id: 'notif-' + Math.random().toString(36).substr(2, 9),
+        teacherId: q.teacherId,
+        title: 'Soru Geri Bildirimi',
+        message: `${q.studentName}, "${q.topicName}" konusundaki çözüme şu geri bildirimi yaptı: ${feedbackText}`,
+        date: new Date().toISOString(),
+        read: false,
+        type: 'system'
+      };
+
+      return {
+        ...prev,
+        questions: updatedQuestions,
+        notifications: [newNotification, ...(prev.notifications || [])]
+      };
+    });
+  };
+
+  const deleteQuestion = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      questions: (prev.questions || []).filter(q => q.id !== id)
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -710,6 +830,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         homeworks,
         transactions,
         notifications,
+        questions,
+
+        addQuestion,
+        addSolution,
+        giveQuestionFeedback,
+        deleteQuestion,
 
         addStudent,
         updateStudent,

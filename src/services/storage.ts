@@ -1,4 +1,4 @@
-import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification } from '../types';
+import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
 const STORAGE_KEY = 'coach_app_state_v3';
 let CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019fe6de-273f-726c-accf-f6e89ecfe9ca';
@@ -68,6 +68,17 @@ export const defaultTeachers: Teacher[] = [
   }
 ];
 
+export function pruneOldQuestions(questions: StudentQuestion[]): StudentQuestion[] {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoffTime = thirtyDaysAgo.getTime();
+  
+  return (questions || []).filter(q => {
+    const qDate = new Date(q.createdAt).getTime();
+    return qDate >= cutoffTime;
+  });
+}
+
 export const initialMockState: AppState = {
   teachers: defaultTeachers,
   activeTeacherId: '',
@@ -77,7 +88,8 @@ export const initialMockState: AppState = {
   lessons: [],
   homeworks: [],
   transactions: [],
-  notifications: []
+  notifications: [],
+  questions: []
 };
 
 // Helper: Ensure Super Admin Yasin Eren Alacahan is ALWAYS present
@@ -196,7 +208,8 @@ export const storageService = {
   async saveState(state: AppState): Promise<boolean> {
     const sanitizedState: AppState = {
       ...state,
-      teachers: ensureAdminTeacher(state.teachers)
+      teachers: ensureAdminTeacher(state.teachers),
+      questions: pruneOldQuestions(state.questions || [])
     };
 
     inMemoryState = sanitizedState;
@@ -213,7 +226,8 @@ export const storageService = {
       lessons: sanitizedState.lessons,
       homeworks: sanitizedState.homeworks,
       transactions: sanitizedState.transactions,
-      notifications: sanitizedState.notifications
+      notifications: sanitizedState.notifications,
+      questions: sanitizedState.questions
     });
 
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -263,6 +277,7 @@ export const storageService = {
       const mergedHomeworks = mergeCollections(inMemoryState.homeworks, cloudData.homeworks || []);
       const mergedTransactions = mergeCollections(inMemoryState.transactions, cloudData.transactions || []);
       const mergedNotifications = mergeCollections(inMemoryState.notifications, cloudData.notifications || []);
+      const mergedQuestions = pruneOldQuestions(mergeCollections(inMemoryState.questions || [], cloudData.questions || []));
 
       const updatedState: AppState = {
         teachers: mergedTeachers,
@@ -273,7 +288,8 @@ export const storageService = {
         lessons: mergedLessons,
         homeworks: mergedHomeworks,
         transactions: mergedTransactions,
-        notifications: mergedNotifications
+        notifications: mergedNotifications,
+        questions: mergedQuestions
       };
 
       inMemoryState = updatedState;
@@ -363,6 +379,17 @@ export const storageService = {
   saveNotifications(notifications: AppNotification[]): void {
     const state = this.getState();
     state.notifications = notifications;
+    this.saveState(state);
+  },
+
+  // Questions CRUD
+  getQuestions(): StudentQuestion[] {
+    return this.getState().questions || [];
+  },
+
+  saveQuestions(questions: StudentQuestion[]): void {
+    const state = this.getState();
+    state.questions = questions;
     this.saveState(state);
   }
 };

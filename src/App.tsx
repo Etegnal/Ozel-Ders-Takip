@@ -13,6 +13,7 @@ import { AdminPage } from './pages/AdminPage';
 import { AuthPage } from './pages/AuthPage';
 
 import { StudentDashboard } from './pages/StudentDashboard';
+import { QuestionsPage } from './pages/QuestionsPage';
 
 const AppContent: React.FC = () => {
   const { activeTeacherId, userRole, activeStudentId, isAdmin } = useApp();
@@ -32,6 +33,7 @@ const AppContent: React.FC = () => {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/students" element={<StudentsPage />} />
         <Route path="/homeworks" element={<HomeworksPage />} />
+        <Route path="/questions" element={<QuestionsPage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/teachers" element={<TeachersPage />} />

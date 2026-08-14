@@ -15,7 +15,8 @@ import {
   UserPlus,
   Trash2,
   X,
-  ShieldCheck
+  ShieldCheck,
+  HelpCircle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -121,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     { to: '/calendar', icon: Calendar, label: 'Takvim' },
     { to: '/students', icon: Users, label: 'Öğrenciler' },
     { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
+    { to: '/questions', icon: HelpCircle, label: 'Soru Çözüm' },
     { to: '/finance', icon: Wallet, label: 'Finans' },
     { to: '/notifications', icon: Bell, label: 'Bildirimler', badge: unreadNotificationsCount },
     ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Super Admin' }] : [])

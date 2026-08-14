@@ -87,6 +87,24 @@ export interface AppNotification {
   type: 'homework' | 'lesson' | 'finance' | 'system';
 }
 
+export interface StudentQuestion {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  lessonName: string;
+  topicName: string;
+  questionImage: string; // Base64 compressed JPEG
+  questionText?: string;
+  solutionImage?: string; // Base64 compressed JPEG
+  solutionText?: string;
+  status: 'pending' | 'solved';
+  feedback?: 'understood' | 'not_understood';
+  solvedAt?: string;
+  feedbackAt?: string;
+  createdAt: string;
+}
+
 export interface AppState {
   teachers: Teacher[];
   activeTeacherId: string;
@@ -97,4 +115,5 @@ export interface AppState {
   homeworks: Homework[];
   transactions: FinancialTransaction[];
   notifications: AppNotification[];
+  questions: StudentQuestion[];
 }

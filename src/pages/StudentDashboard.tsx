@@ -10,9 +10,14 @@ import {
   Award, 
   Mail, 
   AlertCircle,
-  School
+  School,
+  HelpCircle,
+  Plus,
+  Upload,
+  X
 } from 'lucide-react';
 import { formatReadableDate } from '../utils/helpers';
+import { StudentQuestion } from '../types';
 
 export const StudentDashboard: React.FC = () => {
   const { 
@@ -20,11 +25,73 @@ export const StudentDashboard: React.FC = () => {
     activeTeacher, 
     homeworks, 
     lessons, 
+    questions = [],
+    addQuestion,
+    giveQuestionFeedback,
     toggleStudentHomeworkStatus, 
     logoutStudent 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher'>('homeworks');
+  const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions'>('homeworks');
+
+  // Q&A State
+  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<StudentQuestion | null>(null);
+  
+  const [lessonName, setLessonName] = useState('');
+  const [topicName, setTopicName] = useState('');
+  const [questionImage, setQuestionImage] = useState('');
+  const [questionText, setQuestionText] = useState('');
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressing(true);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 500;
+        const MAX_HEIGHT = 500;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+        setQuestionImage(dataUrl);
+        setIsCompressing(false);
+      };
+      img.onerror = () => {
+        alert('Resim yüklenirken hata oluştu.');
+        setIsCompressing(false);
+      };
+    };
+    reader.onerror = () => {
+      alert('Dosya okunurken hata oluştu.');
+      setIsCompressing(false);
+    };
+  };
 
   if (!activeStudent) {
     return (
@@ -45,6 +112,7 @@ export const StudentDashboard: React.FC = () => {
   // Filter student-specific data
   const myHomeworks = homeworks.filter(h => h.studentId === activeStudent.id);
   const myLessons = lessons.filter(l => l.studentId === activeStudent.id);
+  const myQuestions = (questions || []).filter(q => q.studentId === activeStudent.id);
 
   const completedHomeworksCount = myHomeworks.filter(h => h.status === 'completed' || h.status === 'evaluated').length;
   const pendingHomeworksCount = myHomeworks.filter(h => h.status === 'pending').length;
@@ -168,6 +236,18 @@ export const StudentDashboard: React.FC = () => {
           >
             <User size={16} />
             <span>Öğretmenim</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              activeTab === 'questions'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <HelpCircle size={16} />
+            <span>Soru Çözüm ({myQuestions.length})</span>
           </button>
         </div>
 
@@ -319,7 +399,329 @@ export const StudentDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* --- TAB CONTENT: QUESTIONS (Q&A) --- */}
+        {activeTab === 'questions' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-text-primary">Sorduğum Sorular</h3>
+              <button
+                onClick={() => {
+                  setLessonName(activeTeacher ? activeTeacher.subject.split('/')[0].trim() : 'Matematik');
+                  setTopicName('');
+                  setQuestionImage('');
+                  setQuestionText('');
+                  setShowAddQuestionModal(true);
+                }}
+                className="bg-primary hover:bg-primary-hover text-black px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>Yeni Soru Sor</span>
+              </button>
+            </div>
+
+            {myQuestions.length === 0 ? (
+              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-10 text-center space-y-3">
+                <HelpCircle size={36} className="text-text-muted mx-auto" />
+                <h3 className="text-base font-bold text-text-primary">Henüz Soru Sormadınız</h3>
+                <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                  Çözemediğiniz soruların fotoğrafını çekip yükleyerek öğretmeninizden yardım isteyebilirsiniz.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {myQuestions.map((q) => (
+                  <div
+                    key={q.id}
+                    onClick={() => setSelectedQuestion(q)}
+                    className="bg-surface-card border border-border/60 hover:border-primary/30 rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="bg-primary/10 text-primary border border-primary/20 text-[10px] px-2 py-0.5 rounded-md font-semibold">
+                          {q.lessonName}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          q.status === 'solved'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        }`}>
+                          {q.status === 'solved' ? 'Çözüldü' : 'Bekliyor'}
+                        </span>
+                      </div>
+                      
+                      {/* Image Thumbnail */}
+                      <div className="w-full h-32 bg-background border border-border/50 rounded-xl overflow-hidden relative">
+                        <img src={q.questionImage} className="w-full h-full object-cover" alt="Soru" />
+                      </div>
+                      
+                      <h4 className="font-bold text-sm text-text-primary truncate">{q.topicName}</h4>
+                      {q.questionText && (
+                        <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">{q.questionText}</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between border-t border-border/50 pt-2 text-[10px] text-text-muted">
+                      <span>{new Date(q.createdAt).toLocaleDateString('tr-TR')}</span>
+                      
+                      {q.status === 'solved' && (
+                        <span className="flex items-center gap-1">
+                          {q.feedback === 'understood' ? (
+                            <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                              <CheckCircle size={10} /> Anladım
+                            </span>
+                          ) : q.feedback === 'not_understood' ? (
+                            <span className="text-red-400 font-bold flex items-center gap-0.5">
+                              <X size={10} /> Anlamadım
+                            </span>
+                          ) : (
+                            <span className="text-amber-400 font-semibold">Geri Bildirim Bekliyor</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
+
+      {/* --- ADD QUESTION MODAL --- */}
+      {showAddQuestionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !isCompressing && setShowAddQuestionModal(false)} />
+          <div className="bg-surface border border-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative z-10">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card bg-surface-card">
+              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                <HelpCircle className="text-primary w-5 h-5" />
+                <span>Yeni Soru Sor</span>
+              </h3>
+              <button 
+                onClick={() => !isCompressing && setShowAddQuestionModal(false)} 
+                disabled={isCompressing}
+                className="text-text-muted hover:text-text-primary transition-colors disabled:opacity-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!questionImage) {
+                  alert('Lütfen sorunun bir fotoğrafını yükleyin.');
+                  return;
+                }
+                addQuestion(lessonName, topicName, questionImage, questionText);
+                setShowAddQuestionModal(false);
+              }}
+              className="p-6 space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary font-semibold">DERS</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Örn: Matematik"
+                    value={lessonName}
+                    onChange={(e) => setLessonName(e.target.value)}
+                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-text-secondary font-semibold">KONU</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Örn: Türev"
+                    value={topicName}
+                    onChange={(e) => setTopicName(e.target.value)}
+                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-text-secondary font-semibold">SORU FOTOĞRAFI</label>
+                <div className="border border-dashed border-border/80 rounded-xl p-4 text-center bg-surface-card/30 flex flex-col items-center justify-center min-h-36 relative">
+                  {questionImage ? (
+                    <div className="w-full h-full max-h-48 relative overflow-hidden rounded-lg border border-border">
+                      <img src={questionImage} className="w-full h-full object-contain" alt="Yüklenen Soru" />
+                      <button
+                        type="button"
+                        onClick={() => setQuestionImage('')}
+                        className="absolute top-2 right-2 p-1.5 bg-black/80 hover:bg-black text-text-primary rounded-full transition-all border border-border/20 cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center space-y-2 p-2">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+                        <Upload size={16} />
+                      </div>
+                      <div className="text-xs font-bold text-text-primary">
+                        {isCompressing ? 'Görsel İşleniyor...' : 'Fotoğraf Çek / Yükle'}
+                      </div>
+                      <p className="text-[10px] text-text-muted">Kamera veya Galeri (PNG, JPG)</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileChange}
+                        disabled={isCompressing}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-text-secondary font-semibold">SORU AÇIKLAMASI (OPSİYONEL)</label>
+                <textarea 
+                  placeholder="Soruda anlamadığınız kısmı veya ek açıklamayı buraya yazabilirsiniz..."
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  rows={3}
+                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary/50 text-text-primary resize-none"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isCompressing || !questionImage}
+                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isCompressing ? 'Görsel Hazırlanıyor...' : 'Soruyu Gönder'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- QUESTION DETAIL MODAL --- */}
+      {selectedQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setSelectedQuestion(null)} />
+          <div className="bg-surface border border-border w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl relative z-10 max-h-[90vh] flex flex-col">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card flex-shrink-0">
+              <div>
+                <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                  <span>Soru Detayı</span>
+                  <span className="text-primary">·</span>
+                  <span className="text-xs font-semibold text-text-secondary">{selectedQuestion.lessonName} - {selectedQuestion.topicName}</span>
+                </h3>
+              </div>
+              <button onClick={() => setSelectedQuestion(null)} className="text-text-muted hover:text-text-primary transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Question Section */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-xs text-text-secondary uppercase tracking-wider">SORULAN SORU</h4>
+                  <div className="border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
+                    <img src={selectedQuestion.questionImage} className="max-h-60 object-contain rounded-xl" alt="Soru Resmi" />
+                  </div>
+                  {selectedQuestion.questionText && (
+                    <div className="bg-surface-card border border-border/60 p-3.5 rounded-xl text-xs text-text-primary leading-relaxed">
+                      {selectedQuestion.questionText}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-text-muted">Sorulma Tarihi: {new Date(selectedQuestion.createdAt).toLocaleString('tr-TR')}</p>
+                </div>
+
+                {/* Solution Section */}
+                <div className="space-y-3 border-t md:border-t-0 md:border-l border-border/50 pt-4 md:pt-0 md:pl-6">
+                  <h4 className="font-bold text-xs text-primary uppercase tracking-wider">ÖĞRETMENİN ÇÖZÜMÜ</h4>
+                  
+                  {selectedQuestion.status === 'solved' ? (
+                    <div className="space-y-4">
+                      {selectedQuestion.solutionImage && (
+                        <div className="border border-border rounded-2xl overflow-hidden bg-background max-h-64 flex items-center justify-center p-2">
+                          <img src={selectedQuestion.solutionImage} className="max-h-60 object-contain rounded-xl" alt="Çözüm Resmi" />
+                        </div>
+                      )}
+                      
+                      {selectedQuestion.solutionText && (
+                        <div className="bg-primary/5 border border-primary/20 p-3.5 rounded-xl text-xs text-text-primary leading-relaxed">
+                          <strong>Açıklama:</strong> {selectedQuestion.solutionText}
+                        </div>
+                      )}
+
+                      {selectedQuestion.solvedAt && (
+                        <p className="text-[10px] text-text-muted">Çözülme Tarihi: {new Date(selectedQuestion.solvedAt).toLocaleString('tr-TR')}</p>
+                      )}
+
+                      {/* Feedback Action or Display */}
+                      <div className="border-t border-border/60 pt-4 space-y-3">
+                        <h5 className="font-bold text-xs text-text-secondary">Çözümü Anladınız mı?</h5>
+                        
+                        {selectedQuestion.feedback ? (
+                          <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-bold ${
+                            selectedQuestion.feedback === 'understood'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              : 'bg-red-500/10 text-red-400 border-red-500/30'
+                          }`}>
+                            {selectedQuestion.feedback === 'understood' ? (
+                              <>
+                                <CheckCircle size={16} />
+                                <span>Çözümü anladığınızı belirttiniz. ✅</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle size={16} />
+                                <span>Çözümü anlamadığınızı belirttiniz. ❌</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => {
+                                giveQuestionFeedback(selectedQuestion.id, 'understood');
+                                setSelectedQuestion(prev => prev ? { ...prev, feedback: 'understood' } : null);
+                              }}
+                              className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-emerald-500/15"
+                            >
+                              <CheckCircle size={14} />
+                              <span>Evet, Anladım</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                giveQuestionFeedback(selectedQuestion.id, 'not_understood');
+                                setSelectedQuestion(prev => prev ? { ...prev, feedback: 'not_understood' } : null);
+                              }}
+                              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-red-500/15"
+                            >
+                              <X size={14} />
+                              <span>Hayır, Anlamadım</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-surface-card/60 border border-border/50 rounded-2xl p-6 text-center space-y-2">
+                      <Clock size={24} className="text-amber-400 mx-auto animate-pulse" />
+                      <p className="text-xs font-bold text-text-primary">Çözüm Bekleniyor</p>
+                      <p className="text-[10px] text-text-secondary leading-normal">
+                        Öğretmeniniz sorunuzu inceledikten sonra buraya çözümü yükleyecektir.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
