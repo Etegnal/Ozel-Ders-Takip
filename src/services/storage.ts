@@ -1,7 +1,7 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
 const STORAGE_KEY = 'coach_app_state_v3';
-let CLOUD_DB_URL = 'https://jsonblob.com/api/jsonBlob/019fe6de-273f-726c-accf-f6e89ecfe9ca';
+const CLOUD_DB_URL = 'https://api.restful-api.dev/objects/ff8081819ff5b11001a00226483c204a';
 
 // Turkish-safe string normalizer (handles İ/i, I/ı, Ğ/g, Ü/u, Ş/s, Ö/o, Ç/c, whitespace)
 export function normalizeStr(str: string | undefined | null): string {
@@ -221,13 +221,16 @@ export const storageService = {
 
     // Direct Sync to Cloud DB with Retries
     const payload = JSON.stringify({
-      teachers: sanitizedState.teachers,
-      students: sanitizedState.students,
-      lessons: sanitizedState.lessons,
-      homeworks: sanitizedState.homeworks,
-      transactions: sanitizedState.transactions,
-      notifications: sanitizedState.notifications,
-      questions: sanitizedState.questions
+      name: 'coach_app_state',
+      data: {
+        teachers: sanitizedState.teachers,
+        students: sanitizedState.students,
+        lessons: sanitizedState.lessons,
+        homeworks: sanitizedState.homeworks,
+        transactions: sanitizedState.transactions,
+        notifications: sanitizedState.notifications,
+        questions: sanitizedState.questions
+      }
     });
 
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -265,7 +268,10 @@ export const storageService = {
       clearTimeout(timeoutId);
 
       if (!res.ok) return inMemoryState;
-      const cloudData = await res.json();
+      const jsonResponse = await res.json();
+      if (!jsonResponse || typeof jsonResponse !== 'object') return inMemoryState;
+      
+      const cloudData = jsonResponse.data;
       if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
       const mergedTeachers = mergeTeachers(inMemoryState.teachers, cloudData.teachers || []);
