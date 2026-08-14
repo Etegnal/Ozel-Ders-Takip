@@ -8,7 +8,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     title: "Coach",
-    icon: path.join(__dirname, '../public/logo.png'),
+    icon: path.join(__dirname, '../public/logo_square.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
