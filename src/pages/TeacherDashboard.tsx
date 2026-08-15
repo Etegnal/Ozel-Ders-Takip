@@ -57,46 +57,46 @@ export const TeacherDashboard: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Welcome Banner */}
-      <div className="bg-surface-card/90 border border-primary/30 p-6 md:p-8 rounded-3xl relative overflow-hidden backdrop-blur-md shadow-2xl">
-        <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="bg-gradient-to-br from-surface-card via-surface-card to-surface-card/80 border border-primary/40 p-5 sm:p-7 rounded-3xl relative overflow-hidden shadow-2xl backdrop-blur-xl">
+        <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-primary/15 rounded-full blur-[90px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-80 h-80 bg-orange-500/10 rounded-full blur-[90px] pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-primary/20 border border-primary/30 text-primary font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm">
-                <Sparkles size={14} />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 bg-primary/25 border border-primary/40 text-primary font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-primary/10">
+                <Sparkles size={14} className="text-primary animate-pulse" />
                 <span>Öğretmen Portalı</span>
               </span>
-              <span className="text-xs text-text-muted">
+              <span className="text-xs text-text-primary font-medium bg-surface-hover/80 px-2.5 py-1 rounded-xl border border-border/80 shadow-xs">
                 {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })}
               </span>
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-extrabold text-text-primary tracking-tight">
-              Hoş Geldiniz, <span className="text-primary">{activeTeacher?.name || 'Değerli Öğretmenimiz'}</span> 👋
+            <h1 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight leading-snug">
+              Hoş Geldiniz, <span className="text-primary underline decoration-primary/30 underline-offset-4">{activeTeacher?.name || 'Değerli Öğretmenimiz'}</span> 👋
             </h1>
 
-            <p className="text-xs md:text-sm text-text-secondary max-w-xl">
-              Branşınız: <strong className="text-text-primary">{activeTeacher?.subject || 'Özel Ders'}</strong> · Bugünkü derslerinizi, öğrencilerinizi ve kazancınızı buradan takip edebilirsiniz.
+            <p className="text-xs sm:text-sm text-text-secondary font-medium max-w-xl leading-relaxed">
+              Branşınız: <strong className="text-primary font-bold">{activeTeacher?.subject || 'Özel Ders'}</strong> · Bugünkü derslerinizi, öğrencilerinizi ve kazancınızı buradan kolayca takip edebilirsiniz.
             </p>
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-3 pt-2 md:pt-0">
             <button
               onClick={() => setActiveModal('student')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-black text-xs font-bold rounded-xl transition-all shadow-lg shadow-primary/20 cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-black text-xs font-black rounded-2xl transition-all shadow-lg shadow-primary/25 hover:scale-[1.02] cursor-pointer"
             >
-              <Plus size={16} />
+              <Plus size={18} strokeWidth={3} />
               <span>Yeni Öğrenci</span>
             </button>
 
             <button
               onClick={() => setActiveModal('lesson')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-surface-card border border-border hover:border-primary/40 text-text-primary text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-surface-card border-2 border-border hover:border-primary/50 text-text-primary text-xs font-bold rounded-2xl transition-all hover:bg-surface-hover cursor-pointer"
             >
-              <CalendarIcon size={16} className="text-primary" />
+              <CalendarIcon size={18} className="text-primary" />
               <span>Ders Planla</span>
             </button>
           </div>
@@ -106,58 +106,77 @@ export const TeacherDashboard: React.FC = () => {
       {/* 4 KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Students */}
-        <Link to="/students" className="bg-surface-card p-5 rounded-2xl border border-border/80 hover:border-primary/40 transition-all shadow-sm group">
+        <Link to="/students" className="bg-surface-card p-5 rounded-2xl border-2 border-border/90 hover:border-primary/50 transition-all shadow-md group relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Users size={22} />
+            <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 text-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <Users size={24} />
             </div>
-            <ArrowUpRight size={18} className="text-text-muted group-hover:text-primary transition-colors" />
+            <div className="w-8 h-8 rounded-xl bg-surface-hover flex items-center justify-center text-text-secondary group-hover:text-primary group-hover:bg-primary/20 transition-all">
+              <ArrowUpRight size={18} />
+            </div>
           </div>
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Aktif Öğrencilerim</p>
-            <h3 className="text-2xl font-black text-text-primary mt-1">{activeStudentsCount} <span className="text-sm font-normal text-text-secondary">Öğrenci</span></h3>
+          <div className="mt-4 space-y-1">
+            <p className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Aktif Öğrencilerim</p>
+            <h3 className="text-2xl font-black text-text-primary flex items-baseline gap-1.5">
+              {activeStudentsCount} 
+              <span className="text-xs font-semibold text-text-secondary">Öğrenci</span>
+            </h3>
           </div>
         </Link>
 
         {/* Card 2: Lesson Hours */}
-        <Link to="/calendar" className="bg-surface-card p-5 rounded-2xl border border-border/80 hover:border-blue-500/40 transition-all shadow-sm group">
+        <Link to="/calendar" className="bg-surface-card p-5 rounded-2xl border-2 border-border/90 hover:border-blue-500/50 transition-all shadow-md group relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Clock size={22} />
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <Clock size={24} />
             </div>
-            <ArrowUpRight size={18} className="text-text-muted group-hover:text-blue-400 transition-colors" />
+            <div className="w-8 h-8 rounded-xl bg-surface-hover flex items-center justify-center text-text-secondary group-hover:text-blue-400 group-hover:bg-blue-500/20 transition-all">
+              <ArrowUpRight size={18} />
+            </div>
           </div>
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Toplam Ders Saati</p>
-            <h3 className="text-2xl font-black text-text-primary mt-1">{totalLessonHours} <span className="text-sm font-normal text-text-secondary">Saat</span></h3>
+          <div className="mt-4 space-y-1">
+            <p className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Toplam Ders Saati</p>
+            <h3 className="text-2xl font-black text-text-primary flex items-baseline gap-1.5">
+              {totalLessonHours} 
+              <span className="text-xs font-semibold text-text-secondary">Saat</span>
+            </h3>
           </div>
         </Link>
 
         {/* Card 3: Total Revenue */}
-        <Link to="/finance" className="bg-surface-card p-5 rounded-2xl border border-border/80 hover:border-emerald-500/40 transition-all shadow-sm group">
+        <Link to="/finance" className="bg-surface-card p-5 rounded-2xl border-2 border-border/90 hover:border-emerald-500/50 transition-all shadow-md group relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <TrendingUp size={22} />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <TrendingUp size={24} />
             </div>
-            <ArrowUpRight size={18} className="text-text-muted group-hover:text-emerald-400 transition-colors" />
+            <div className="w-8 h-8 rounded-xl bg-surface-hover flex items-center justify-center text-text-secondary group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all">
+              <ArrowUpRight size={18} />
+            </div>
           </div>
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Kazanılan Toplam Meblağ</p>
-            <h3 className="text-2xl font-black text-emerald-400 mt-1">{formatCurrency(totalEarnedRevenue)}</h3>
+          <div className="mt-4 space-y-1">
+            <p className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Kazanılan Toplam Meblağ</p>
+            <h3 className="text-2xl font-black text-emerald-400">
+              {formatCurrency(totalEarnedRevenue)}
+            </h3>
           </div>
         </Link>
 
         {/* Card 4: Homeworks */}
-        <Link to="/homeworks" className="bg-surface-card p-5 rounded-2xl border border-border/80 hover:border-amber-500/40 transition-all shadow-sm group">
+        <Link to="/homeworks" className="bg-surface-card p-5 rounded-2xl border-2 border-border/90 hover:border-amber-500/50 transition-all shadow-md group relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <BookOpen size={22} />
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+              <BookOpen size={24} />
             </div>
-            <ArrowUpRight size={18} className="text-text-muted group-hover:text-amber-400 transition-colors" />
+            <div className="w-8 h-8 rounded-xl bg-surface-hover flex items-center justify-center text-text-secondary group-hover:text-amber-400 group-hover:bg-amber-500/20 transition-all">
+              <ArrowUpRight size={18} />
+            </div>
           </div>
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Bekleyen Ödevler</p>
-            <h3 className="text-2xl font-black text-text-primary mt-1">{pendingHomeworks.length} <span className="text-sm font-normal text-text-secondary">Ödev</span></h3>
+          <div className="mt-4 space-y-1">
+            <p className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Bekleyen Ödevler</p>
+            <h3 className="text-2xl font-black text-text-primary flex items-baseline gap-1.5">
+              {pendingHomeworks.length} 
+              <span className="text-xs font-semibold text-text-secondary">Ödev</span>
+            </h3>
           </div>
         </Link>
       </div>

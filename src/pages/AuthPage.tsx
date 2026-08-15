@@ -26,14 +26,27 @@ export const AuthPage: React.FC = () => {
   const [studentGrade, setStudentGrade] = useState('12. Sınıf (YKS)');
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
 
-  // Loading state
+  // Loading & Remember Me states
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
-  // Auto-select first teacher on load
+  // Auto-select first teacher on load and restore remembered user info
   React.useEffect(() => {
     if (teachers && teachers.length > 0 && !selectedTeacherId) {
       setSelectedTeacherId(teachers[0].id);
     }
+    try {
+      const saved = localStorage.getItem('coach_remember_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.remember) {
+          if (parsed.teacherEmail) setEmail(parsed.teacherEmail);
+          if (parsed.studentId) setStudentIdInput(parsed.studentId);
+          if (parsed.role) setAuthRole(parsed.role);
+          setRememberMe(true);
+        }
+      }
+    } catch {}
   }, [teachers, selectedTeacherId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,6 +55,17 @@ export const AuthPage: React.FC = () => {
     setLoading(true);
 
     try {
+      if (rememberMe) {
+        localStorage.setItem('coach_remember_user', JSON.stringify({
+          teacherEmail: email,
+          studentId: studentIdInput,
+          role: authRole,
+          remember: true
+        }));
+      } else {
+        localStorage.removeItem('coach_remember_user');
+      }
+
       if (authRole === 'student') {
         if (isStudentLoginView) {
           if (!studentIdInput.trim() || !studentPassword.trim()) {
@@ -206,6 +230,18 @@ export const AuthPage: React.FC = () => {
                       className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
                     />
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-text-secondary hover:text-text-primary transition-colors select-none">
+                    <input 
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+                    />
+                    <span className="font-semibold text-xs">Beni Hatırla</span>
+                  </label>
                 </div>
 
                 <button
@@ -426,6 +462,20 @@ export const AuthPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {isLoginView && (
+                <div className="flex items-center justify-between pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-text-secondary hover:text-text-primary transition-colors select-none">
+                    <input 
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+                    />
+                    <span className="font-semibold text-xs">Beni Hatırla</span>
+                  </label>
+                </div>
+              )}
 
               <button
                 type="submit"
