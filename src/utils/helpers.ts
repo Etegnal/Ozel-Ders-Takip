@@ -47,17 +47,43 @@ export function getGradeLabel(grade: string): string {
 }
 
 /**
+ * Returns today's date formatted as YYYY-MM-DD in local time (prevents UTC timezone shift lag).
+ */
+export function getTodayDateString(): string {
+  return formatDateToISO(new Date());
+}
+
+/**
+ * Formats a Date object to YYYY-MM-DD string in local time.
+ */
+export function formatDateToISO(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Format date to readable Turkish format, e.g., "15 Temmuz Çarşamba"
  */
 export function formatReadableDate(dateString: string): string {
   if (!dateString) return '';
+  const cleanStr = dateString.split('T')[0];
+  const parts = cleanStr.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    const options: Intl.DateTimeFormatOptions = {
+      day: 'numeric',
+      month: 'long',
+      weekday: 'long'
+    };
+    return date.toLocaleDateString('tr-TR', options);
+  }
   const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = {
-    day: 'numeric',
-    month: 'long',
-    weekday: 'long'
-  };
-  return date.toLocaleDateString('tr-TR', options);
+  return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
 }
 
 /**

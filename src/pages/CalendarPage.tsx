@@ -10,9 +10,10 @@ import {
   ChevronLeft, 
   ChevronRight,
   BookOpen,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
-import { formatCurrency, formatReadableDate } from '../utils/helpers';
+import { formatCurrency, formatReadableDate, getTodayDateString, formatDateToISO } from '../utils/helpers';
 
 export const CalendarPage: React.FC = () => {
   const { 
@@ -25,8 +26,11 @@ export const CalendarPage: React.FC = () => {
     setActiveModal
   } = useApp();
 
-  // Calendar State
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 6, 25)); // Initialize around July 2026 to show mock data
+  // Real-time dynamic clock state (updates every 10 seconds to keep calendar 100% current)
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Calendar State (Defaults to current real-time month and year)
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
   // Local state for view/edit popover
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -38,6 +42,14 @@ export const CalendarPage: React.FC = () => {
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [notes, setNotes] = useState('');
 
+  // Keep live time updated dynamically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Detect Topbar "+" click (via Context activeModal)
   useEffect(() => {
     if (activeModal === 'lesson') {
@@ -47,7 +59,7 @@ export const CalendarPage: React.FC = () => {
 
   const handleOpenAddModal = (dateStr?: string) => {
     setStudentId(students[0]?.id || '');
-    setLessonDate(dateStr || new Date().toISOString().split('T')[0]);
+    setLessonDate(dateStr || getTodayDateString());
     setLessonTime('18:00');
     setDurationMinutes(60);
     setNotes('');
@@ -86,7 +98,9 @@ export const CalendarPage: React.FC = () => {
   };
 
   const handleToday = () => {
-    setCurrentDate(new Date());
+    const todayDate = new Date();
+    setNow(todayDate);
+    setCurrentDate(todayDate);
   };
 
   // Generate grid days: 42 cells (previous month pad + current month + next month pad)
@@ -138,19 +152,56 @@ export const CalendarPage: React.FC = () => {
     return lessons.filter(l => l.date === dateStr);
   };
 
-  const formatDateString = (d: Date): string => {
-    const offset = d.getTimezoneOffset();
-    const adjustedDate = new Date(d.getTime() - (offset * 60 * 1000));
-    return adjustedDate.toISOString().split('T')[0];
-  };
-
   const handleLessonBubbleClick = (e: React.MouseEvent, lesson: Lesson) => {
     e.stopPropagation(); // Avoid triggering day cell click
     setSelectedLesson(lesson);
   };
 
+  const todayStr = getTodayDateString();
+  const todayLessons = lessons.filter(l => l.date === todayStr);
+
   return (
     <div className="space-y-6">
+      {/* Dynamic Live Time & Real-time Date Banner */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-gradient-to-r from-primary/10 via-surface-card to-surface-card border border-primary/30 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="relative flex items-center justify-center">
+            <span className="w-3 h-3 bg-emerald-500 rounded-full animate-ping absolute" />
+            <span className="w-3 h-3 bg-emerald-500 rounded-full relative" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black tracking-wider text-primary uppercase flex items-center gap-1">
+                <Sparkles size={13} />
+                <span>Canlı Takip Aktif</span>
+              </span>
+              <span className="text-[11px] font-bold text-text-muted bg-surface-card border border-border px-2 py-0.5 rounded-lg">
+                Gerçek Zamanlı
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-text-primary mt-0.5">
+              Bugün: <span className="text-primary font-bold">{formatReadableDate(todayStr)} · {now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+          <div className="text-right">
+            <span className="text-[11px] text-text-muted block font-medium">Bugünkü Dersler</span>
+            <span className="text-xs font-bold text-emerald-400">
+              {todayLessons.length} Ders Programlandı
+            </span>
+          </div>
+          <button 
+            onClick={handleToday}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 font-bold text-xs rounded-xl transition-all"
+          >
+            <Clock size={14} />
+            <span>Bugüne Git</span>
+          </button>
+        </div>
+      </div>
+
       {/* Month Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card/40 p-4 border border-border/80 rounded-2xl">
         <div className="flex items-center justify-between sm:justify-start gap-3 flex-wrap">
@@ -158,24 +209,27 @@ export const CalendarPage: React.FC = () => {
             <button 
               onClick={prevMonth}
               className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
+              title="Önceki Ay"
             >
               <ChevronLeft size={16} />
             </button>
             <button 
               onClick={handleToday}
-              className="px-3 py-2 bg-surface-card border border-border text-xs rounded-xl font-bold text-text-secondary hover:text-text-primary transition-all"
+              className="px-3.5 py-2 bg-primary/10 border border-primary/30 text-xs rounded-xl font-bold text-primary hover:bg-primary/20 transition-all flex items-center gap-1 cursor-pointer"
             >
-              Bugün
+              <CalendarIcon size={14} />
+              <span>Bugün</span>
             </button>
             <button 
               onClick={nextMonth}
               className="p-2 bg-surface-card border border-border rounded-xl text-text-secondary hover:text-text-primary transition-all"
+              title="Sonraki Ay"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
-          <span className="font-bold text-sm md:text-base text-text-primary uppercase tracking-wide">
+          <span className="font-extrabold text-sm md:text-base text-text-primary uppercase tracking-wide">
             {currentDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
           </span>
         </div>
@@ -203,9 +257,9 @@ export const CalendarPage: React.FC = () => {
         {/* Days grid */}
         <div className="grid grid-cols-7 grid-rows-6 divide-x divide-y divide-border/40 bg-surface-card">
           {calendarDays.map(({ date, isCurrentMonth }, index) => {
-            const dateStr = formatDateString(date);
+            const dateStr = formatDateToISO(date);
             const dayLessons = getLessonsForDate(dateStr);
-            const isToday = new Date().toDateString() === date.toDateString();
+            const isToday = dateStr === todayStr;
 
             return (
               <div 
@@ -213,17 +267,24 @@ export const CalendarPage: React.FC = () => {
                 onClick={() => handleOpenAddModal(dateStr)}
                 className={`min-h-[105px] p-2 flex flex-col justify-between transition-all group relative cursor-pointer hover:bg-surface-hover/30 border-r border-b border-border/20 ${
                   !isCurrentMonth ? 'bg-surface/10 opacity-40' : ''
-                } ${isToday ? 'bg-primary/5 border-primary/20' : ''}`}
+                } ${isToday ? 'bg-primary/15 border-2 border-primary/80 shadow-inner' : ''}`}
               >
-                {/* Cell Header: Day Number */}
+                {/* Cell Header: Day Number & Today Badge */}
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-xs font-bold font-sans rounded-full w-5 h-5 flex items-center justify-center ${
-                    isToday 
-                      ? 'bg-primary text-black font-bold glow-primary' 
-                      : isCurrentMonth ? 'text-text-primary' : 'text-text-muted'
-                  }`}>
-                    {date.getDate()}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-xs font-bold font-sans rounded-full w-5 h-5 flex items-center justify-center ${
+                      isToday 
+                        ? 'bg-primary text-black font-extrabold shadow-md shadow-primary/40' 
+                        : isCurrentMonth ? 'text-text-primary' : 'text-text-muted'
+                    }`}>
+                      {date.getDate()}
+                    </span>
+                    {isToday && (
+                      <span className="text-[9px] font-black text-black bg-primary px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        BUGÜN
+                      </span>
+                    )}
+                  </div>
                   
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-text-muted hover:text-text-primary">
                     + Ekle

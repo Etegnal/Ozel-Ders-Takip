@@ -14,7 +14,7 @@ import {
   Clock,
   Award
 } from 'lucide-react';
-import { formatReadableDate, getWhatsAppLink, getHomeworkTemplate } from '../utils/helpers';
+import { formatReadableDate, getWhatsAppLink, getHomeworkTemplate, getTodayDateString } from '../utils/helpers';
 
 export const HomeworksPage: React.FC = () => {
   const { 
@@ -59,7 +59,7 @@ export const HomeworksPage: React.FC = () => {
     setStudentId(students[0]?.id || '');
     setTitle('');
     setDescription('');
-    setDueDate(new Date().toISOString().split('T')[0]);
+    setDueDate(getTodayDateString());
     setDueTime('23:59');
     setShowAddModal(true);
   };

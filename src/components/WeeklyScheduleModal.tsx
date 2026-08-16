@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 
 
+import { formatDateToISO, getTodayDateString } from '../utils/helpers';
+
 interface WeeklyScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -32,15 +34,12 @@ export const WeeklyScheduleModal: React.FC<WeeklyScheduleModalProps> = ({ isOpen
   const sevenDaysLater = new Date(today);
   sevenDaysLater.setDate(today.getDate() + 7);
 
-  const formatISO = (d: Date) => d.toISOString().split('T')[0];
+  const todayStr = getTodayDateString();
+  const endStr = formatDateToISO(sevenDaysLater);
 
   // Filter lessons & homeworks inside this week
   const filteredLessons = lessons.filter(l => {
-    const lDate = new Date(l.date);
-    const dateStr = formatISO(lDate);
-    const todayStr = formatISO(today);
-    const endStr = formatISO(sevenDaysLater);
-    
+    const dateStr = l.date;
     // Match range
     const inRange = dateStr >= todayStr && dateStr < endStr;
     const isScheduled = l.status === 'scheduled';
@@ -53,11 +52,7 @@ export const WeeklyScheduleModal: React.FC<WeeklyScheduleModalProps> = ({ isOpen
   });
 
   const filteredHomeworks = homeworks.filter(h => {
-    const hDate = new Date(h.dueDate);
-    const dateStr = formatISO(hDate);
-    const todayStr = formatISO(today);
-    const endStr = formatISO(sevenDaysLater);
-    
+    const dateStr = h.dueDate;
     const inRange = dateStr >= todayStr && dateStr < endStr;
     const isPending = h.status === 'pending';
     const isForUser = userRole === 'student' ? h.studentId === activeStudent?.id : true;
@@ -76,7 +71,7 @@ export const WeeklyScheduleModal: React.FC<WeeklyScheduleModalProps> = ({ isOpen
   for (let i = 0; i < 7; i++) {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
-    const dateStr = formatISO(targetDate);
+    const dateStr = formatDateToISO(targetDate);
     planByDay[dateStr] = { lessons: [], homeworks: [] };
   }
 

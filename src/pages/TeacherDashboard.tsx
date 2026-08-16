@@ -13,7 +13,7 @@ import {
   Sparkles,
   ArrowUpRight
 } from 'lucide-react';
-import { formatCurrency, getWhatsAppLink } from '../utils/helpers';
+import { formatCurrency, getWhatsAppLink, getTodayDateString } from '../utils/helpers';
 import { Link } from 'react-router-dom';
 
 export const TeacherDashboard: React.FC = () => {
@@ -27,7 +27,7 @@ export const TeacherDashboard: React.FC = () => {
     setActiveModal
   } = useApp();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayDateString();
 
   // Calculated Metrics
   const activeStudentsCount = students.filter(s => s.status === 'active').length;

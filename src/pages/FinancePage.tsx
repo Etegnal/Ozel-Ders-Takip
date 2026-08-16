@@ -23,7 +23,7 @@ import {
   Tooltip as ChartTooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { formatCurrency, formatReadableDate } from '../utils/helpers';
+import { formatCurrency, formatReadableDate, getTodayDateString } from '../utils/helpers';
 
 export const FinancePage: React.FC = () => {
   const { 
@@ -127,7 +127,7 @@ export const FinancePage: React.FC = () => {
       studentName: transType === 'income' && selectedStudent ? selectedStudent.name : undefined,
       type: transType,
       amount: Number(amount),
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDateString(),
       category,
       notes
     });

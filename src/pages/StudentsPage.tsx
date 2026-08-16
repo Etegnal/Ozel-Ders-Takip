@@ -13,7 +13,7 @@ import {
   X,
   User
 } from 'lucide-react';
-import { formatCurrency, getWhatsAppLink } from '../utils/helpers';
+import { formatCurrency, getWhatsAppLink, getTodayDateString } from '../utils/helpers';
 
 export const StudentsPage: React.FC = () => {
   const { 
@@ -57,7 +57,7 @@ export const StudentsPage: React.FC = () => {
   const [parentPhone, setParentPhone] = useState('');
 
   // Quick lesson states
-  const [lessonDate, setLessonDate] = useState(new Date().toISOString().split('T')[0]);
+  const [lessonDate, setLessonDate] = useState(getTodayDateString());
   const [lessonTime, setLessonTime] = useState('18:00');
   const [lessonDuration, setLessonDuration] = useState(60);
   const [lessonNotes, setLessonNotes] = useState('');
@@ -137,7 +137,7 @@ export const StudentsPage: React.FC = () => {
 
   const handleOpenScheduleModal = (student: Student) => {
     setSelectedStudent(student);
-    setLessonDate(new Date().toISOString().split('T')[0]);
+    setLessonDate(getTodayDateString());
     setLessonTime('18:00');
     setLessonDuration(60);
     setLessonNotes('');
