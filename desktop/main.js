@@ -16,8 +16,14 @@ function createWindow() {
     }
   });
 
-  // Load the web app URL
-  mainWindow.loadURL('https://etegnal.github.io/Ozel-Ders-Takip/');
+  // Clear session cache and load the web app URL with no-cache headers
+  mainWindow.webContents.session.clearCache().then(() => {
+    mainWindow.loadURL('https://etegnal.github.io/Ozel-Ders-Takip/', {
+      extraHeaders: 'pragma: no-cache\r\nCache-Control: no-cache, no-store, must-revalidate\r\n'
+    });
+  }).catch(() => {
+    mainWindow.loadURL('https://etegnal.github.io/Ozel-Ders-Takip/');
+  });
 
   // Remove default menu bar
   Menu.setApplicationMenu(null);
@@ -26,14 +32,16 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // Enable reloading and developer tools with keyboard shortcuts
+  // Enable reloading without cache and developer tools with keyboard shortcuts
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.shift && input.key.toLowerCase() === 'i') {
       mainWindow.webContents.openDevTools();
       event.preventDefault();
     }
     if (input.key === 'F5' || (input.control && input.key.toLowerCase() === 'r')) {
-      mainWindow.webContents.reload();
+      mainWindow.webContents.session.clearCache().then(() => {
+        mainWindow.webContents.reloadIgnoringCache();
+      });
       event.preventDefault();
     }
     if (input.key === 'F11') {

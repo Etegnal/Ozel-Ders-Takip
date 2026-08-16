@@ -34,7 +34,7 @@ export const QuestionsPage: React.FC = () => {
   // Modals state
   const [selectedQuestion, setSelectedQuestion] = useState<StudentQuestion | null>(null);
   const [showSolutionModal, setShowSolutionModal] = useState(false);
-  const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
+  const [isCanvasExpanded, setIsCanvasExpanded] = useState(true);
   
   // Solution Form state
   const [solutionText, setSolutionText] = useState('');
@@ -737,7 +737,7 @@ export const QuestionsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className={`border border-border/85 rounded-xl overflow-hidden bg-background flex items-center justify-center p-2 transition-all ${
+                  <div className={`border border-border/85 rounded-xl overflow-hidden bg-background/90 flex items-center justify-center p-2 transition-all w-full ${
                     isCanvasExpanded ? 'min-h-[480px]' : 'min-h-[300px]'
                   }`}>
                     <canvas
@@ -750,7 +750,7 @@ export const QuestionsPage: React.FC = () => {
                       onTouchMove={draw}
                       onTouchEnd={stopDrawing}
                       style={{ touchAction: 'none' }}
-                      className="cursor-crosshair bg-white max-w-full rounded-lg shadow-sm"
+                      className="cursor-crosshair bg-white w-full h-auto max-h-[580px] object-contain rounded-lg shadow-md border border-border/40"
                     />
                   </div>
                 </div>
