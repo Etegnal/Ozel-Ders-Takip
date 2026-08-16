@@ -11,7 +11,10 @@ import {
   X, 
   Trash2, 
   MessageSquare, 
-  AlertCircle 
+  AlertCircle,
+  ZoomIn,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { formatReadableDate } from '../utils/helpers';
 import { StudentQuestion } from '../types';
@@ -31,6 +34,7 @@ export const QuestionsPage: React.FC = () => {
   // Modals state
   const [selectedQuestion, setSelectedQuestion] = useState<StudentQuestion | null>(null);
   const [showSolutionModal, setShowSolutionModal] = useState(false);
+  const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   
   // Solution Form state
   const [solutionText, setSolutionText] = useState('');
@@ -90,8 +94,8 @@ export const QuestionsPage: React.FC = () => {
     const img = new Image();
     img.src = selectedQuestion.questionImage;
     img.onload = () => {
-      const MAX_W = 500;
-      const MAX_H = 500;
+      const MAX_W = 1000;
+      const MAX_H = 1000;
       let w = img.width;
       let h = img.height;
 
@@ -107,10 +111,38 @@ export const QuestionsPage: React.FC = () => {
         }
       }
 
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(img, 0, 0, w, h);
+      canvas.width = Math.round(w);
+      canvas.height = Math.round(h);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       setDrawingHistory([canvas.toDataURL()]);
+    };
+  };
+
+  const getEventCoords = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, 
+    canvas: HTMLCanvasElement
+  ) => {
+    const rect = canvas.getBoundingClientRect();
+    let clientX = 0;
+    let clientY = 0;
+
+    if ('touches' in e && e.touches) {
+      const touch = e.touches[0] || (e as any).changedTouches?.[0];
+      if (!touch) return { x: 0, y: 0 };
+      clientX = touch.clientX;
+      clientY = touch.clientY;
+    } else {
+      const mouseEv = e as React.MouseEvent<HTMLCanvasElement>;
+      clientX = mouseEv.clientX;
+      clientY = mouseEv.clientY;
+    }
+
+    const scaleX = rect.width ? canvas.width / rect.width : 1;
+    const scaleY = rect.height ? canvas.height / rect.height : 1;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
     };
   };
 
@@ -126,7 +158,11 @@ export const QuestionsPage: React.FC = () => {
     ctx.beginPath();
     ctx.moveTo(coords.x, coords.y);
     ctx.strokeStyle = drawColor;
-    ctx.lineWidth = lineWidth;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleRatio = rect.width ? canvas.width / rect.width : 1;
+    ctx.lineWidth = lineWidth * scaleRatio;
+
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   };
@@ -153,25 +189,6 @@ export const QuestionsPage: React.FC = () => {
     }
   };
 
-  const getEventCoords = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, 
-    canvas: HTMLCanvasElement
-  ) => {
-    const rect = canvas.getBoundingClientRect();
-    if ('touches' in e) {
-      if (e.touches.length === 0) return { x: 0, y: 0 };
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top
-      };
-    } else {
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-    }
-  };
-
   const handleUndo = () => {
     const canvas = canvasRef.current;
     if (!canvas || drawingHistory.length <= 1) return;
@@ -188,7 +205,7 @@ export const QuestionsPage: React.FC = () => {
     img.src = prevState;
     img.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     };
   };
 
@@ -571,7 +588,9 @@ export const QuestionsPage: React.FC = () => {
       {showSolutionModal && selectedQuestion && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/85 backdrop-blur-sm" onClick={() => !isCompressing && setShowSolutionModal(false)} />
-          <div className="bg-surface border border-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative z-30">
+          <div className={`bg-surface border border-border w-full rounded-2xl overflow-hidden shadow-2xl relative z-30 transition-all duration-300 ${
+            isCanvasExpanded ? 'max-w-4xl max-h-[95vh] overflow-y-auto' : 'max-w-md'
+          }`}>
             <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
               <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
                 <MessageSquare className="text-primary w-5 h-5" />
@@ -649,9 +668,29 @@ export const QuestionsPage: React.FC = () => {
               {solutionMethod === 'draw' ? (
                 /* DRAWING CANVAS SECTION */
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <label className="text-xs text-text-secondary font-semibold">ÇİZİM TAHTASI</label>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setZoomImage(selectedQuestion.questionImage)}
+                        className="text-[10px] font-bold bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                        title="Soruyu Tam Ekran Gör / Büyüt"
+                      >
+                        <ZoomIn size={12} />
+                        <span>Soruyu Büyüt</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsCanvasExpanded(!isCanvasExpanded)}
+                        className="text-[10px] font-bold bg-surface-card border border-border hover:border-primary/40 px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 text-text-secondary hover:text-text-primary"
+                        title={isCanvasExpanded ? "Normale Dön" : "Geniş Ekran Çizim Modu"}
+                      >
+                        {isCanvasExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                        <span>{isCanvasExpanded ? "Daralt" : "Ekranı Büyüt"}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={handleUndo}
@@ -698,7 +737,9 @@ export const QuestionsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="border border-border/85 rounded-xl overflow-hidden bg-background flex items-center justify-center p-2 min-h-[300px]">
+                  <div className={`border border-border/85 rounded-xl overflow-hidden bg-background flex items-center justify-center p-2 transition-all ${
+                    isCanvasExpanded ? 'min-h-[480px]' : 'min-h-[300px]'
+                  }`}>
                     <canvas
                       ref={canvasRef}
                       onMouseDown={startDrawing}
@@ -708,7 +749,8 @@ export const QuestionsPage: React.FC = () => {
                       onTouchStart={startDrawing}
                       onTouchMove={draw}
                       onTouchEnd={stopDrawing}
-                      className="cursor-crosshair bg-white max-w-full"
+                      style={{ touchAction: 'none' }}
+                      className="cursor-crosshair bg-white max-w-full rounded-lg shadow-sm"
                     />
                   </div>
                 </div>
