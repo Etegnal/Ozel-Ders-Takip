@@ -101,9 +101,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (cloudState) {
         setState(prev => ({
           ...cloudState,
-          activeTeacherId: prev.activeTeacherId || cloudState.activeTeacherId || (cloudState.teachers && cloudState.teachers[0] ? cloudState.teachers[0].id : 'teacher-yasin-1'),
-          userRole: prev.userRole || cloudState.userRole || 'teacher',
-          activeStudentId: prev.activeStudentId || cloudState.activeStudentId || null
+          activeTeacherId: prev.activeTeacherId || '',
+          userRole: prev.userRole || 'teacher',
+          activeStudentId: prev.activeStudentId || null
         }));
         setIsCloudLoaded(true);
       }
@@ -127,8 +127,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const teachers = state.teachers;
   const allStudents = state.students;
 
-  const effectiveTeacherId = state.activeTeacherId || (teachers.length > 0 ? teachers[0].id : 'teacher-yasin-1');
-  const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId) || state.teachers[0];
+  const effectiveTeacherId = state.activeTeacherId;
+  const activeTeacher = effectiveTeacherId ? state.teachers.find(t => t.id === effectiveTeacherId) : undefined;
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
   const [syncCode, setSyncCodeState] = useState(() => storageService.getSyncCode());
@@ -349,6 +349,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     try {
+      localStorage.setItem('coach_user_logged_in', 'false');
       localStorage.removeItem('coach_user_logged_in');
     } catch {}
 
@@ -421,12 +422,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (student) {
-      setState(prev => ({
-        ...prev,
+      try {
+        localStorage.setItem('coach_user_logged_in', 'true');
+      } catch {}
+
+      const newState: AppState = {
+        ...state,
         userRole: 'student',
         activeStudentId: student.id,
-        activeTeacherId: student.teacherId
-      }));
+        activeTeacherId: student.teacherId || ''
+      };
+
+      setState(newState);
+      await storageService.saveState(newState);
       return true;
     }
     return false;
@@ -495,11 +503,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logoutStudent = () => {
-    setState(prev => ({
-      ...prev,
+    try {
+      localStorage.setItem('coach_user_logged_in', 'false');
+      localStorage.removeItem('coach_user_logged_in');
+    } catch {}
+
+    const loggedOutState: AppState = {
+      ...state,
       userRole: 'teacher',
-      activeStudentId: null
-    }));
+      activeStudentId: null,
+      activeTeacherId: ''
+    };
+
+    setState(loggedOutState);
+    storageService.saveState(loggedOutState);
   };
 
   const toggleStudentHomeworkStatus = (homeworkId: string) => {

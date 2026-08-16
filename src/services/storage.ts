@@ -215,7 +215,9 @@ try {
         ...initialMockState,
         ...parsed,
         teachers: ensureAdminTeacher(parsed.teachers),
-        activeTeacherId: isLoggedIn ? (parsed.activeTeacherId || '') : ''
+        activeTeacherId: isLoggedIn ? (parsed.activeTeacherId || '') : '',
+        activeStudentId: isLoggedIn ? (parsed.activeStudentId || null) : null,
+        userRole: isLoggedIn ? (parsed.userRole || 'teacher') : 'teacher'
       };
     }
   }
@@ -332,7 +334,7 @@ export const storageService = {
 
         updatedState = {
           teachers: finalTeachers,
-          activeTeacherId: typeof inMemoryState.activeTeacherId === 'string' && inMemoryState.activeTeacherId ? inMemoryState.activeTeacherId : (finalTeachers[0] ? finalTeachers[0].id : 'teacher-yasin-1'),
+          activeTeacherId: inMemoryState.activeTeacherId || '',
           userRole: inMemoryState.userRole || 'teacher',
           activeStudentId: inMemoryState.activeStudentId || null,
           students: mergedStudents,
