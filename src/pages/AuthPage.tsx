@@ -30,11 +30,8 @@ export const AuthPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Auto-select first teacher on load and restore remembered user info
+  // Restore remembered user info ONCE on mount
   React.useEffect(() => {
-    if (teachers && teachers.length > 0 && !selectedTeacherId) {
-      setSelectedTeacherId(teachers[0].id);
-    }
     try {
       const saved = localStorage.getItem('coach_remember_user');
       if (saved) {
@@ -47,6 +44,13 @@ export const AuthPage: React.FC = () => {
         }
       }
     } catch {}
+  }, []);
+
+  // Auto-select first teacher if not selected
+  React.useEffect(() => {
+    if (teachers && teachers.length > 0 && !selectedTeacherId) {
+      setSelectedTeacherId(teachers[0].id);
+    }
   }, [teachers, selectedTeacherId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
