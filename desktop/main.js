@@ -16,7 +16,7 @@ function createWindow() {
     }
   });
 
-  const SITE_URL = 'https://etegnal.github.io/Ozel-Ders-Takip/';
+  const SITE_URL = 'https://koc-one.vercel.app/';
 
   // Clear session cache and load the exact web app URL with no-cache headers
   mainWindow.webContents.session.clearCache().then(() => {
