@@ -1,17 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+process.env.DATABASE_URL = "postgresql://neondb_owner:npg_2eyXDEUVYo0g@ep-divine-cell-b2b6snh7-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require";
 
-const NEON_DB_URL = "postgresql://neondb_owner:npg_2eyXDEUVYo0g@ep-divine-cell-b2b6snh7-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    datasources: {
-      db: {
-        url: NEON_DB_URL
-      }
-    },
     log: ['error']
   });
 
