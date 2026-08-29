@@ -611,7 +611,31 @@ export const QuestionsPage: React.FC = () => {
                 
                 let finalSolutionImage = solutionImage;
                 if (solutionMethod === 'draw' && canvasRef.current) {
-                  finalSolutionImage = canvasRef.current.toDataURL('image/jpeg', 0.4);
+                  const srcCanvas = canvasRef.current;
+                  const tempCanvas = document.createElement('canvas');
+                  const MAX_DIM = 500;
+                  let w = srcCanvas.width;
+                  let h = srcCanvas.height;
+                  if (w > h) {
+                    if (w > MAX_DIM) {
+                      h = Math.round((h * MAX_DIM) / w);
+                      w = MAX_DIM;
+                    }
+                  } else {
+                    if (h > MAX_DIM) {
+                      w = Math.round((w * MAX_DIM) / h);
+                      h = MAX_DIM;
+                    }
+                  }
+                  tempCanvas.width = w;
+                  tempCanvas.height = h;
+                  const ctx = tempCanvas.getContext('2d');
+                  if (ctx) {
+                    ctx.drawImage(srcCanvas, 0, 0, w, h);
+                    finalSolutionImage = tempCanvas.toDataURL('image/jpeg', 0.4);
+                  } else {
+                    finalSolutionImage = srcCanvas.toDataURL('image/jpeg', 0.4);
+                  }
                 }
 
                 if (!solutionText && !finalSolutionImage) {
