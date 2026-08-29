@@ -941,7 +941,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             solutionImage,
             solutionText: solutionText?.trim(),
             status: 'solved' as const,
-            solvedAt: new Date().toISOString()
+            solvedAt: new Date().toISOString(),
+            feedback: undefined,
+            feedbackAt: undefined
           };
         }
         return x;

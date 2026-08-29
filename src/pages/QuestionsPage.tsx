@@ -12,6 +12,7 @@ import {
   Trash2, 
   MessageSquare, 
   AlertCircle,
+  RotateCcw,
   ZoomIn,
   Maximize2,
   Minimize2
@@ -27,7 +28,7 @@ export const QuestionsPage: React.FC = () => {
     deleteQuestion 
   } = useApp();
 
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'solved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'solved' | 'understood' | 'not_understood'>('all');
   const [studentFilter, setStudentFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -274,7 +275,12 @@ export const QuestionsPage: React.FC = () => {
 
   // Filter questions
   const filteredQuestions = questions.filter(q => {
-    const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter === 'pending') matchesStatus = q.status === 'pending';
+    else if (statusFilter === 'solved') matchesStatus = q.status === 'solved';
+    else if (statusFilter === 'understood') matchesStatus = q.status === 'solved' && q.feedback === 'understood';
+    else if (statusFilter === 'not_understood') matchesStatus = q.status === 'solved' && q.feedback === 'not_understood';
+
     const matchesStudent = studentFilter === 'all' || q.studentId === studentFilter;
     const matchesSearch = 
       q.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -336,15 +342,17 @@ export const QuestionsPage: React.FC = () => {
             ))}
           </select>
 
-          {/* Status Filter */}
+          {/* Status & Feedback Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="bg-background border border-border/60 hover:border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary cursor-pointer"
+            className="bg-background border border-border/60 hover:border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary cursor-pointer font-medium"
           >
             <option value="all">Tüm Çözüm Durumları</option>
-            <option value="pending">Çözüm Bekleyenler</option>
-            <option value="solved">Çözülenler</option>
+            <option value="pending">⏳ Çözüm Bekleyenler</option>
+            <option value="solved">✅ Çözülenler (Tümü)</option>
+            <option value="understood">😊 Öğrenci Anladı (Anlaşılanlar)</option>
+            <option value="not_understood">❌ Öğrenci Anlamadı (Tekrar Çözülecekler)</option>
           </select>
         </div>
       </div>
@@ -527,32 +535,66 @@ export const QuestionsPage: React.FC = () => {
                         <p className="text-[10px] text-text-muted">Çözülme Tarihi: {new Date(selectedQuestion.solvedAt).toLocaleString('tr-TR')}</p>
                       )}
 
-                      {/* Display Feedback */}
-                      <div className="border-t border-border/60 pt-4 space-y-2">
-                        <h5 className="font-bold text-xs text-text-secondary">Öğrenci Geri Bildirimi</h5>
+                      {/* Display Feedback & Re-Solve option */}
+                      <div className="border-t border-border/60 pt-4 space-y-3">
+                        <h5 className="font-bold text-xs text-text-secondary">Öğrenci Geri Bildirimi & İşlemler</h5>
                         
                         {selectedQuestion.feedback ? (
-                          <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-bold ${
-                            selectedQuestion.feedback === 'understood'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : 'bg-red-500/10 text-red-400 border-red-500/30'
-                          }`}>
-                            {selectedQuestion.feedback === 'understood' ? (
-                              <>
-                                <CheckCircle size={16} />
-                                <span>Öğrenci çözümü anladığını belirtti. ✅</span>
-                              </>
-                            ) : (
-                              <>
-                                <AlertCircle size={16} />
-                                <span>Öğrenci çözümü ANLAMADIĞINI belirtti. ❌</span>
-                              </>
+                          <div className="space-y-3">
+                            <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-bold ${
+                              selectedQuestion.feedback === 'understood'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : 'bg-red-500/10 text-red-400 border-red-500/30'
+                            }`}>
+                              {selectedQuestion.feedback === 'understood' ? (
+                                <>
+                                  <CheckCircle size={16} />
+                                  <span>Öğrenci çözümü anladığını belirtti. ✅</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle size={16} />
+                                  <span>Öğrenci çözümü ANLAMADIĞINI belirtti. ❌</span>
+                                </>
+                              )}
+                            </div>
+
+                            {selectedQuestion.feedback === 'not_understood' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSolutionText(selectedQuestion.solutionText || '');
+                                  setSolutionImage('');
+                                  setShowSolutionModal(true);
+                                }}
+                                className="w-full bg-primary hover:bg-primary-hover text-black text-xs font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-primary/10 cursor-pointer"
+                              >
+                                <RotateCcw size={15} />
+                                <span>Yeniden Çözüm Gönder (2. Şans) 🔄</span>
+                              </button>
                             )}
                           </div>
                         ) : (
-                          <div className="bg-surface-card/60 border border-border/50 p-3.5 rounded-xl text-xs text-text-muted italic flex items-center gap-1.5">
-                            <Clock size={14} />
-                            <span>Öğrenci henüz geri bildirimde bulunmadı.</span>
+                          <div className="space-y-3">
+                            <div className="bg-surface-card/60 border border-border/50 p-3.5 rounded-xl text-xs text-text-muted italic flex items-center gap-1.5">
+                              <Clock size={14} />
+                              <span>Öğrenci henüz geri bildirimde bulunmadı.</span>
+                            </div>
+
+                            <div className="flex justify-end pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSolutionText(selectedQuestion.solutionText || '');
+                                  setSolutionImage('');
+                                  setShowSolutionModal(true);
+                                }}
+                                className="bg-surface-hover hover:bg-surface-border text-text-primary text-xs font-bold px-3.5 py-2 rounded-xl border border-border transition-all flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <RotateCcw size={13} />
+                                <span>Çözümü Güncelle / Yeniden Gönder</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
