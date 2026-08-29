@@ -142,6 +142,7 @@ export function markIdAsDeleted(id: string) {
 function mergeById<T extends { id: string }>(localArr: T[] = [], cloudArr: T[] = []): T[] {
   const map = new Map<string, T>();
   
+  // 1. Add cloud items first (latest server truth for existing items across devices)
   if (Array.isArray(cloudArr)) {
     cloudArr.forEach(item => {
       if (item && item.id && !deletedIds.has(item.id)) {
@@ -150,13 +151,11 @@ function mergeById<T extends { id: string }>(localArr: T[] = [], cloudArr: T[] =
     });
   }
   
+  // 2. Add local-only items (items created on this device that have not reached cloudArr yet)
   if (Array.isArray(localArr)) {
     localArr.forEach(item => {
       if (item && item.id && !deletedIds.has(item.id)) {
-        const existingCloud = map.get(item.id);
-        if (existingCloud) {
-          map.set(item.id, { ...existingCloud, ...item });
-        } else {
+        if (!map.has(item.id)) {
           map.set(item.id, item);
         }
       }
