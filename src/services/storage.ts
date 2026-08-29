@@ -146,6 +146,13 @@ let inMemoryState: AppState = (() => {
   return sanitizeState(initialMockState);
 })();
 
+function getSyncApiEndpoint(): string {
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return '/api/sync';
+  }
+  return 'https://koc-one.vercel.app/api/sync';
+}
+
 export const storageService = {
   getState(): AppState {
     try {
@@ -185,7 +192,7 @@ export const storageService = {
     });
 
     try {
-      const vercelRes = await fetch('/api/sync', {
+      const vercelRes = await fetch(getSyncApiEndpoint(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payload
@@ -201,7 +208,7 @@ export const storageService = {
     let cloudData: any = null;
 
     try {
-      const vercelRes = await fetch('/api/sync', {
+      const vercelRes = await fetch(getSyncApiEndpoint(), {
         headers: { 'Accept': 'application/json' }
       });
       if (vercelRes.ok) {
