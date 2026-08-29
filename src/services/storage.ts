@@ -133,6 +133,39 @@ function mergeTeachers(localTeachers: Teacher[], cloudTeachers: Teacher[]): Teac
   return ensureAdminTeacher(result);
 }
 
+const deletedIds = new Set<string>();
+
+export function markIdAsDeleted(id: string) {
+  if (id) deletedIds.add(id);
+}
+
+function mergeById<T extends { id: string }>(localArr: T[] = [], cloudArr: T[] = []): T[] {
+  const map = new Map<string, T>();
+  
+  if (Array.isArray(cloudArr)) {
+    cloudArr.forEach(item => {
+      if (item && item.id && !deletedIds.has(item.id)) {
+        map.set(item.id, item);
+      }
+    });
+  }
+  
+  if (Array.isArray(localArr)) {
+    localArr.forEach(item => {
+      if (item && item.id && !deletedIds.has(item.id)) {
+        const existingCloud = map.get(item.id);
+        if (existingCloud) {
+          map.set(item.id, { ...existingCloud, ...item });
+        } else {
+          map.set(item.id, item);
+        }
+      }
+    });
+  }
+  
+  return Array.from(map.values());
+}
+
 function sanitizeState(state: AppState): AppState {
   const cleanTeachers = ensureAdminTeacher(state.teachers || []);
   return {
@@ -255,12 +288,12 @@ export const storageService = {
       activeTeacherId: validActiveTeacherId,
       userRole: inMemoryState.userRole || 'teacher',
       activeStudentId: inMemoryState.activeStudentId || null,
-      students: cloudData.students || [],
-      lessons: cloudData.lessons || [],
-      homeworks: cloudData.homeworks || [],
-      transactions: cloudData.transactions || [],
-      notifications: cloudData.notifications || [],
-      questions: pruneOldQuestions(cloudData.questions || [])
+      students: mergeById(inMemoryState.students || [], cloudData.students || []),
+      lessons: mergeById(inMemoryState.lessons || [], cloudData.lessons || []),
+      homeworks: mergeById(inMemoryState.homeworks || [], cloudData.homeworks || []),
+      transactions: mergeById(inMemoryState.transactions || [], cloudData.transactions || []),
+      notifications: mergeById(inMemoryState.notifications || [], cloudData.notifications || []),
+      questions: pruneOldQuestions(mergeById(inMemoryState.questions || [], cloudData.questions || []))
     };
 
     inMemoryState = updatedState;

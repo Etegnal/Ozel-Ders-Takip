@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion } from '../types';
-import { storageService, normalizeStr, ensureAdminTeacher } from '../services/storage';
+import { storageService, normalizeStr, ensureAdminTeacher, markIdAsDeleted } from '../services/storage';
 
 export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | 'weekly-schedule' | null;
 
@@ -631,6 +631,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteStudent = (id: string) => {
+    markIdAsDeleted(id);
     updateAndPersistState(prev => ({
       ...prev,
       students: prev.students.filter(s => s.id !== id),
@@ -710,6 +711,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteLesson = (id: string) => {
+    markIdAsDeleted(id);
     updateAndPersistState(prev => {
       const lessonToDelete = prev.lessons.find(l => l.id === id);
       if (!lessonToDelete) return prev;
@@ -734,15 +736,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Homework Actions ---
   const addHomework = (homeworkData: Omit<Homework, 'id' | 'teacherId'>) => {
+    const targetStudent = state.students.find(s => s.id === homeworkData.studentId);
+    const assignedTeacherId = targetStudent?.teacherId || state.activeTeacherId;
+
     const newHomework: Homework = {
       ...homeworkData,
-      teacherId: state.activeTeacherId,
+      teacherId: assignedTeacherId,
       id: `homework-${Date.now()}`
     };
     
     const newNotification: AppNotification = {
       id: `notif-${Date.now()}`,
-      teacherId: state.activeTeacherId,
+      teacherId: assignedTeacherId,
       title: 'Yeni Ödev Eklendi',
       message: `${homeworkData.studentName} için yeni bir ödev tanımlandı: ${homeworkData.title}`,
       date: new Date().toISOString(),
@@ -788,6 +793,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteHomework = (id: string) => {
+    markIdAsDeleted(id);
     updateAndPersistState(prev => ({
       ...prev,
       homeworks: prev.homeworks.filter(h => h.id !== id)
@@ -842,6 +848,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteTransaction = (id: string) => {
+    markIdAsDeleted(id);
     updateAndPersistState(prev => {
       const trans = prev.transactions.find(t => t.id === id);
       if (!trans) return prev;
@@ -992,6 +999,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteQuestion = (id: string) => {
+    markIdAsDeleted(id);
     updateAndPersistState(prev => ({
       ...prev,
       questions: (prev.questions || []).filter(q => q.id !== id)
