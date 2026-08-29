@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
-const NEON_DB_URL = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_2eyXDEUVYo0g@ep-divine-cell-b2b6snh7-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+const NEON_DB_URL = "postgresql://neondb_owner:npg_2eyXDEUVYo0g@ep-divine-cell-b2b6snh7-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
