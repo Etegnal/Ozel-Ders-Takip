@@ -152,7 +152,7 @@ export const AuthPage: React.FC = () => {
             KOÇ
           </h2>
           <p className="text-xs text-text-secondary uppercase tracking-widest font-semibold">
-            {authRole === 'student' ? 'ÖĞRENCİ PORTAL GİRİŞİ' : isLoginView ? 'ÖĞRETMEN GİRİŞİ' : 'ÖĞRETMEN KAYIT EKRANI'}
+            {authRole === 'student' ? (isStudentLoginView ? 'ÖĞRENCİ PORTAL GİRİŞİ' : 'YENİ ÖĞRENCİ KAYIT EKRANI') : isLoginView ? 'ÖĞRETMEN GİRİŞİ' : 'ÖĞRETMEN KAYIT EKRANI'}
           </p>
         </div>
 
@@ -207,7 +207,7 @@ export const AuthPage: React.FC = () => {
             isStudentLoginView ? (
               <>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">ÖĞRENCİ ADI / E-POSTA / TELEFON</label>
+                  <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">TELEFON NUMARASI VEYA AD SOYAD</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
                     <input
