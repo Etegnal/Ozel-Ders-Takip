@@ -85,14 +85,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [statusFilter, setStatusFilter] = useState<'active' | 'archive' | 'all'>('active');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  const [isCloudLoaded, setIsCloudLoaded] = useState(false);
-
-  // Sync state to local storage on change, BUT ONLY AFTER INITIAL CLOUD FETCH HAS LOADED!
-  useEffect(() => {
-    if (!isCloudLoaded) return;
-    storageService.saveState(state);
-  }, [state, isCloudLoaded]);
-
   // Initial and periodic central cloud database sync (polling every 3s + on window focus)
   useEffect(() => {
     const handleCloudSync = async () => {
@@ -104,7 +96,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           userRole: prev.userRole || 'teacher',
           activeStudentId: prev.activeStudentId || null
         }));
-        setIsCloudLoaded(true);
       }
     };
 

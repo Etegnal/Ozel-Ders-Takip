@@ -271,12 +271,12 @@ export const storageService = {
       activeTeacherId: validActiveTeacherId,
       userRole: inMemoryState.userRole || 'teacher',
       activeStudentId: inMemoryState.activeStudentId || null,
-      students: cloudData.students || [],
-      lessons: cloudData.lessons || [],
-      homeworks: cloudData.homeworks || [],
-      transactions: cloudData.transactions || [],
-      notifications: cloudData.notifications || [],
-      questions: pruneOldQuestions(cloudData.questions || [])
+      students: (cloudData.students || []).filter((s: any) => s && s.id && !deletedIds.has(s.id)),
+      lessons: (cloudData.lessons || []).filter((l: any) => l && l.id && !deletedIds.has(l.id)),
+      homeworks: (cloudData.homeworks || []).filter((h: any) => h && h.id && !deletedIds.has(h.id)),
+      transactions: (cloudData.transactions || []).filter((t: any) => t && t.id && !deletedIds.has(t.id)),
+      notifications: (cloudData.notifications || []).filter((n: any) => n && n.id && !deletedIds.has(n.id)),
+      questions: pruneOldQuestions((cloudData.questions || []).filter((q: any) => q && q.id && !deletedIds.has(q.id)))
     };
 
     inMemoryState = updatedState;
