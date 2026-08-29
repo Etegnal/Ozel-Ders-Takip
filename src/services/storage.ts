@@ -1,60 +1,6 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
-const STORAGE_KEY = 'koc_app_state_v8_purged';
-
-// Primary Firebase Realtime Database URL
-export const DEFAULT_FIREBASE_URL = 'https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/';
-
-export function getActiveFirebaseUrl(): string {
-  const custom = localStorage.getItem('coach_firebase_db_url');
-  if (custom && custom.trim().length > 5) {
-    let clean = custom.trim();
-    if (!clean.endsWith('/')) clean += '/';
-    return clean;
-  }
-  return DEFAULT_FIREBASE_URL;
-}
-
-// Direct fallback URL if dynamic creation fails
-const FALLBACK_CLOUD_URL = `${DEFAULT_FIREBASE_URL}state.json`;
-
-// Dynamic database creator helper
-export async function getOrCreateCloudUrl(): Promise<string> {
-  let url = localStorage.getItem('coach_cloud_db_url');
-  if (url && url.startsWith('https://jsonblob.com/api/jsonBlob/')) {
-    return url;
-  }
-  
-  try {
-    const res = await fetch('https://jsonblob.com/api/jsonBlob', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        teachers: defaultTeachers,
-        students: [],
-        lessons: [],
-        homeworks: [],
-        transactions: [],
-        notifications: [],
-        questions: []
-      })
-    });
-    if (res.ok) {
-      const newUrl = res.headers.get('Location');
-      if (newUrl) {
-        localStorage.setItem('coach_cloud_db_url', newUrl);
-        return newUrl;
-      }
-    }
-  } catch (e) {
-    console.error('Failed to dynamically create JSONBlob', e);
-  }
-  
-  return FALLBACK_CLOUD_URL;
-}
+const STORAGE_KEY = 'koc_app_state_v9_pure_neon';
 
 // Turkish-safe string normalizer (handles İ/i, I/ı, Ğ/g, Ü/u, Ş/s, Ö/o, Ç/c, whitespace)
 export function normalizeStr(str: string | undefined | null): string {
@@ -149,114 +95,87 @@ export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   return list;
 }
 
-// Smart merger for teachers (merges local + cloud without losing registered accounts or custom passwords)
-export function mergeTeachers(local: Teacher[], cloud: Teacher[]): Teacher[] {
+function mergeTeachers(localTeachers: Teacher[], cloudTeachers: Teacher[]): Teacher[] {
   const map = new Map<string, Teacher>();
-
-  // 1. Add default teachers
   defaultTeachers.forEach(t => map.set(t.id, t));
-
-  // 2. Add local teachers (local custom passwords ALWAYS take priority over default '123456')
-  (local || []).forEach(t => {
-    if (!t || !t.id || LEGACY_TEST_IDS.includes(t.id)) return;
-    const existing = map.get(t.id);
-    if (!existing) {
-      map.set(t.id, t);
-    } else {
-      map.set(t.id, {
-        ...existing,
-        ...t,
-        password: (t.password && t.password !== '123456') ? t.password : (existing.password || t.password || '123456')
-      });
-    }
-  });
-
-  // 3. Add cloud teachers (merge by id or email)
-  (cloud || []).forEach(t => {
-    if (!t || !t.id || LEGACY_TEST_IDS.includes(t.id)) return;
-    const normCloudEmail = normalizeStr(t.email);
-    const existingByEmail = Array.from(map.values()).find(
-      ex => normalizeStr(ex.email) === normCloudEmail
-    );
-    const targetId = existingByEmail ? existingByEmail.id : t.id;
-    const existing = map.get(targetId);
-
-    if (!existing) {
-      map.set(t.id, t);
-    } else {
-      // PRESERVE CUSTOM PASSWORD if present in either local or cloud!
-      const customPassword = 
-        (existing.password && existing.password !== '123456') ? existing.password :
-        (t.password && t.password !== '123456') ? t.password :
-        (existing.password || t.password || '123456');
-
-      map.set(targetId, {
-        ...existing,
-        ...t,
-        password: customPassword
-      });
-    }
-  });
-
-  return ensureAdminTeacher(Array.from(map.values()));
-}
-
-// Smart merger for collections by ID
-export function mergeCollections<T extends { id: string }>(local: T[], cloud: T[]): T[] {
-  const map = new Map<string, T>();
-  (local || []).forEach(item => { if (item && item.id) map.set(item.id, item); });
-  (cloud || []).forEach(item => {
-    if (item && item.id) {
-      const existing = map.get(item.id);
-      map.set(item.id, existing ? { ...existing, ...item } : item);
-    }
-  });
-  return Array.from(map.values());
-}
-
-let inMemoryState: AppState = { ...initialMockState };
-
-// Try reading local cache on startup
-try {
-  const cached = localStorage.getItem(STORAGE_KEY);
-  const isLoggedIn = localStorage.getItem('coach_user_logged_in') === 'true';
-  if (cached) {
-    const parsed = JSON.parse(cached);
-    if (parsed && Array.isArray(parsed.teachers) && parsed.teachers.length > 0) {
-      inMemoryState = {
-        ...initialMockState,
-        ...parsed,
-        teachers: ensureAdminTeacher(parsed.teachers),
-        activeTeacherId: isLoggedIn ? (parsed.activeTeacherId || '') : '',
-        activeStudentId: isLoggedIn ? (parsed.activeStudentId || null) : null,
-        userRole: isLoggedIn ? (parsed.userRole || 'teacher') : 'teacher'
-      };
-    }
+  
+  if (Array.isArray(cloudTeachers)) {
+    cloudTeachers.forEach(t => {
+      if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) map.set(t.id, t);
+    });
   }
-} catch (e) {
-  console.warn('Failed to load local cache', e);
+  
+  if (Array.isArray(localTeachers)) {
+    localTeachers.forEach(t => {
+      if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) map.set(t.id, t);
+    });
+  }
+  
+  const result = Array.from(map.values());
+  return ensureAdminTeacher(result);
 }
+
+function sanitizeState(state: AppState): AppState {
+  const cleanTeachers = ensureAdminTeacher(state.teachers || []);
+  return {
+    ...state,
+    teachers: cleanTeachers,
+    students: state.students || [],
+    lessons: state.lessons || [],
+    homeworks: state.homeworks || [],
+    transactions: state.transactions || [],
+    notifications: state.notifications || [],
+    questions: state.questions || []
+  };
+}
+
+let inMemoryState: AppState = (() => {
+  try {
+    const item = localStorage.getItem(STORAGE_KEY);
+    if (item) {
+      const parsed = JSON.parse(item);
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.teachers)) {
+        return sanitizeState({
+          ...initialMockState,
+          ...parsed,
+          teachers: ensureAdminTeacher(parsed.teachers)
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to parse localStorage inMemoryState', e);
+  }
+  return sanitizeState(initialMockState);
+})();
 
 export const storageService = {
   getState(): AppState {
+    try {
+      const item = localStorage.getItem(STORAGE_KEY);
+      if (item) {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.teachers)) {
+          inMemoryState = sanitizeState({
+            ...initialMockState,
+            ...parsed,
+            teachers: ensureAdminTeacher(parsed.teachers)
+          });
+          return inMemoryState;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse localStorage getState', e);
+    }
     return inMemoryState;
   },
 
   async saveState(state: AppState): Promise<boolean> {
-    const sanitizedState: AppState = {
-      ...state,
-      teachers: ensureAdminTeacher(state.teachers),
-      questions: pruneOldQuestions(state.questions || [])
-    };
-
-    inMemoryState = sanitizedState;
-
-    // Save to local cache
+    inMemoryState = state;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedState));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {}
 
-    // Direct Sync to Cloud DB with Retries
+    const sanitizedState = sanitizeState(state);
     const payload = JSON.stringify({
       teachers: sanitizedState.teachers,
       students: sanitizedState.students,
@@ -267,50 +186,22 @@ export const storageService = {
       questions: sanitizedState.questions
     });
 
-    // Direct Sync to Vercel API / Neon PostgreSQL DB
     try {
       const vercelRes = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payload
       });
-      if (vercelRes.ok) {
-        // Successfully saved to Vercel + Neon PostgreSQL!
-      }
+      return vercelRes.ok;
     } catch (err) {
-      console.warn('Vercel API sync failed, falling back to cloud URL', err);
+      console.warn('Vercel API sync error:', err);
+      return false;
     }
-
-    const firebaseUrl = getActiveFirebaseUrl();
-    const cloudUrl = `${firebaseUrl}state.json`;
-
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(cloudUrl, {
-          method: 'PUT',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json' 
-          },
-          body: payload,
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) return true;
-      } catch {
-        // Silent retry
-      }
-    }
-    return true;
   },
 
-  // Fetch Cloud State with Overwrite-Fallback Logic
   async fetchCloudState(): Promise<AppState> {
     let cloudData: any = null;
 
-    // 1. Try Vercel API / Neon PostgreSQL endpoint first
     try {
       const vercelRes = await fetch('/api/sync', {
         headers: { 'Accept': 'application/json' }
@@ -322,56 +213,34 @@ export const storageService = {
         }
       }
     } catch (err) {
-      console.warn('Vercel API fetch failed, falling back to cloud URL', err);
-    }
-
-    // 2. Fallback to Firebase cloud URL if Vercel API is not available
-    if (!cloudData) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      try {
-        const firebaseUrl = getActiveFirebaseUrl();
-        const cloudUrl = `${firebaseUrl}state.json`;
-        const res = await fetch(cloudUrl, {
-          headers: { 'Accept': 'application/json' },
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          cloudData = await res.json();
-        }
-      } catch {}
+      console.warn('Vercel API fetch error:', err);
     }
 
     if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
-      // Cloud state is authoritative for all collections while preserving active session teacher & role
-      const cloudTeachers = cloudData.teachers || [];
-      const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
+    const cloudTeachers = cloudData.teachers || [];
+    const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
 
-      const updatedState: AppState = {
-        teachers: finalTeachers,
-        activeTeacherId: inMemoryState.activeTeacherId || '',
-        userRole: inMemoryState.userRole || 'teacher',
-        activeStudentId: inMemoryState.activeStudentId || null,
-        students: cloudData.students || [],
-        lessons: cloudData.lessons || [],
-        homeworks: cloudData.homeworks || [],
-        transactions: cloudData.transactions || [],
-        notifications: cloudData.notifications || [],
-        questions: pruneOldQuestions(cloudData.questions || [])
-      };
+    const updatedState: AppState = {
+      teachers: finalTeachers,
+      activeTeacherId: inMemoryState.activeTeacherId || '',
+      userRole: inMemoryState.userRole || 'teacher',
+      activeStudentId: inMemoryState.activeStudentId || null,
+      students: cloudData.students || [],
+      lessons: cloudData.lessons || [],
+      homeworks: cloudData.homeworks || [],
+      transactions: cloudData.transactions || [],
+      notifications: cloudData.notifications || [],
+      questions: pruneOldQuestions(cloudData.questions || [])
+    };
 
-      inMemoryState = updatedState;
+    inMemoryState = updatedState;
 
-      // Update local cache
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
-      } catch {}
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
+    } catch {}
 
-      return updatedState;
+    return updatedState;
   },
 
   // Teachers CRUD
@@ -382,16 +251,6 @@ export const storageService = {
   saveTeachers(teachers: Teacher[]): void {
     const state = this.getState();
     state.teachers = ensureAdminTeacher(teachers);
-    this.saveState(state);
-  },
-
-  getActiveTeacherId(): string {
-    return this.getState().activeTeacherId;
-  },
-
-  setActiveTeacherId(id: string): void {
-    const state = this.getState();
-    state.activeTeacherId = id;
     this.saveState(state);
   },
 
@@ -428,7 +287,7 @@ export const storageService = {
     this.saveState(state);
   },
 
-  // Transactions CRUD
+  // Financial Transactions CRUD
   getTransactions(): FinancialTransaction[] {
     return this.getState().transactions;
   },
@@ -459,38 +318,5 @@ export const storageService = {
     const state = this.getState();
     state.questions = questions;
     this.saveState(state);
-  },
-
-  getSyncCode(): string {
-    const url = localStorage.getItem('coach_cloud_db_url') || '';
-    if (!url) return '';
-    const parts = url.split('/');
-    return parts[parts.length - 1] || '';
-  },
-
-  setSyncCode(code: string): void {
-    if (!code) return;
-    const cleanCode = code.trim();
-    if (cleanCode.length > 5) {
-      localStorage.setItem('coach_cloud_db_url', `https://jsonblob.com/api/jsonBlob/${cleanCode}`);
-    }
-  },
-
-  getFirebaseUrl(): string {
-    return getActiveFirebaseUrl();
-  },
-
-  setFirebaseUrl(url: string): void {
-    if (!url) {
-      localStorage.removeItem('coach_firebase_db_url');
-      return;
-    }
-    let cleanUrl = url.trim();
-    if (!cleanUrl.endsWith('/')) {
-      cleanUrl += '/';
-    }
-    localStorage.setItem('coach_firebase_db_url', cleanUrl);
   }
 };
-
-

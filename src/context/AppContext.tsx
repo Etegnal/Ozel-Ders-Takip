@@ -26,8 +26,6 @@ interface AppContextType {
   syncCloudNow: () => Promise<void>;
   syncCode: string;
   updateSyncCode: (code: string) => Promise<void>;
-  firebaseUrl: string;
-  updateFirebaseUrl: (url: string) => Promise<void>;
   students: Student[];
   allStudents: Student[];
   lessons: Lesson[];
@@ -131,17 +129,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId) || state.teachers[0];
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
-  const [syncCode, setSyncCodeState] = useState(() => storageService.getSyncCode());
-  const [firebaseUrl, setFirebaseUrlState] = useState(() => storageService.getFirebaseUrl());
-
-  // We can sync our local code state with storageService
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSyncCodeState(storageService.getSyncCode());
-      setFirebaseUrlState(storageService.getFirebaseUrl());
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  const syncCode = '';
 
   // Manual cloud sync handler
   const syncCloudNow = async () => {
@@ -154,19 +142,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const updateSyncCode = async (code: string) => {
-    storageService.setSyncCode(code);
-    setSyncCodeState(code);
-    const cloudState = await storageService.fetchCloudState();
-    if (cloudState) {
-      setState(cloudState);
-    }
-  };
-
-  const updateFirebaseUrl = async (url: string) => {
-    storageService.setFirebaseUrl(url);
-    setFirebaseUrlState(url);
-    await storageService.saveState(state);
+  const updateSyncCode = async () => {
     const cloudState = await storageService.fetchCloudState();
     if (cloudState) {
       setState(cloudState);
@@ -991,8 +967,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         syncCloudNow,
         syncCode,
         updateSyncCode,
-        firebaseUrl,
-        updateFirebaseUrl,
 
         students,
         allStudents,

@@ -16,7 +16,6 @@ import {
   Edit3, 
   Mail, 
   Lock, 
-  CheckCircle2, 
   AlertCircle,
   Phone,
   ArrowRightLeft,
@@ -37,20 +36,14 @@ export const AdminPage: React.FC = () => {
     updateStudent,
     deleteStudent,
     syncCloudNow,
-    isAdmin,
-    firebaseUrl,
-    updateFirebaseUrl
+    isAdmin
   } = useApp();
-
-  const [adminFirebaseUrlInput, setAdminFirebaseUrlInput] = useState(firebaseUrl);
-  const [showFirebaseGuideModal, setShowFirebaseGuideModal] = useState(false);
 
   // Active Admin Tab: 'teachers' | 'students'
   const [activeTab, setActiveTab] = useState<'teachers' | 'students'>('teachers');
 
   // Cloud Sync State
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatusMsg, setSyncStatusMsg] = useState('');
 
   // Search & Filters
   const [teacherSearch, setTeacherSearch] = useState('');
@@ -93,11 +86,8 @@ export const AdminPage: React.FC = () => {
   // Handle Manual Sync Button Click
   const handleManualSync = async () => {
     setIsSyncing(true);
-    setSyncStatusMsg('');
     await syncCloudNow();
     setIsSyncing(false);
-    setSyncStatusMsg('Veri Tabanı Canlı Senkronize Edildi');
-    setTimeout(() => setSyncStatusMsg(''), 3500);
   };
 
   const toggleShowPassword = (id: string) => {
@@ -267,91 +257,6 @@ export const AdminPage: React.FC = () => {
           </div>
         </div>
 
-        {syncStatusMsg && (
-          <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs rounded-xl font-semibold animate-fade-in">
-            <CheckCircle2 size={14} />
-            <span>{syncStatusMsg}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Firebase Database Configuration Banner */}
-      <div className="bg-surface-card/90 border border-border p-5 rounded-3xl space-y-3 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center flex-shrink-0 font-bold text-base">
-              🔥
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
-                <span>Firebase Canlı Veritabanı Kurulumu</span>
-                {firebaseUrl ? (
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                    Bağlı & Canlı ✅
-                  </span>
-                ) : (
-                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                    Firebase Bağlantısı Yok
-                  </span>
-                )}
-              </h3>
-              <p className="text-xs text-text-muted mt-0.5">
-                Masaüstü EXE, Mobil APK ve Web Sitenizin anlık veri paylaşması için Firebase Realtime Database URL'nizi girin.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowFirebaseGuideModal(!showFirebaseGuideModal)}
-            className="text-xs text-primary hover:underline font-bold self-start sm:self-center cursor-pointer flex-shrink-0"
-          >
-            {showFirebaseGuideModal ? 'Rehberi Kapat' : 'Ücretsiz Firebase Kurulum Rehberi'}
-          </button>
-        </div>
-
-        {/* Input & Save Button */}
-        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <input
-            type="url"
-            placeholder="Örn: https://proje-id-default-rtdb.firebaseio.com/ veya https://...europe-west1.firebasedatabase.app/"
-            value={adminFirebaseUrlInput}
-            onChange={(e) => setAdminFirebaseUrlInput(e.target.value)}
-            className="flex-1 bg-background border border-border text-text-primary text-xs rounded-xl px-4 py-2.5 font-mono focus:outline-none focus:border-primary/50"
-          />
-          <button
-            type="button"
-            onClick={async () => {
-              await updateFirebaseUrl(adminFirebaseUrlInput.trim());
-              alert('Firebase Veritabanı adresi güncellendi ve tüm veriler eşitlendi! 🎉');
-            }}
-            className="bg-primary hover:bg-primary-hover text-black text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shadow-primary/10 cursor-pointer flex-shrink-0"
-          >
-            Kaydet & Tüm Cihazlara Eşitle
-          </button>
-        </div>
-
-        {/* Step-by-step setup guide */}
-        {showFirebaseGuideModal && (
-          <div className="mt-3 p-4 bg-background/90 border border-border/80 rounded-2xl text-xs space-y-2 text-text-secondary leading-relaxed animate-fade-in">
-            <h4 className="font-bold text-text-primary text-xs flex items-center gap-1.5">
-              <span>🚀 1 Dakikada Ücretsiz Firebase Realtime Database Kurulum Adımları:</span>
-            </h4>
-            <ol className="list-decimal list-inside space-y-1.5 text-text-secondary text-xs">
-              <li>Google tarayıcınızda <strong className="text-text-primary">https://console.firebase.google.com</strong> adresine gidin.</li>
-              <li>"Proje Ekle" butonuna basıp projenize isim verin (Örn: <code className="bg-surface-card px-1.5 py-0.5 rounded border border-border text-primary font-mono">ozel-ders-takip</code>).</li>
-              <li>Sol menüden <strong className="text-text-primary">Build &gt; Realtime Database</strong> sekmesine tıklayın.</li>
-              <li>"Veritabanı Oluştur" butonuna basın, konum olarak <strong className="text-text-primary">Europe West</strong> (veya US) seçin.</li>
-              <li>Güvenlik Kuralları sekmesine gelin ve kuralları şu şekilde güncelleyin: <br />
-                <code className="bg-surface-card px-2 py-1 rounded border border-border text-amber-400 font-mono text-[11px] block my-1">
-                  {`{ "rules": { ".read": true, ".write": true } }`}
-                </code>
-              </li>
-              <li>Veritabanı ana ekranındaki kopyaladığınız URL adresini (örn: <code className="text-primary font-mono">https://...firebaseio.com/</code> veya <code className="text-primary font-mono">https://...firebasedatabase.app/</code>) yukarıdaki kutuya yapıştırın ve <strong>Kaydet</strong> butonuna basın.</li>
-              <li>Artık EXE (Masaüstü), Mobil APK ve Web Siteniz bu adresi kullanarak 100% eşitlenecektir!</li>
-            </ol>
-          </div>
-        )}
       </div>
 
       {/* Top Metric Cards */}
