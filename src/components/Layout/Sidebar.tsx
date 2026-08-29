@@ -170,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           </div>
           {!collapsed && (
             <span className="font-sans font-bold text-lg bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">
-              Koç<span className="text-primary">.</span>
+              KOÇ
             </span>
           )}
         </div>

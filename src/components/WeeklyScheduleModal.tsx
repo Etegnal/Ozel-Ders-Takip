@@ -200,7 +200,7 @@ export const WeeklyScheduleModal: React.FC<WeeklyScheduleModalProps> = ({ isOpen
               </div>
               <div>
                 <h4 className="font-bold text-xs text-text-primary flex items-center gap-1.5">
-                  <span>Koç Yapay Zeka Danışmanı</span>
+                  <span>KOÇ Yapay Zeka Danışmanı</span>
                   <span className="bg-primary/20 text-primary text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">BOT</span>
                 </h4>
                 <p className="text-[10px] text-text-muted">Haftalık Durum Analiz Raporu</p>

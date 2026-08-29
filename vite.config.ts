@@ -17,8 +17,8 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Koç · Ders ve Öğrenci Takip Sistemi',
-        short_name: 'Koç',
+        name: 'KOÇ · Ders ve Öğrenci Takip Sistemi',
+        short_name: 'KOÇ',
         description: 'Özel Ders ve Öğretmen Asistanı Takip Sistemi',
         theme_color: '#060913',
         background_color: '#060913',
