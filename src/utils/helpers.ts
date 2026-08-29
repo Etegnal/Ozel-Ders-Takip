@@ -43,7 +43,22 @@ export function formatCurrency(amount: number): string {
  * Returns Turkish translation of standard classes / grade strings.
  */
 export function getGradeLabel(grade: string): string {
-  return grade;
+  return normalizeGrade(grade);
+}
+
+export function normalizeGrade(g?: string | null): string {
+  if (!g) return '12. Sınıf (YKS)';
+  const str = g.trim();
+  if (str.startsWith('5')) return '5. Sınıf';
+  if (str.startsWith('6')) return '6. Sınıf';
+  if (str.startsWith('7')) return '7. Sınıf';
+  if (str.startsWith('8')) return '8. Sınıf (LGS)';
+  if (str.startsWith('9')) return '9. Sınıf';
+  if (str.startsWith('10')) return '10. Sınıf';
+  if (str.startsWith('11')) return '11. Sınıf';
+  if (str.startsWith('12')) return '12. Sınıf (YKS)';
+  if (str.toLowerCase().includes('mezun')) return 'Mezun (YKS)';
+  return str;
 }
 
 /**

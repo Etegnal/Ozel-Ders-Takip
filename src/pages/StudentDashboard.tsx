@@ -21,7 +21,7 @@ import {
   Save,
   Check
 } from 'lucide-react';
-import { formatReadableDate } from '../utils/helpers';
+import { formatReadableDate, normalizeGrade } from '../utils/helpers';
 import { StudentQuestion } from '../types';
 import { WeeklyScheduleModal } from '../components/WeeklyScheduleModal';
 import { normalizePhone } from '../services/storage';
@@ -54,7 +54,7 @@ export const StudentDashboard: React.FC = () => {
   // Profile Edit State
   const [profileName, setProfileName] = useState(activeStudent?.name || '');
   const [profilePhone, setProfilePhone] = useState(activeStudent?.phone || '');
-  const [profileGrade, setProfileGrade] = useState(activeStudent?.grade || '12. Sınıf (YKS)');
+  const [profileGrade, setProfileGrade] = useState(normalizeGrade(activeStudent?.grade));
   const [profileEmail, setProfileEmail] = useState(activeStudent?.email || '');
   const [profilePassword, setProfilePassword] = useState(activeStudent?.password || '');
   const [profileMsg, setProfileMsg] = useState('');
@@ -63,7 +63,7 @@ export const StudentDashboard: React.FC = () => {
     if (activeStudent) {
       setProfileName(activeStudent.name || '');
       setProfilePhone(activeStudent.phone || '');
-      setProfileGrade(activeStudent.grade || '12. Sınıf (YKS)');
+      setProfileGrade(normalizeGrade(activeStudent.grade));
       setProfileEmail(activeStudent.email || '');
       setProfilePassword(activeStudent.password || '');
     }
@@ -729,7 +729,7 @@ export const StudentDashboard: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">SINIF / SEVİYE</label>
                   <select
-                    value={profileGrade}
+                    value={normalizeGrade(profileGrade)}
                     onChange={(e) => setProfileGrade(e.target.value)}
                     className="w-full bg-background border border-border text-text-primary text-xs rounded-xl px-3 py-3 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
                   >

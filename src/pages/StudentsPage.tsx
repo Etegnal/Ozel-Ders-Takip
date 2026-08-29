@@ -14,7 +14,7 @@ import {
   User,
   Award
 } from 'lucide-react';
-import { formatCurrency, getWhatsAppLink, getTodayDateString } from '../utils/helpers';
+import { formatCurrency, getWhatsAppLink, getTodayDateString, normalizeGrade } from '../utils/helpers';
 
 export const StudentsPage: React.FC = () => {
   const { 
@@ -445,20 +445,19 @@ export const StudentsPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs text-text-secondary font-semibold">SINIF / SEVİYE</label>
                   <select 
-                    value={grade}
+                    value={normalizeGrade(grade)}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
+                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary cursor-pointer"
                   >
                     <option value="5. Sınıf">5. Sınıf</option>
                     <option value="6. Sınıf">6. Sınıf</option>
                     <option value="7. Sınıf">7. Sınıf</option>
-                    <option value="8. Sınıf">8. Sınıf</option>
+                    <option value="8. Sınıf (LGS)">8. Sınıf (LGS)</option>
                     <option value="9. Sınıf">9. Sınıf</option>
                     <option value="10. Sınıf">10. Sınıf</option>
                     <option value="11. Sınıf">11. Sınıf</option>
-                    <option value="12. Sınıf">12. Sınıf</option>
-                    <option value="Mezun LGS">Mezun LGS</option>
-                    <option value="Mezun YKS">Mezun YKS</option>
+                    <option value="12. Sınıf (YKS)">12. Sınıf (YKS)</option>
+                    <option value="Mezun (YKS)">Mezun (YKS)</option>
                   </select>
                 </div>
 
@@ -559,20 +558,19 @@ export const StudentsPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs text-text-secondary font-semibold">SINIF / SEVİYE</label>
                   <select 
-                    value={grade}
+                    value={normalizeGrade(grade)}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
+                    className="w-full bg-surface-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary cursor-pointer"
                   >
                     <option value="5. Sınıf">5. Sınıf</option>
                     <option value="6. Sınıf">6. Sınıf</option>
                     <option value="7. Sınıf">7. Sınıf</option>
-                    <option value="8. Sınıf">8. Sınıf</option>
+                    <option value="8. Sınıf (LGS)">8. Sınıf (LGS)</option>
                     <option value="9. Sınıf">9. Sınıf</option>
                     <option value="10. Sınıf">10. Sınıf</option>
                     <option value="11. Sınıf">11. Sınıf</option>
-                    <option value="12. Sınıf">12. Sınıf</option>
-                    <option value="Mezun LGS">Mezun LGS</option>
-                    <option value="Mezun YKS">Mezun YKS</option>
+                    <option value="12. Sınıf (YKS)">12. Sınıf (YKS)</option>
+                    <option value="Mezun (YKS)">Mezun (YKS)</option>
                   </select>
                 </div>
 

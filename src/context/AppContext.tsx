@@ -613,10 +613,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       formattedUpdates.parentPhone = updates.parentPhone ? normalizePhone(updates.parentPhone) : undefined;
     }
 
-    updateAndPersistState(prev => ({
-      ...prev,
-      students: prev.students.map(s => (s.id === id ? { ...s, ...formattedUpdates } : s))
-    }));
+    updateAndPersistState(prev => {
+      const targetStudent = prev.students.find(s => s.id === id);
+      const targetPhoneNorm = targetStudent ? normalizePhone(targetStudent.phone || targetStudent.parentPhone) : '';
+
+      const updatedStudents = prev.students.map(s => {
+        const sPhoneNorm = normalizePhone(s.phone || s.parentPhone);
+        const isMatch = s.id === id || (targetPhoneNorm && sPhoneNorm && sPhoneNorm === targetPhoneNorm);
+        if (isMatch) {
+          return { ...s, ...formattedUpdates };
+        }
+        return s;
+      });
+
+      return { ...prev, students: updatedStudents };
+    });
   };
 
   const deleteStudent = (id: string) => {
