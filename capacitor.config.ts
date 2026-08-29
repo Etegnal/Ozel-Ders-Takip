@@ -2,10 +2,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.ozelders.app',
-  appName: 'Coach',
+  appName: 'KOÇ',
   webDir: 'dist',
   server: {
-    url: 'https://etegnal.github.io/Ozel-Ders-Takip/',
+    url: 'https://ozel-ders-takip.vercel.app/',
     cleartext: true
   }
 };
