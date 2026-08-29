@@ -23,7 +23,7 @@ export const AuthPage: React.FC = () => {
   const [studentName, setStudentName] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
   const [studentEmail] = useState('');
-  const [studentGrade] = useState('12. Sınıf (YKS)');
+  const [studentGrade, setStudentGrade] = useState('12. Sınıf (YKS)');
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
 
   // Loading & Remember Me states
@@ -295,6 +295,25 @@ export const AuthPage: React.FC = () => {
                       className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">SINIF / SEVİYE</label>
+                  <select
+                    value={studentGrade}
+                    onChange={(e) => setStudentGrade(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-xs rounded-xl px-3 py-3 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    <option value="5. Sınıf">5. Sınıf</option>
+                    <option value="6. Sınıf">6. Sınıf</option>
+                    <option value="7. Sınıf">7. Sınıf</option>
+                    <option value="8. Sınıf (LGS)">8. Sınıf (LGS)</option>
+                    <option value="9. Sınıf">9. Sınıf</option>
+                    <option value="10. Sınıf">10. Sınıf</option>
+                    <option value="11. Sınıf">11. Sınıf</option>
+                    <option value="12. Sınıf (YKS)">12. Sınıf (YKS)</option>
+                    <option value="Mezun (YKS)">Mezun (YKS)</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">

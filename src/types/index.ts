@@ -1,9 +1,10 @@
 export interface Teacher {
   id: string;
+  code?: string; // Unique student pairing code e.g. KOC-1001
   name: string;
   email: string;
   subject: string;
-  password?: string; // Optional if we want, but required for registration. Let's make it optional or required. Let's make it required.
+  password?: string;
   createdAt: string;
   whatsappSettings?: {
     enabled: boolean;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   BookOpen, 
@@ -14,7 +14,12 @@ import {
   HelpCircle,
   Plus,
   Upload,
-  X
+  X,
+  Phone,
+  Lock,
+  Link as LinkIcon,
+  Save,
+  Check
 } from 'lucide-react';
 import { formatReadableDate } from '../utils/helpers';
 import { StudentQuestion } from '../types';
@@ -33,10 +38,36 @@ export const StudentDashboard: React.FC = () => {
     addQuestion,
     giveQuestionFeedback,
     toggleStudentHomeworkStatus, 
-    logoutStudent 
+    logoutStudent,
+    updateStudent,
+    linkStudentToTeacherByCode
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions'>('homeworks');
+  const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions' | 'profile'>('homeworks');
+
+  // Teacher Code Link Modal State
+  const [showLinkTeacherModal, setShowLinkTeacherModal] = useState(false);
+  const [teacherCodeInput, setTeacherCodeInput] = useState('');
+  const [linkError, setLinkError] = useState('');
+  const [linkLoading, setLinkLoading] = useState(false);
+
+  // Profile Edit State
+  const [profileName, setProfileName] = useState(activeStudent?.name || '');
+  const [profilePhone, setProfilePhone] = useState(activeStudent?.phone || '');
+  const [profileGrade, setProfileGrade] = useState(activeStudent?.grade || '12. Sınıf (YKS)');
+  const [profileEmail, setProfileEmail] = useState(activeStudent?.email || '');
+  const [profilePassword, setProfilePassword] = useState(activeStudent?.password || '');
+  const [profileMsg, setProfileMsg] = useState('');
+
+  useEffect(() => {
+    if (activeStudent) {
+      setProfileName(activeStudent.name || '');
+      setProfilePhone(activeStudent.phone || '');
+      setProfileGrade(activeStudent.grade || '12. Sınıf (YKS)');
+      setProfileEmail(activeStudent.email || '');
+      setProfilePassword(activeStudent.password || '');
+    }
+  }, [activeStudent]);
 
   // Q&A State
   const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
@@ -133,6 +164,42 @@ export const StudentDashboard: React.FC = () => {
     };
   };
 
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeStudent) return;
+    if (!profileName.trim() || !profilePhone.trim()) {
+      setProfileMsg('Lütfen ad soyad ve telefon numarası alanlarını doldurun.');
+      return;
+    }
+    updateStudent(activeStudent.id, {
+      name: profileName.trim(),
+      phone: profilePhone.trim(),
+      grade: profileGrade,
+      email: profileEmail.trim(),
+      password: profilePassword.trim()
+    });
+    setProfileMsg('Profil bilgileriniz başarıyla güncellendi! ✅');
+    setTimeout(() => setProfileMsg(''), 3500);
+  };
+
+  const handleLinkTeacherSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkError('');
+    setLinkLoading(true);
+    try {
+      const result = await linkStudentToTeacherByCode(teacherCodeInput);
+      if (result.success) {
+        alert(`Tebrikler! ${result.teacherName} başarıyla öğretmeniniz olarak eklendi! 🎉`);
+        setShowLinkTeacherModal(false);
+        setTeacherCodeInput('');
+      } else {
+        setLinkError(result.message || 'Öğretmen eşleşme kodu geçersiz.');
+      }
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
   if (!activeStudent) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
@@ -176,43 +243,43 @@ export const StudentDashboard: React.FC = () => {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary flex flex-col">
+    <div className="min-h-screen bg-background text-text-primary flex flex-col w-full max-w-full overflow-x-hidden">
       {/* --- TOP HEADER --- */}
       <header className="bg-surface-card border-b border-border/80 sticky top-0 z-30 shadow-md">
-        <div className="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/5 border border-primary/20 rounded-xl overflow-hidden flex items-center justify-center">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/5 border border-primary/20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
               <img src={`${(import.meta as any).env.BASE_URL}logo.png`} className="w-full h-full object-cover" alt="Coach Logo" />
             </div>
-            <div>
-              <h1 className="font-bold text-base flex items-center gap-1.5 leading-tight">
+            <div className="min-w-0">
+              <h1 className="font-bold text-sm sm:text-base flex items-center gap-1.5 leading-tight truncate">
                 <span>KOÇ</span>
-                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-md font-semibold border border-primary/20 ml-1">
+                <span className="bg-primary/10 text-primary text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md font-semibold border border-primary/20">
                   ÖĞRENCİ PORTAL
                 </span>
               </h1>
-              <p className="text-xs text-text-secondary truncate">
+              <p className="text-[11px] sm:text-xs text-text-secondary truncate">
                 Merhaba, <span className="font-semibold text-text-primary">{activeStudent.name}</span> 👋 ({activeStudent.grade})
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setShowWeeklyScheduleModal(true)}
-              className="flex items-center gap-2 bg-surface hover:bg-primary/10 text-text-secondary hover:text-primary border border-border/80 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-surface hover:bg-primary/10 text-text-secondary hover:text-primary border border-border/80 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
               title="Haftalık Program"
             >
-              <Calendar size={15} />
+              <Calendar size={14} />
               <span className="hidden sm:inline">Haftalık Program</span>
             </button>
 
             <button
               onClick={logoutStudent}
-              className="flex items-center gap-2 bg-surface hover:bg-red-500/10 text-text-secondary hover:text-red-400 border border-border/80 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-surface hover:bg-red-500/10 text-text-secondary hover:text-red-400 border border-border/80 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
               title="Çıkış Yap"
             >
-              <LogOut size={15} />
+              <LogOut size={14} />
               <span className="hidden sm:inline">Çıkış Yap</span>
             </button>
           </div>
@@ -220,43 +287,43 @@ export const StudentDashboard: React.FC = () => {
       </header>
 
       {/* --- MAIN CONTENT CONTAINER --- */}
-      <main className="max-w-5xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+      <main className="max-w-5xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 flex-1 space-y-5 sm:space-y-6">
 
         {/* OVERVIEW STATS CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {/* Completed Homeworks */}
-          <div className="bg-surface-card border border-border/60 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
-            <div className="w-11 h-11 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl flex items-center justify-center font-bold">
-              <CheckCircle size={20} />
+          <div className="bg-surface-card border border-border/60 p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 shadow-sm">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl flex items-center justify-center font-bold flex-shrink-0">
+              <CheckCircle size={18} />
             </div>
             <div>
-              <p className="text-xs text-text-secondary font-semibold">Tamamlanan Ödevler</p>
-              <h3 className="text-lg font-bold text-text-primary">
+              <p className="text-[11px] sm:text-xs text-text-secondary font-semibold">Tamamlanan Ödevler</p>
+              <h3 className="text-base sm:text-lg font-bold text-text-primary">
                 {completedHomeworksCount} <span className="text-xs text-text-muted font-normal">/ {myHomeworks.length}</span>
               </h3>
             </div>
           </div>
 
           {/* Pending Homeworks */}
-          <div className="bg-surface-card border border-border/60 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
-            <div className="w-11 h-11 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center font-bold">
-              <Clock size={20} />
+          <div className="bg-surface-card border border-border/60 p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 shadow-sm">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center font-bold flex-shrink-0">
+              <Clock size={18} />
             </div>
             <div>
-              <p className="text-xs text-text-secondary font-semibold">Bekleyen Ödevler</p>
-              <h3 className="text-lg font-bold text-text-primary">
+              <p className="text-[11px] sm:text-xs text-text-secondary font-semibold">Bekleyen Ödevler</p>
+              <h3 className="text-base sm:text-lg font-bold text-text-primary">
                 {pendingHomeworksCount} <span className="text-xs text-text-muted font-normal">ödev</span>
               </h3>
             </div>
           </div>
 
           {/* Next Scheduled Lesson */}
-          <div className="bg-surface-card border border-border/60 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
-            <div className="w-11 h-11 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl flex items-center justify-center font-bold">
-              <Calendar size={20} />
+          <div className="bg-surface-card border border-border/60 p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 shadow-sm">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl flex items-center justify-center font-bold flex-shrink-0">
+              <Calendar size={18} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-text-secondary font-semibold">Sıradaki Ders</p>
+              <p className="text-[11px] sm:text-xs text-text-secondary font-semibold">Sıradaki Ders</p>
               <h3 className="text-xs font-bold text-text-primary truncate">
                 {nextLesson ? `${formatReadableDate(nextLesson.date)} (${nextLesson.startTime})` : 'Planlanmış ders yok'}
               </h3>
@@ -264,54 +331,66 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* NAVIGATION TABS */}
-        <div className="flex border-b border-border/80 gap-6">
+        {/* RESPONSIVE NAVIGATION TABS BAR */}
+        <div className="flex border-b border-border/80 gap-1.5 sm:gap-4 overflow-x-auto no-scrollbar py-1 scroll-smooth whitespace-nowrap">
           <button
             onClick={() => setActiveTab('homeworks')}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
               activeTab === 'homeworks'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary'
             }`}
           >
-            <BookOpen size={16} />
+            <BookOpen size={15} />
             <span>Ödevlerim ({myHomeworks.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('schedule')}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
               activeTab === 'schedule'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary'
             }`}
           >
-            <Calendar size={16} />
+            <Calendar size={15} />
             <span>Ders Takvimim ({myLessons.length})</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('teacher')}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'teacher'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            <User size={16} />
-            <span>Öğretmenim</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('questions')}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
               activeTab === 'questions'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary'
             }`}
           >
-            <HelpCircle size={16} />
+            <HelpCircle size={15} />
             <span>Soru Çözüm ({myQuestions.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('teacher')}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
+              activeTab === 'teacher'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <User size={15} />
+            <span>Öğretmenim ({myTeachers.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
+              activeTab === 'profile'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <User size={15} className="text-primary" />
+            <span>Profilim</span>
           </button>
         </div>
 
@@ -319,7 +398,7 @@ export const StudentDashboard: React.FC = () => {
         {activeTab === 'homeworks' && (
           <div className="space-y-4">
             {myHomeworks.length === 0 ? (
-              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-10 text-center space-y-3">
+              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-8 sm:p-10 text-center space-y-3">
                 <BookOpen size={36} className="text-text-muted mx-auto" />
                 <h3 className="text-base font-bold text-text-primary">Henüz Tanımlanmış Ödeviniz Yok</h3>
                 <p className="text-xs text-text-secondary max-w-sm mx-auto">
@@ -333,7 +412,7 @@ export const StudentDashboard: React.FC = () => {
                 return (
                   <div 
                     key={hw.id} 
-                    className={`bg-surface-card border rounded-2xl p-5 transition-all shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 ${
+                    className={`bg-surface-card border rounded-2xl p-4 sm:p-5 transition-all shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 ${
                       isCompleted ? 'border-border/60 border-l-emerald-500' : 'border-border/60 border-l-primary'
                     }`}
                   >
@@ -355,7 +434,7 @@ export const StudentDashboard: React.FC = () => {
                         )}
                       </div>
 
-                      <h3 className="text-base font-bold text-text-primary">{hw.title}</h3>
+                      <h3 className="text-sm sm:text-base font-bold text-text-primary">{hw.title}</h3>
                       <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">{hw.description}</p>
 
                       <div className="flex items-center gap-2 text-xs text-text-muted pt-1">
@@ -364,11 +443,10 @@ export const StudentDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Toggle Homework Status Button */}
                     <div className="pt-2 md:pt-0 border-t md:border-t-0 border-border/50 flex items-center justify-end">
                       <button
                         onClick={() => toggleStudentHomeworkStatus(hw.id)}
-                        className={`w-full md:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
+                        className={`w-full md:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border cursor-pointer ${
                           isCompleted
                             ? 'bg-surface hover:bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                             : 'bg-primary hover:bg-primary-hover text-black border-transparent shadow-md shadow-primary/10'
@@ -389,7 +467,7 @@ export const StudentDashboard: React.FC = () => {
         {activeTab === 'schedule' && (
           <div className="space-y-4">
             {myLessons.length === 0 ? (
-              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-10 text-center space-y-3">
+              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-8 sm:p-10 text-center space-y-3">
                 <Calendar size={36} className="text-text-muted mx-auto" />
                 <h3 className="text-base font-bold text-text-primary">Planlanmış Özel Dersiniz Yok</h3>
                 <p className="text-xs text-text-secondary max-w-sm mx-auto">
@@ -400,11 +478,11 @@ export const StudentDashboard: React.FC = () => {
               myLessons.map((l) => (
                 <div 
                   key={l.id} 
-                  className="bg-surface-card border border-border/60 rounded-2xl p-5 flex items-center justify-between gap-4 border-l-4 border-l-blue-500"
+                  className="bg-surface-card border border-border/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 border-l-4 border-l-blue-500"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-text-primary">{formatReadableDate(l.date)}</span>
+                      <span className="font-bold text-xs sm:text-sm text-text-primary">{formatReadableDate(l.date)}</span>
                       <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2 py-0.5 rounded-md font-semibold">
                         {l.startTime}
                       </span>
@@ -413,7 +491,7 @@ export const StudentDashboard: React.FC = () => {
                     {l.notes && <p className="text-xs text-text-muted italic pt-0.5">Not: {l.notes}</p>}
                   </div>
 
-                  <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${
+                  <span className={`text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-1 rounded-xl border ${
                     l.status === 'completed' 
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                       : l.status === 'cancelled'
@@ -431,42 +509,67 @@ export const StudentDashboard: React.FC = () => {
         {/* --- TAB CONTENT: MY TEACHER --- */}
         {activeTab === 'teacher' && (
           <div className="space-y-4 max-w-3xl">
-            <h3 className="text-base font-bold text-text-primary mb-2">Ders Aldığım Öğretmenler ({myTeachers.length})</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <h3 className="text-sm sm:text-base font-bold text-text-primary">Ders Aldığım Öğretmenler ({myTeachers.length})</h3>
+              
+              <button
+                onClick={() => {
+                  setTeacherCodeInput('');
+                  setLinkError('');
+                  setShowLinkTeacherModal(true);
+                }}
+                className="bg-primary hover:bg-primary-hover text-black px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>+ Öğretmen Bağla (Kodu Gir)</span>
+              </button>
+            </div>
+
             {myTeachers.length === 0 ? (
-              <div className="bg-surface-card border border-border/80 rounded-2xl p-8 text-center text-xs text-text-secondary">
-                Henüz öğretmen kaydınız bulunmuyor. Öğretmeniniz telefon numaranızla sizi eklediğinde burada otomatik eşleşecektir.
+              <div className="bg-surface-card border border-border/80 rounded-2xl p-8 text-center space-y-3">
+                <School size={36} className="text-text-muted mx-auto" />
+                <h3 className="text-sm font-bold text-text-primary">Henüz Bağlı Öğretmeniniz Bulunmuyor</h3>
+                <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                  Öğretmeninizden aldığınız <strong>Öğretmen Eşleşme Kodunu</strong> yukarıdaki butona tıklayarak girebilir veya öğretmeniniz sizi eklediğinde eşleşebilirsiniz.
+                </p>
+                <button
+                  onClick={() => setShowLinkTeacherModal(true)}
+                  className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Öğretmen Kodunu Gir
+                </button>
               </div>
             ) : (
               myTeachers.map(teacher => {
                 const studentRec = matchedStudentRecords.find(s => s.teacherId === teacher.id);
                 return (
-                  <div key={teacher.id} className="bg-surface-card border border-border/80 rounded-3xl p-6 space-y-4 shadow-sm">
+                  <div key={teacher.id} className="bg-surface-card border border-border/80 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-bold text-xl">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-bold text-lg sm:text-xl flex-shrink-0">
                         {teacher.name.charAt(0)}
                       </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-text-primary">{teacher.name}</h2>
+                      <div className="min-w-0">
+                        <h2 className="text-base sm:text-lg font-bold text-text-primary truncate">{teacher.name}</h2>
                         <p className="text-xs text-primary font-semibold uppercase tracking-wider">
                           {teacher.subject} Öğretmeni
                         </p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                      <div className="bg-background border border-border/60 p-3.5 rounded-xl flex items-center gap-3">
-                        <Mail size={18} className="text-text-muted flex-shrink-0" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className="bg-background border border-border/60 p-3 rounded-xl flex items-center gap-3">
+                        <Mail size={16} className="text-text-muted flex-shrink-0" />
                         <div className="min-w-0">
                           <p className="text-[10px] text-text-muted font-semibold">E-POSTA</p>
                           <p className="text-xs font-bold text-text-primary truncate">{teacher.email || '-'}</p>
                         </div>
                       </div>
 
-                      <div className="bg-background border border-border/60 p-3.5 rounded-xl flex items-center gap-3">
-                        <School size={18} className="text-text-muted flex-shrink-0" strokeWidth={2} />
+                      <div className="bg-background border border-border/60 p-3 rounded-xl flex items-center gap-3">
+                        <Award size={16} className="text-emerald-400 flex-shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-[10px] text-text-muted font-semibold">DERS BRANŞI</p>
-                          <p className="text-xs font-bold text-text-primary">{teacher.subject || '-'}</p>
+                          <p className="text-[10px] text-text-muted font-semibold">EŞLEŞME KODU</p>
+                          <p className="text-xs font-bold text-emerald-400">{teacher.code || 'KOC-1001'}</p>
                         </div>
                       </div>
                     </div>
@@ -490,7 +593,7 @@ export const StudentDashboard: React.FC = () => {
         {activeTab === 'questions' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-text-primary">Sorduğum Sorular</h3>
+              <h3 className="text-sm sm:text-base font-bold text-text-primary">Sorduğum Sorular ({myQuestions.length})</h3>
               <button
                 onClick={() => {
                   setLessonName(activeTeacher ? activeTeacher.subject.split('/')[0].trim() : 'Matematik');
@@ -499,7 +602,7 @@ export const StudentDashboard: React.FC = () => {
                   setQuestionText('');
                   setShowAddQuestionModal(true);
                 }}
-                className="bg-primary hover:bg-primary-hover text-black px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 cursor-pointer"
+                className="bg-primary hover:bg-primary-hover text-black px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 cursor-pointer"
               >
                 <Plus size={14} />
                 <span>Yeni Soru Sor</span>
@@ -507,7 +610,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
 
             {myQuestions.length === 0 ? (
-              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-10 text-center space-y-3">
+              <div className="bg-surface-card/40 border border-border/50 rounded-2xl p-8 sm:p-10 text-center space-y-3">
                 <HelpCircle size={36} className="text-text-muted mx-auto" />
                 <h3 className="text-base font-bold text-text-primary">Henüz Soru Sormadınız</h3>
                 <p className="text-xs text-text-secondary max-w-sm mx-auto">
@@ -573,14 +676,183 @@ export const StudentDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* --- TAB CONTENT: PROFILE / ACCOUNT EDIT PAGE --- */}
+        {activeTab === 'profile' && (
+          <div className="max-w-2xl mx-auto bg-surface-card border border-border/80 rounded-3xl p-5 sm:p-7 space-y-6 shadow-md">
+            <div className="border-b border-border/60 pb-4 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-bold text-xl">
+                <User size={24} />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-text-primary">Profil ve Hesap Ayarlarım</h3>
+                <p className="text-xs text-text-secondary">Kişisel bilgilerinizi, sınıf seviyenizi ve şifrenizi buradan güncelleyebilirsiniz.</p>
+              </div>
+            </div>
+
+            {profileMsg && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs p-3.5 rounded-xl flex items-center gap-2 font-bold animate-pulse-subtle">
+                <Check size={16} />
+                <span>{profileMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">AD SOYAD</label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                  <input
+                    type="text"
+                    required
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">TELEFON NUMARASI</label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                  <input
+                    type="tel"
+                    required
+                    value={profilePhone}
+                    onChange={(e) => setProfilePhone(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">SINIF / SEVİYE</label>
+                  <select
+                    value={profileGrade}
+                    onChange={(e) => setProfileGrade(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-xs rounded-xl px-3 py-3 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    <option value="5. Sınıf">5. Sınıf</option>
+                    <option value="6. Sınıf">6. Sınıf</option>
+                    <option value="7. Sınıf">7. Sınıf</option>
+                    <option value="8. Sınıf (LGS)">8. Sınıf (LGS)</option>
+                    <option value="9. Sınıf">9. Sınıf</option>
+                    <option value="10. Sınıf">10. Sınıf</option>
+                    <option value="11. Sınıf">11. Sınıf</option>
+                    <option value="12. Sınıf (YKS)">12. Sınıf (YKS)</option>
+                    <option value="Mezun (YKS)">Mezun (YKS)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">E-POSTA ADRESİ (OPSİYONEL)</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
+                    <input
+                      type="email"
+                      value={profileEmail}
+                      placeholder="Örn: ogrenci@ornek.com"
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      className="w-full bg-background border border-border text-text-primary text-xs rounded-xl pl-9 pr-3 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">ŞİFRE</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                  <input
+                    type="text"
+                    required
+                    value={profilePassword}
+                    onChange={(e) => setProfilePassword(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 text-sm cursor-pointer"
+                >
+                  <Save size={16} />
+                  <span>Profil Bilgilerimi Güncelle</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
       </main>
+
+      {/* --- LINK TEACHER BY CODE MODAL --- */}
+      {showLinkTeacherModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !linkLoading && setShowLinkTeacherModal(false)} />
+          <div className="bg-surface border border-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative z-10 animate-fade-in">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
+              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
+                <LinkIcon className="text-primary w-5 h-5" />
+                <span>Öğretmen Bağla</span>
+              </h3>
+              <button 
+                onClick={() => !linkLoading && setShowLinkTeacherModal(false)} 
+                disabled={linkLoading}
+                className="text-text-muted hover:text-text-primary transition-colors disabled:opacity-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleLinkTeacherSubmit} className="p-6 space-y-4">
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Öğretmeninizin size verdiği <strong>Öğretmen Eşleşme Kodunu</strong> (Örn: <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">KOC-1001</code>) aşağıdaki alana girerek öğretmeninizle anında eşleşebilirsiniz.
+              </p>
+
+              {linkError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2">
+                  <AlertCircle size={16} className="flex-shrink-0" />
+                  <span>{linkError}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">ÖĞRETMEN EŞLEŞME KODU</label>
+                <div className="relative">
+                  <Award className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary w-4.5 h-4.5" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: KOC-1001"
+                    value={teacherCodeInput}
+                    onChange={(e) => setTeacherCodeInput(e.target.value)}
+                    className="w-full bg-background border border-border text-text-primary font-mono font-bold tracking-wider text-base rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors uppercase"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={linkLoading || !teacherCodeInput.trim()}
+                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-sm"
+              >
+                <span>{linkLoading ? 'Eşleştiriliyor...' : 'Öğretmeni Hesabıma Bağla'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* --- ADD QUESTION MODAL --- */}
       {showAddQuestionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !isCompressing && setShowAddQuestionModal(false)} />
           <div className="bg-surface border border-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative z-10">
-            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card bg-surface-card">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
               <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
                 <HelpCircle className="text-primary w-5 h-5" />
                 <span>Yeni Soru Sor</span>

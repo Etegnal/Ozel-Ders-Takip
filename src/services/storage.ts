@@ -38,6 +38,7 @@ export function normalizePhone(phone?: string | null): string {
 export const defaultTeachers: Teacher[] = [
   {
     id: 'teacher-yasin-1',
+    code: 'KOC-1001',
     name: 'ADMİN',
     email: 'yasinalacahan23@gmail.com',
     subject: 'Fizik / Matematik',
@@ -45,6 +46,20 @@ export const defaultTeachers: Teacher[] = [
     createdAt: '2026-07-25T10:00:00.000Z'
   }
 ];
+
+export function generateTeacherCode(id: string): string {
+  const numericStr = id.replace(/\D/g, '');
+  if (numericStr.length >= 4) {
+    return 'KOC-' + numericStr.slice(-4);
+  }
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  const codeNum = Math.abs(hash % 9000) + 1000;
+  return 'KOC-' + codeNum;
+}
 
 export function pruneOldQuestions(questions: StudentQuestion[]): StudentQuestion[] {
   const thirtyDaysAgo = new Date();
@@ -72,7 +87,7 @@ export const initialMockState: AppState = {
 
 const LEGACY_TEST_IDS = ['teacher-ayse-2', 'teacher-mehmet-3', 'teacher-elif-4', 'teacher-rahmi-5'];
 
-// Helper: Ensure Super Admin ADMİN is ALWAYS present
+// Helper: Ensure Super Admin ADMİN is ALWAYS present and all teachers have pairing codes
 export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   let list = Array.isArray(teachers) ? teachers.filter(t => t && t.id && !LEGACY_TEST_IDS.includes(t.id)) : [];
   const adminIndex = list.findIndex(t => 
@@ -82,17 +97,22 @@ export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   );
 
   if (adminIndex === -1) {
-    list.unshift(defaultTeachers[0]);
+    list.unshift({ ...defaultTeachers[0], code: 'KOC-1001' });
   } else {
     list[adminIndex] = {
       ...defaultTeachers[0],
       ...list[adminIndex],
       name: 'ADMİN',
       email: 'yasinalacahan23@gmail.com',
-      password: 'admin123'
+      password: 'admin123',
+      code: list[adminIndex].code || 'KOC-1001'
     };
   }
-  return list;
+
+  return list.map((t, idx) => ({
+    ...t,
+    code: t.code || generateTeacherCode(t.id || `teacher-${idx + 1000}`)
+  }));
 }
 
 function mergeTeachers(localTeachers: Teacher[], cloudTeachers: Teacher[]): Teacher[] {

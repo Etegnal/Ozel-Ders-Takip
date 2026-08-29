@@ -22,6 +22,7 @@ interface AppContextType {
   loginAsStudent: (identifier: string, password: string) => Promise<boolean> | boolean;
   registerStudent: (name: string, email: string, phone: string, grade: string, password: string, teacherId: string) => Promise<boolean>;
   logoutStudent: () => void;
+  linkStudentToTeacherByCode: (teacherCodeInput: string) => Promise<{ success: boolean; teacherName?: string; message?: string }>;
   toggleStudentHomeworkStatus: (homeworkId: string) => void;
   syncCloudNow: () => Promise<void>;
   syncCode: string;
@@ -479,6 +480,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setState(loggedOutState);
     storageService.saveState(loggedOutState);
+  };
+
+  const linkStudentToTeacherByCode = async (teacherCodeInput: string): Promise<{ success: boolean; teacherName?: string; message?: string }> => {
+    const cleanCode = teacherCodeInput.trim().toUpperCase();
+    if (!cleanCode) return { success: false, message: 'Lütfen bir öğretmen eşleşme kodu girin.' };
+
+    const cloudState = await storageService.fetchCloudState();
+    const currentTeachers = cloudState && Array.isArray(cloudState.teachers) ? cloudState.teachers : state.teachers;
+
+    const matchedTeacher = currentTeachers.find(t => {
+      const code = (t.code || '').trim().toUpperCase();
+      const idCode = t.id.trim().toUpperCase();
+      return code === cleanCode || idCode === cleanCode || ('KOC-' + code) === cleanCode;
+    });
+
+    if (!matchedTeacher) {
+      return { success: false, message: 'Bu koda sahip bir öğretmen bulunamadı. Lütfen kodu kontrol edin.' };
+    }
+
+    if (!state.activeStudentId) {
+      return { success: false, message: 'Öğrenci oturumu aktif değil.' };
+    }
+
+    let updatedStudents = [...(cloudState?.students || state.students)];
+    const studentIdx = updatedStudents.findIndex(s => s.id === state.activeStudentId);
+
+    if (studentIdx !== -1) {
+      updatedStudents[studentIdx] = {
+        ...updatedStudents[studentIdx],
+        teacherId: matchedTeacher.id
+      };
+    }
+
+    const updatedState: AppState = {
+      ...(cloudState || state),
+      students: updatedStudents,
+      activeTeacherId: matchedTeacher.id
+    };
+
+    setState(updatedState);
+    await storageService.saveState(updatedState);
+    return { success: true, teacherName: matchedTeacher.name };
   };
 
   const toggleStudentHomeworkStatus = (homeworkId: string) => {
@@ -964,6 +1007,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginAsStudent,
         registerStudent,
         logoutStudent,
+        linkStudentToTeacherByCode,
         toggleStudentHomeworkStatus,
         syncCloudNow,
         syncCode: '',
