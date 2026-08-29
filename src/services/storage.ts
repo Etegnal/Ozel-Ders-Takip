@@ -133,10 +133,23 @@ function mergeTeachers(localTeachers: Teacher[], cloudTeachers: Teacher[]): Teac
   return ensureAdminTeacher(result);
 }
 
-const deletedIds = new Set<string>();
+const DELETED_IDS_KEY = 'koc_deleted_ids_v1';
+const deletedIds = new Set<string>((() => {
+  try {
+    const saved = localStorage.getItem(DELETED_IDS_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+})());
 
 export function markIdAsDeleted(id: string) {
-  if (id) deletedIds.add(id);
+  if (id) {
+    deletedIds.add(id);
+    try {
+      localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(deletedIds)));
+    } catch {}
+  }
 }
 
 
@@ -214,12 +227,12 @@ export const storageService = {
     const sanitizedState = sanitizeState(state);
     const payload = JSON.stringify({
       teachers: sanitizedState.teachers,
-      students: sanitizedState.students,
-      lessons: sanitizedState.lessons,
-      homeworks: sanitizedState.homeworks,
-      transactions: sanitizedState.transactions,
-      notifications: sanitizedState.notifications,
-      questions: sanitizedState.questions
+      students: (sanitizedState.students || []).filter(s => s && s.id && !deletedIds.has(s.id)),
+      lessons: (sanitizedState.lessons || []).filter(l => l && l.id && !deletedIds.has(l.id)),
+      homeworks: (sanitizedState.homeworks || []).filter(h => h && h.id && !deletedIds.has(h.id)),
+      transactions: (sanitizedState.transactions || []).filter(t => t && t.id && !deletedIds.has(t.id)),
+      notifications: (sanitizedState.notifications || []).filter(n => n && n.id && !deletedIds.has(n.id)),
+      questions: (sanitizedState.questions || []).filter(q => q && q.id && !deletedIds.has(q.id))
     });
 
     try {
