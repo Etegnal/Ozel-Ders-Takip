@@ -41,11 +41,45 @@ export default async function handler(req: any, res: any) {
         if (dbStateRecord && dbStateRecord.data) {
           return res.status(200).json(dbStateRecord.data);
         } else {
-          return res.status(200).json({ empty: true });
+          return res.status(200).json({
+            teachers: [
+              {
+                id: 'teacher-yasin-1',
+                name: 'ADMİN',
+                email: 'yasinalacahan23@gmail.com',
+                subject: 'Fizik / Matematik',
+                password: 'admin123',
+                createdAt: '2026-07-25T10:00:00.000Z'
+              }
+            ],
+            students: [],
+            lessons: [],
+            homeworks: [],
+            transactions: [],
+            notifications: [],
+            questions: []
+          });
         }
       } catch (dbErr: any) {
         console.error('Database query error on GET:', dbErr);
-        return res.status(200).json({ empty: true });
+        return res.status(200).json({
+          teachers: [
+            {
+              id: 'teacher-yasin-1',
+              name: 'ADMİN',
+              email: 'yasinalacahan23@gmail.com',
+              subject: 'Fizik / Matematik',
+              password: 'admin123',
+              createdAt: '2026-07-25T10:00:00.000Z'
+            }
+          ],
+          students: [],
+          lessons: [],
+          homeworks: [],
+          transactions: [],
+          notifications: [],
+          questions: []
+        });
       }
     }
 

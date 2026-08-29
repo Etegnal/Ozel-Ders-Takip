@@ -1,6 +1,6 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
-const STORAGE_KEY = 'koc_app_state_v7_clean';
+const STORAGE_KEY = 'koc_app_state_v8_purged';
 
 // Primary Firebase Realtime Database URL
 export const DEFAULT_FIREBASE_URL = 'https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/';
@@ -317,7 +317,7 @@ export const storageService = {
       });
       if (vercelRes.ok) {
         const data = await vercelRes.json();
-        if (data && typeof data === 'object' && !data.empty && !data.error) {
+        if (data && typeof data === 'object' && !data.error) {
           cloudData = data;
         }
       }
