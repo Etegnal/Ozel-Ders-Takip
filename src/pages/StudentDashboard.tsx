@@ -169,7 +169,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
             <div>
               <h1 className="font-bold text-base flex items-center gap-1.5 leading-tight">
-                <span>Coach</span>
+                <span>Koç</span>
                 <span className="text-primary">.</span>
                 <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-md font-semibold border border-primary/20 ml-1">
                   ÖĞRENCİ PORTAL

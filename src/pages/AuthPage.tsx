@@ -149,7 +149,7 @@ export const AuthPage: React.FC = () => {
             <img src={`${(import.meta as any).env.BASE_URL}logo.png`} className="w-full h-full object-cover" alt="Coach Logo" />
           </div>
           <h2 className="text-2xl font-bold font-sans tracking-tight">
-            Coach<span className="text-primary">.</span>
+            Koç<span className="text-primary">.</span>
           </h2>
           <p className="text-xs text-text-secondary uppercase tracking-widest font-semibold">
             {authRole === 'student' ? 'ÖĞRENCİ PORTAL GİRİŞİ' : isLoginView ? 'ÖĞRETMEN GİRİŞİ' : 'ÖĞRETMEN KAYIT EKRANI'}
