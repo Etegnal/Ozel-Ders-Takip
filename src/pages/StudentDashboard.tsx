@@ -445,11 +445,12 @@ export const StudentDashboard: React.FC = () => {
 
                     <div className="pt-2 md:pt-0 border-t md:border-t-0 border-border/50 flex items-center justify-end">
                       <button
-                        onClick={() => toggleStudentHomeworkStatus(hw.id)}
-                        className={`w-full md:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border cursor-pointer ${
+                        onClick={() => !isCompleted && toggleStudentHomeworkStatus(hw.id)}
+                        disabled={isCompleted}
+                        className={`w-full md:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
                           isCompleted
-                            ? 'bg-surface hover:bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : 'bg-primary hover:bg-primary-hover text-black border-transparent shadow-md shadow-primary/10'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 cursor-not-allowed opacity-90'
+                            : 'bg-primary hover:bg-primary-hover text-black border-transparent shadow-md shadow-primary/10 cursor-pointer'
                         }`}
                       >
                         <CheckCircle size={15} />

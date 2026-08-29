@@ -535,8 +535,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       homeworks: prev.homeworks.map(h => {
         if (h.id === homeworkId) {
-          const nextStatus = h.status === 'completed' ? 'pending' : 'completed';
-          return { ...h, status: nextStatus };
+          if (h.status === 'completed' || h.status === 'evaluated') {
+            return h; // One-way guard: cannot revert back to pending
+          }
+          return { ...h, status: 'completed' };
         }
         return h;
       })
