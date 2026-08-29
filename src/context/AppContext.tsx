@@ -400,16 +400,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const cloudState = await storageService.fetchCloudState();
-    const currentStudents = cloudState ? cloudState.students : state.students;
+    const currentStudents = cloudState && Array.isArray(cloudState.students) ? cloudState.students : state.students;
 
-    // Check if student with matching phone number, email or name already exists
+    // Check if student with matching phone number already exists
     const existingIndex = currentStudents.findIndex(s => {
       const p1 = normalizePhone(s.phone);
       const p2 = normalizePhone(s.parentPhone);
-      const normName = normalizeStr(s.name);
-      return (normInputPhone && (p1 === normInputPhone || p2 === normInputPhone)) ||
-             (cleanEmail && s.email && s.email.trim().toLowerCase() === cleanEmail) ||
-             (normName && normName === normalizeStr(cleanName));
+      return normInputPhone && (p1 === normInputPhone || p2 === normInputPhone);
     });
 
     let updatedStudents = [...currentStudents];
@@ -419,7 +416,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdStudent = {
         ...updatedStudents[existingIndex],
         name: cleanName || updatedStudents[existingIndex].name,
-        email: cleanEmail || updatedStudents[existingIndex].email,
         phone: cleanPhone || updatedStudents[existingIndex].phone,
         password: password.trim(),
         teacherId: teacherId || updatedStudents[existingIndex].teacherId || ''
@@ -427,7 +423,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedStudents[existingIndex] = createdStudent;
     } else {
       createdStudent = {
-        id: 'student-' + Math.random().toString(36).substr(2, 9),
+        id: 'student-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
         teacherId: teacherId || '',
         name: cleanName,
         email: cleanEmail,

@@ -94,13 +94,9 @@ export const AuthPage: React.FC = () => {
           }
           const success = await registerStudent(studentName, studentEmail, studentPhone, studentGrade, studentPassword, selectedTeacherId);
           if (!success) {
-            setErrorMsg('Bu telefon numarası veya isim ile kayıtlı öğrenci zaten var.');
+            setErrorMsg('Bu telefon numarası ile kayıtlı öğrenci zaten var.');
             setLoading(false);
             return;
-          }
-          const loginSuccess = await loginAsStudent(studentPhone || studentName, studentPassword);
-          if (!loginSuccess) {
-            setErrorMsg('Kayıt başarılı! Lütfen telefon numaranız ve şifreniz ile giriş yapın.');
           }
         }
         setLoading(false);
