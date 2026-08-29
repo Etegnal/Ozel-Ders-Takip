@@ -78,6 +78,17 @@ export function normalizeStr(str: string | undefined | null): string {
     .replace(/\s+/g, ' ');
 }
 
+export function normalizePhone(phone?: string | null): string {
+  if (!phone) return '';
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('90') && digits.length === 12) {
+    digits = digits.substring(2);
+  } else if (digits.startsWith('0') && digits.length === 11) {
+    digits = digits.substring(1);
+  }
+  return digits;
+}
+
 export const defaultTeachers: Teacher[] = [
   {
     id: 'teacher-yasin-1',
@@ -358,28 +369,21 @@ export const storageService = {
         await this.saveState(inMemoryState);
         updatedState = inMemoryState;
       } else {
-        // Smart merge cloud data with local memory state (preserves all students and teachers without losing data)
+        // Use cloud database state as authoritative data while preserving active session role and teachers
         const cloudTeachers = cloudData.teachers || [];
         const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
-
-        const mergedStudents = mergeCollections(inMemoryState.students || [], cloudData.students || []);
-        const mergedLessons = mergeCollections(inMemoryState.lessons || [], cloudData.lessons || []);
-        const mergedHomeworks = mergeCollections(inMemoryState.homeworks || [], cloudData.homeworks || []);
-        const mergedTransactions = mergeCollections(inMemoryState.transactions || [], cloudData.transactions || []);
-        const mergedNotifications = mergeCollections(inMemoryState.notifications || [], cloudData.notifications || []);
-        const mergedQuestions = pruneOldQuestions(mergeCollections(inMemoryState.questions || [], cloudData.questions || []));
 
         updatedState = {
           teachers: finalTeachers,
           activeTeacherId: inMemoryState.activeTeacherId || '',
           userRole: inMemoryState.userRole || 'teacher',
           activeStudentId: inMemoryState.activeStudentId || null,
-          students: mergedStudents,
-          lessons: mergedLessons,
-          homeworks: mergedHomeworks,
-          transactions: mergedTransactions,
-          notifications: mergedNotifications,
-          questions: mergedQuestions
+          students: cloudData.students || [],
+          lessons: cloudData.lessons || [],
+          homeworks: cloudData.homeworks || [],
+          transactions: cloudData.transactions || [],
+          notifications: cloudData.notifications || [],
+          questions: pruneOldQuestions(cloudData.questions || [])
         };
 
         inMemoryState = updatedState;

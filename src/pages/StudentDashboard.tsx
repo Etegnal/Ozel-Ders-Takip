@@ -19,11 +19,14 @@ import {
 import { formatReadableDate } from '../utils/helpers';
 import { StudentQuestion } from '../types';
 import { WeeklyScheduleModal } from '../components/WeeklyScheduleModal';
+import { normalizePhone } from '../services/storage';
 
 export const StudentDashboard: React.FC = () => {
   const { 
     activeStudent, 
     activeTeacher, 
+    teachers = [],
+    allStudents = [],
     homeworks, 
     lessons, 
     questions = [],
@@ -146,10 +149,24 @@ export const StudentDashboard: React.FC = () => {
     );
   }
 
-  // Filter student-specific data
-  const myHomeworks = homeworks.filter(h => h.studentId === activeStudent.id);
-  const myLessons = lessons.filter(l => l.studentId === activeStudent.id);
-  const myQuestions = (questions || []).filter(q => q.studentId === activeStudent.id);
+  // Match all student records that share the same normalized phone number
+  const studentPhoneNorm = normalizePhone(activeStudent.phone || activeStudent.parentPhone);
+  const matchedStudentRecords = (allStudents || []).filter(s => {
+    const p1 = normalizePhone(s.phone);
+    const p2 = normalizePhone(s.parentPhone);
+    return s.id === activeStudent.id || (studentPhoneNorm && (p1 === studentPhoneNorm || p2 === studentPhoneNorm));
+  });
+  const matchedStudentIds = matchedStudentRecords.map(s => s.id);
+
+  // Extract all teachers associated with these records
+  const myTeachers = (teachers || []).filter(t => 
+    matchedStudentRecords.some(s => s.teacherId === t.id)
+  );
+
+  // Filter student-specific data across all matched teacher records
+  const myHomeworks = homeworks.filter(h => matchedStudentIds.includes(h.studentId));
+  const myLessons = lessons.filter(l => matchedStudentIds.includes(l.studentId));
+  const myQuestions = (questions || []).filter(q => matchedStudentIds.includes(q.studentId));
 
   const completedHomeworksCount = myHomeworks.filter(h => h.status === 'completed' || h.status === 'evaluated').length;
   const pendingHomeworksCount = myHomeworks.filter(h => h.status === 'pending').length;
@@ -413,36 +430,59 @@ export const StudentDashboard: React.FC = () => {
 
         {/* --- TAB CONTENT: MY TEACHER --- */}
         {activeTab === 'teacher' && (
-          <div className="bg-surface-card border border-border/80 rounded-3xl p-6 space-y-6 max-w-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-bold text-2xl">
-                {activeTeacher ? activeTeacher.name.charAt(0) : 'Ö'}
+          <div className="space-y-4 max-w-3xl">
+            <h3 className="text-base font-bold text-text-primary mb-2">Ders Aldığım Öğretmenler ({myTeachers.length})</h3>
+            {myTeachers.length === 0 ? (
+              <div className="bg-surface-card border border-border/80 rounded-2xl p-8 text-center text-xs text-text-secondary">
+                Henüz öğretmen kaydınız bulunmuyor. Öğretmeniniz telefon numaranızla sizi eklediğinde burada otomatik eşleşecektir.
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-text-primary">{activeTeacher ? activeTeacher.name : 'Öğretmeniniz'}</h2>
-                <p className="text-xs text-primary font-semibold uppercase tracking-wider">
-                  {activeTeacher ? activeTeacher.subject : 'Branş'} Öğretmeni
-                </p>
-              </div>
-            </div>
+            ) : (
+              myTeachers.map(teacher => {
+                const studentRec = matchedStudentRecords.find(s => s.teacherId === teacher.id);
+                return (
+                  <div key={teacher.id} className="bg-surface-card border border-border/80 rounded-3xl p-6 space-y-4 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-bold text-xl">
+                        {teacher.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-text-primary">{teacher.name}</h2>
+                        <p className="text-xs text-primary font-semibold uppercase tracking-wider">
+                          {teacher.subject} Öğretmeni
+                        </p>
+                      </div>
+                    </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="bg-background border border-border/60 p-3.5 rounded-xl flex items-center gap-3">
-                <Mail size={18} className="text-text-muted flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-text-muted font-semibold">E-POSTA</p>
-                  <p className="text-xs font-bold text-text-primary truncate">{activeTeacher ? activeTeacher.email : '-'}</p>
-                </div>
-              </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div className="bg-background border border-border/60 p-3.5 rounded-xl flex items-center gap-3">
+                        <Mail size={18} className="text-text-muted flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-text-muted font-semibold">E-POSTA</p>
+                          <p className="text-xs font-bold text-text-primary truncate">{teacher.email || '-'}</p>
+                        </div>
+                      </div>
 
-              <div className="bg-background border border-border/60 p-3.5 rounded-xl flex items-center gap-3">
-                <School size={18} className="text-text-muted flex-shrink-0" strokeWidth={2} />
-                <div className="min-w-0">
-                  <p className="text-[10px] text-text-muted font-semibold">DERS BRANŞI</p>
-                  <p className="text-xs font-bold text-text-primary">{activeTeacher ? activeTeacher.subject : '-'}</p>
-                </div>
-              </div>
-            </div>
+                      <div className="bg-background border border-border/60 p-3.5 rounded-xl flex items-center gap-3">
+                        <School size={18} className="text-text-muted flex-shrink-0" strokeWidth={2} />
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-text-muted font-semibold">DERS BRANŞI</p>
+                          <p className="text-xs font-bold text-text-primary">{teacher.subject || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {studentRec && (
+                      <div className="border-t border-border/40 pt-3 flex items-center justify-between text-xs text-text-secondary">
+                        <span>Sınıf/Seviye: <strong className="text-text-primary">{studentRec.grade}</strong></span>
+                        {studentRec.hourlyRate > 0 && (
+                          <span>Saatlik Ücret: <strong className="text-primary">{studentRec.hourlyRate} ₺</strong></span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
 

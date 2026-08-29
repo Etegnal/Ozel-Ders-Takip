@@ -397,17 +397,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // --- Student Auth Actions ---
   const loginAsStudent = async (identifier: string, password: string): Promise<boolean> => {
     const normId = normalizeStr(identifier);
+    const normPhoneId = normalizePhone(identifier);
     const cleanPassword = password.trim();
 
     const findStudent = (studentsList: Student[]) => {
       return studentsList.find(s => {
         const normName = normalizeStr(s.name);
         const normEmail = normalizeStr(s.email);
+        const normStudentPhone = normalizePhone(s.phone);
+        const normParentPhone = normalizePhone(s.parentPhone);
+
         const matchName = normName === normId;
         const matchEmail = normEmail === normId;
-        const matchPhone = s.phone.replace(/\D/g, '').includes(normId.replace(/\D/g, ''));
+        const matchPhone = (normPhoneId.length >= 7) && (normStudentPhone === normPhoneId || normParentPhone === normPhoneId);
+
         const studentPass = s.password || '123456';
-        return (matchName || matchEmail || (normId.length > 3 && matchPhone)) && studentPass === cleanPassword;
+        return (matchName || matchEmail || matchPhone) && studentPass === cleanPassword;
       });
     };
 
@@ -415,7 +420,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (!student) {
       const cloudState = await storageService.fetchCloudState();
-      if (cloudState) {
+      if (cloudState && Array.isArray(cloudState.students)) {
         setState(cloudState);
         student = findStudent(cloudState.students);
       }
@@ -450,55 +455,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ): Promise<boolean> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
+    const normInputPhone = normalizePhone(cleanPhone);
 
-    const isDuplicate = (studentsList: Student[]) => {
-      return studentsList.some(s => 
-        (s.email && s.email.trim().toLowerCase() === cleanEmail) || 
-        (s.phone && s.phone.trim() === cleanPhone)
-      );
-    };
+    const cloudState = await storageService.fetchCloudState();
+    const currentStudents = cloudState ? cloudState.students : state.students;
 
-    let duplicated = isDuplicate(state.students);
-    if (!duplicated) {
-      const cloudState = await storageService.fetchCloudState();
-      if (cloudState) {
-        setState(cloudState);
-        duplicated = isDuplicate(cloudState.students);
-      }
+    // Check if student with this phone or email already exists
+    const existingIndex = currentStudents.findIndex(s => {
+      const p1 = normalizePhone(s.phone);
+      const p2 = normalizePhone(s.parentPhone);
+      return (normInputPhone && (p1 === normInputPhone || p2 === normInputPhone)) ||
+             (cleanEmail && s.email && s.email.trim().toLowerCase() === cleanEmail);
+    });
+
+    let updatedStudents = [...currentStudents];
+    let createdStudent: Student;
+
+    if (existingIndex !== -1) {
+      createdStudent = {
+        ...updatedStudents[existingIndex],
+        name: name.trim() || updatedStudents[existingIndex].name,
+        email: cleanEmail || updatedStudents[existingIndex].email,
+        phone: cleanPhone || updatedStudents[existingIndex].phone,
+        password: password.trim()
+      };
+      updatedStudents[existingIndex] = createdStudent;
+    } else {
+      createdStudent = {
+        id: 'student-' + Math.random().toString(36).substr(2, 9),
+        teacherId: teacherId || '',
+        name: name.trim(),
+        email: cleanEmail,
+        phone: cleanPhone,
+        grade,
+        password: password.trim(),
+        hourlyRate: 0,
+        balance: 0,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+      updatedStudents.push(createdStudent);
     }
-
-    if (duplicated) return false;
-
-    const newStudent: Student = {
-      id: 'student-' + Math.random().toString(36).substr(2, 9),
-      teacherId,
-      name: name.trim(),
-      email: cleanEmail,
-      phone: cleanPhone,
-      grade,
-      password: password.trim(),
-      hourlyRate: 0,
-      balance: 0,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
 
     const newNotification: AppNotification = {
       id: 'notif-' + Math.random().toString(36).substr(2, 9),
-      teacherId,
+      teacherId: teacherId || 'teacher-yasin-1',
       title: 'Yeni Öğrenci Kaydı',
-      message: `${newStudent.name} (${grade}) sisteme kendi kaydını yaptı ve sizinle eşleşti.`,
+      message: `${createdStudent.name} (${grade}) sisteme kendi kaydını yaptı ve sizinle eşleşti.`,
       date: new Date().toISOString(),
       read: false,
       type: 'system'
     };
 
-    setState(prev => ({
-      ...prev,
-      students: [...prev.students, newStudent],
-      notifications: [newNotification, ...(prev.notifications || [])]
-    }));
+    const updatedNotifications = [newNotification, ...((cloudState || state).notifications || [])];
 
+    const updatedState: AppState = {
+      ...(cloudState || state),
+      students: updatedStudents,
+      notifications: updatedNotifications
+    };
+
+    setState(updatedState);
+    await storageService.saveState(updatedState);
     return true;
   };
 
@@ -533,18 +551,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- Student Actions ---
-  const normalizePhone = (phoneStr: string): string => {
+  const normalizePhone = (phoneStr?: string | null): string => {
     if (!phoneStr) return '';
     let cleaned = phoneStr.replace(/\D/g, ''); // strip non-numeric
-    // If it starts with country code 90 (e.g. 90507...), remove the 90 prefix for normalization
     if (cleaned.startsWith('90') && cleaned.length > 10) {
       cleaned = cleaned.substring(2);
     }
-    // If it starts with leading zero (e.g. 0507...), remove the 0
-    if (cleaned.startsWith('0')) {
+    if (cleaned.startsWith('0') && cleaned.length === 11) {
       cleaned = cleaned.substring(1);
     }
-    return '+90' + cleaned;
+    return cleaned;
   };
 
   const addStudent = (studentData: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => {
@@ -579,13 +595,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteStudent = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      students: prev.students.filter(s => s.id !== id),
-      lessons: prev.lessons.filter(l => l.studentId !== id),
-      homeworks: prev.homeworks.filter(h => h.studentId !== id),
-      transactions: prev.transactions.filter(t => t.studentId !== id)
-    }));
+    setState(prev => {
+      const newState: AppState = {
+        ...prev,
+        students: prev.students.filter(s => s.id !== id),
+        lessons: prev.lessons.filter(l => l.studentId !== id),
+        homeworks: prev.homeworks.filter(h => h.studentId !== id),
+        transactions: prev.transactions.filter(t => t.studentId !== id)
+      };
+      storageService.saveState(newState);
+      return newState;
+    });
   };
 
   // --- Lesson Actions ---
