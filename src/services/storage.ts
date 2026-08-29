@@ -206,6 +206,8 @@ function getSyncApiEndpoint(): string {
   return 'https://koc-one.vercel.app/api/sync';
 }
 
+let lastMutationTimestamp = 0;
+
 export const storageService = {
   getState(): AppState {
     try {
@@ -228,6 +230,7 @@ export const storageService = {
   },
 
   async saveState(state: AppState): Promise<boolean> {
+    lastMutationTimestamp = Date.now();
     inMemoryState = state;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -258,6 +261,7 @@ export const storageService = {
   },
 
   async fetchCloudState(): Promise<AppState> {
+    const fetchStartTime = Date.now();
     let cloudData: any = null;
 
     try {
@@ -275,6 +279,10 @@ export const storageService = {
     }
 
     if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
+
+    if (lastMutationTimestamp > fetchStartTime) {
+      return inMemoryState;
+    }
 
     const cloudTeachers = cloudData.teachers || [];
     const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
