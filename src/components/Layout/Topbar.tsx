@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Search, 
-  Plus, 
   Calendar as CalendarIcon,
   Menu
 } from 'lucide-react';
@@ -27,33 +26,27 @@ export const Topbar: React.FC<TopbarProps> = ({ onMobileMenuToggle }) => {
   const getPageInfo = () => {
     switch (path) {
       case '/':
-        return { title: 'Ana Sayfa', showSearch: false, modalType: 'lesson' as const };
+        return { title: 'Ana Sayfa', showSearch: false };
       case '/calendar':
-        return { title: 'Takvim ve Planlama', showSearch: false, modalType: 'lesson' as const };
+        return { title: 'Takvim ve Planlama', showSearch: false };
       case '/students':
-        return { title: 'Öğrenci Yönetimi', showSearch: true, modalType: 'student' as const };
+        return { title: 'Öğrenci Yönetimi', showSearch: true };
       case '/homeworks':
-        return { title: 'Ödev Takip Paneli', showSearch: false, modalType: 'homework' as const };
+        return { title: 'Ödev Takip Paneli', showSearch: false };
       case '/questions':
-        return { title: 'Soru & Çözüm Havuzu', showSearch: false, modalType: null };
+        return { title: 'Soru & Çözüm Havuzu', showSearch: false };
       case '/finance':
-        return { title: 'Finansal Analiz', showSearch: false, modalType: 'transaction' as const };
+        return { title: 'Finansal Analiz', showSearch: false };
       case '/notifications':
-        return { title: 'Bildirimler', showSearch: false, modalType: null };
+        return { title: 'Bildirimler', showSearch: false };
       case '/teachers':
-        return { title: 'Öğretmen Profilleri', showSearch: false, modalType: null };
+        return { title: 'Öğretmen Profilleri', showSearch: false };
       default:
-        return { title: 'Dashboard', showSearch: false, modalType: null };
+        return { title: 'Dashboard', showSearch: false };
     }
   };
 
-  const { title, showSearch, modalType } = getPageInfo();
-
-  const handlePlusClick = () => {
-    if (modalType) {
-      setActiveModal(modalType);
-    }
-  };
+  const { title, showSearch } = getPageInfo();
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-3 md:px-6 bg-surface/60 backdrop-blur-md sticky top-0 z-20 w-full min-w-0">
@@ -124,17 +117,6 @@ export const Topbar: React.FC<TopbarProps> = ({ onMobileMenuToggle }) => {
               <span>Haftalık Program</span>
             </button>
           </div>
-        )}
-
-        {/* Global Quick Action "+" button */}
-        {modalType && (
-          <button 
-            onClick={handlePlusClick}
-            className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-primary hover:bg-primary-hover text-black font-bold text-xs md:text-sm rounded-xl transition-colors shadow-lg shadow-primary/10 cursor-pointer flex-shrink-0"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">Yeni Ekle</span>
-          </button>
         )}
       </div>
     </header>

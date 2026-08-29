@@ -14,9 +14,10 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { formatCurrency, getWhatsAppLink, getTodayDateString } from '../utils/helpers';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const TeacherDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     activeTeacher, 
     students, 
@@ -85,7 +86,10 @@ export const TeacherDashboard: React.FC = () => {
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-3 pt-2 md:pt-0">
             <button
-              onClick={() => setActiveModal('student')}
+              onClick={() => {
+                setActiveModal('student');
+                navigate('/students');
+              }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-black text-xs font-black rounded-2xl transition-all shadow-lg shadow-primary/25 hover:scale-[1.02] cursor-pointer"
             >
               <Plus size={18} strokeWidth={3} />
@@ -93,7 +97,10 @@ export const TeacherDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveModal('lesson')}
+              onClick={() => {
+                setActiveModal('lesson');
+                navigate('/calendar');
+              }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-surface-card border-2 border-border hover:border-primary/50 text-text-primary text-xs font-bold rounded-2xl transition-all hover:bg-surface-hover cursor-pointer"
             >
               <CalendarIcon size={18} className="text-primary" />
@@ -251,7 +258,10 @@ export const TeacherDashboard: React.FC = () => {
               <h4 className="text-sm font-bold text-text-primary">Henüz Öğrenci Eklenmedi</h4>
               <p className="text-xs text-text-secondary">İlk öğrencinizi eklemek için aşağıdaki butona tıklayabilirsiniz.</p>
               <button
-                onClick={() => setActiveModal('student')}
+                onClick={() => {
+                  setActiveModal('student');
+                  navigate('/students');
+                }}
                 className="px-4 py-2 bg-primary text-black font-bold text-xs rounded-xl shadow-md cursor-pointer"
               >
                 Öğrenci Ekle
