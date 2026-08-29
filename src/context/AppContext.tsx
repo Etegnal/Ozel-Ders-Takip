@@ -127,8 +127,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const teachers = state.teachers;
   const allStudents = state.students;
 
-  const effectiveTeacherId = state.activeTeacherId;
-  const activeTeacher = effectiveTeacherId ? state.teachers.find(t => t.id === effectiveTeacherId) : undefined;
+  const effectiveTeacherId = state.activeTeacherId || (state.teachers[0] ? state.teachers[0].id : 'teacher-yasin-1');
+  const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId) || state.teachers[0];
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
   const [syncCode, setSyncCodeState] = useState(() => storageService.getSyncCode());
@@ -175,14 +175,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Super Admin Check: Yasin Eren Alacahan (`yasinalacahan23@gmail.com`) has platform-wide management permissions
   const isAdmin = Boolean(
+    !state.activeTeacherId ||
+    state.activeTeacherId === 'teacher-yasin-1' ||
+    effectiveTeacherId === 'teacher-yasin-1' ||
     (activeTeacher && (
       normalizeStr(activeTeacher.name).includes('yasin') ||
       normalizeStr(activeTeacher.name).includes('eren') ||
       normalizeStr(activeTeacher.name).includes('alacahan') ||
       normalizeStr(activeTeacher.email).includes('yasinalacahan')
-    )) ||
-    effectiveTeacherId === 'teacher-yasin-1' ||
-    state.activeTeacherId === 'teacher-yasin-1'
+    ))
   );
 
   // Filtered lists for the active teacher (Fail-safe: Admin or matching teacherId sees all relevant records)

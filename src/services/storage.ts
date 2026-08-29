@@ -1,6 +1,6 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
-const STORAGE_KEY = 'koc_app_state_v5';
+const STORAGE_KEY = 'koc_app_state_v6';
 
 // Primary Firebase Realtime Database URL
 export const DEFAULT_FIREBASE_URL = 'https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/';
@@ -346,53 +346,29 @@ export const storageService = {
 
     if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
-      // Check if the cloud database is completely empty/uninitialized
-      const isCloudEmpty = 
-        (!cloudData.students || cloudData.students.length === 0) &&
-        (!cloudData.lessons || cloudData.lessons.length === 0) &&
-        (!cloudData.homeworks || cloudData.homeworks.length === 0) &&
-        (!cloudData.transactions || cloudData.transactions.length === 0) &&
-        (!cloudData.questions || cloudData.questions.length === 0);
+      // Cloud state is authoritative for all collections while preserving active session teacher & role
+      const cloudTeachers = cloudData.teachers || [];
+      const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
 
-      // Check if local cache has any student or lesson records
-      const isLocalEmpty = 
-        (!inMemoryState.students || inMemoryState.students.length === 0) &&
-        (!inMemoryState.lessons || inMemoryState.lessons.length === 0) &&
-        (!inMemoryState.homeworks || inMemoryState.homeworks.length === 0) &&
-        (!inMemoryState.transactions || inMemoryState.transactions.length === 0) &&
-        (!inMemoryState.questions || inMemoryState.questions.length === 0);
+      const updatedState: AppState = {
+        teachers: finalTeachers,
+        activeTeacherId: inMemoryState.activeTeacherId || '',
+        userRole: inMemoryState.userRole || 'teacher',
+        activeStudentId: inMemoryState.activeStudentId || null,
+        students: cloudData.students || [],
+        lessons: cloudData.lessons || [],
+        homeworks: cloudData.homeworks || [],
+        transactions: cloudData.transactions || [],
+        notifications: cloudData.notifications || [],
+        questions: pruneOldQuestions(cloudData.questions || [])
+      };
 
-      let updatedState: AppState;
+      inMemoryState = updatedState;
 
-      if (isCloudEmpty && !isLocalEmpty) {
-        // Cloud is empty but local has data: Upload local data to cloud to migrate
-        await this.saveState(inMemoryState);
-        updatedState = inMemoryState;
-      } else {
-        // Use cloud database state as authoritative data while preserving active session role and teachers
-        const cloudTeachers = cloudData.teachers || [];
-        const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
-
-        updatedState = {
-          teachers: finalTeachers,
-          activeTeacherId: inMemoryState.activeTeacherId || '',
-          userRole: inMemoryState.userRole || 'teacher',
-          activeStudentId: inMemoryState.activeStudentId || null,
-          students: cloudData.students || [],
-          lessons: cloudData.lessons || [],
-          homeworks: cloudData.homeworks || [],
-          transactions: cloudData.transactions || [],
-          notifications: cloudData.notifications || [],
-          questions: pruneOldQuestions(cloudData.questions || [])
-        };
-
-        inMemoryState = updatedState;
-
-        // Update local cache
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
-        } catch {}
-      }
+      // Update local cache
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedState));
+      } catch {}
 
       return updatedState;
   },
