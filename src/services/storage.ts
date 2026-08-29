@@ -1,6 +1,6 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
-const STORAGE_KEY = 'coach_app_state_v3';
+const STORAGE_KEY = 'koc_app_state_v5';
 
 // Primary Firebase Realtime Database URL
 export const DEFAULT_FIREBASE_URL = 'https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/';

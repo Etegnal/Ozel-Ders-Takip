@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard,
@@ -10,17 +10,15 @@ import {
   ChevronLeft, 
   ChevronRight, 
   LogOut, 
-  Settings,
   ChevronDown,
   UserPlus,
   Trash2,
   X,
   ShieldCheck,
-  HelpCircle
+  HelpCircle,
+  GraduationCap
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-
-
 
 interface SidebarProps {
   collapsed: boolean;
@@ -37,13 +35,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     logout,
     register,
     deleteTeacher,
-    updateTeacherSettings,
     isAdmin
   } = useApp();
 
   const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // New Teacher form state
   const [newTeacherName, setNewTeacherName] = useState('');
@@ -51,82 +47,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const [newTeacherSubject, setNewTeacherSubject] = useState('Matematik');
   const [newTeacherPassword, setNewTeacherPassword] = useState('');
 
-  // Green-API Settings state
-  const [waEnabled, setWaEnabled] = useState(false);
-  const [idInstance, setIdInstance] = useState('');
-  const [apiTokenInstance, setApiTokenInstance] = useState('');
-  const [testPhone, setTestPhone] = useState('');
-  const [testSending, setTestSending] = useState(false);
-
-  // Populate settings form when activeTeacher or settings modal changes
-  useEffect(() => {
-    if (activeTeacher?.whatsappSettings) {
-      setWaEnabled(activeTeacher.whatsappSettings.enabled);
-      setIdInstance(activeTeacher.whatsappSettings.idInstance);
-      setApiTokenInstance(activeTeacher.whatsappSettings.apiTokenInstance);
-    } else {
-      setWaEnabled(false);
-      setIdInstance('');
-      setApiTokenInstance('');
-    }
-  }, [showSettingsModal, activeTeacher]);
-
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateTeacherSettings({
-      enabled: waEnabled,
-      idInstance: idInstance.trim(),
-      apiTokenInstance: apiTokenInstance.trim()
-    });
-    setShowSettingsModal(false);
-  };
-
-  const handleTestConnection = async () => {
-    if (!idInstance.trim() || !apiTokenInstance.trim() || !testPhone.trim()) {
-      alert('Lütfen Instance ID, Token ve test telefon numarasını doldurun.');
-      return;
-    }
-    setTestSending(true);
-    try {
-      let cleanedPhone = testPhone.replace(/\D/g, '');
-      if (cleanedPhone.startsWith('90') && cleanedPhone.length > 10) cleanedPhone = cleanedPhone.substring(2);
-      if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1);
-      const targetPhone = '90' + cleanedPhone;
-
-      const url = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: `${targetPhone}@c.us`,
-          message: 'Coach uygulamasından gönderilen test mesajı! Yeşil API bağlantısı başarıyla kuruldu. ✅'
-        })
-      });
-      if (response.ok) {
-        alert('Bağlantı başarılı! Test mesajı WhatsApp üzerinden gönderildi.');
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        alert(`Hata: Mesaj gönderilemedi. Yeşil API yanıtı: ${JSON.stringify(errData)}`);
-      }
-    } catch (err) {
-      alert('Bağlantı hatası! Lütfen internetinizi ve API ayarlarınızı kontrol edin.');
-    } finally {
-      setTestSending(false);
-    }
-  };
-
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Ana Sayfa' },
-    { to: '/calendar', icon: Calendar, label: 'Takvim' },
-    { to: '/students', icon: Users, label: 'Öğrenciler' },
-    { to: '/homeworks', icon: BookOpen, label: 'Ödevler' },
-    { to: '/questions', icon: HelpCircle, label: 'Soru Çözüm' },
-    { to: '/finance', icon: Wallet, label: 'Finans' },
-    { to: '/notifications', icon: Bell, label: 'Bildirimler', badge: unreadNotificationsCount },
-    ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Super Admin' }] : [])
+    { path: '/', label: 'Ana Sayfa', icon: LayoutDashboard },
+    { path: '/calendar', label: 'Takvim', icon: Calendar },
+    { path: '/students', label: 'Öğrenciler', icon: Users },
+    { path: '/homeworks', label: 'Ödevler', icon: BookOpen },
+    { path: '/questions', label: 'Soru Çözüm', icon: HelpCircle },
+    { path: '/finances', label: 'Finans', icon: Wallet },
+    { path: '/notifications', label: 'Bildirimler', icon: Bell, badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined },
   ];
+
+  if (isAdmin) {
+    navItems.push({
+      path: '/super-admin',
+      label: 'Super Admin',
+      icon: ShieldCheck
+    });
+  }
 
   const handleSwitchTeacher = (id: string) => {
     setActiveTeacherId(id);
@@ -156,6 +95,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     setShowTeacherDropdown(false);
   };
 
+  const [logoError, setLogoError] = useState(false);
+
   return (
     <aside 
       className={`glass-sidebar h-screen flex flex-col justify-between transition-all duration-300 z-30 fixed left-0 top-0 text-text-primary ${
@@ -165,11 +106,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
       {/* Top Brand Logo */}
       <div className="p-4 flex items-center justify-between border-b border-border h-16">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 bg-primary/5 rounded-lg text-primary border border-primary/20 overflow-hidden">
-            <img src={`${(import.meta as any).env.BASE_URL}logo.png`} className="w-full h-full object-cover" alt="Coach Logo" />
+          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 bg-primary/10 rounded-xl text-primary border border-primary/20 overflow-hidden shadow-inner">
+            {!logoError ? (
+              <img 
+                src={`${(import.meta as any).env.BASE_URL}logo.png`} 
+                className="w-full h-full object-cover" 
+                alt="KOÇ Logo" 
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <GraduationCap className="w-5 h-5 text-primary" />
+            )}
           </div>
           {!collapsed && (
-            <span className="font-sans font-bold text-lg bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">
+            <span className="font-sans font-extrabold text-xl tracking-tight text-text-primary">
               KOÇ
             </span>
           )}
@@ -178,75 +128,94 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         {!collapsed && (
           <button 
             onClick={() => setCollapsed(true)} 
-            className="p-1 rounded-md text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+            className="text-text-muted hover:text-text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
           >
             <ChevronLeft size={18} />
           </button>
         )}
       </div>
 
-      {/* Main Navigation Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+      {/* Collapse Toggle for Collapsed View */}
+      {collapsed && (
+        <div className="p-3 border-b border-border flex justify-center">
+          <button 
+            onClick={() => setCollapsed(false)} 
+            className="w-10 h-10 flex items-center justify-center text-text-muted hover:text-text-primary transition-colors hover:bg-surface-hover rounded-xl border border-border/50"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Navigation Links */}
+      <div className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
-              key={item.to}
-              to={item.to}
+              key={item.path}
+              to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 group relative ${
+                `flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl transition-all duration-200 group font-medium text-sm ${
                   isActive
-                    ? 'bg-surface-card border border-primary/20 text-text-primary font-semibold glow-primary'
-                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-                }`
+                    ? 'bg-primary text-black font-bold shadow-md shadow-primary/10'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                } ${collapsed ? 'justify-center px-0' : ''}`
               }
+              title={collapsed ? item.label : undefined}
             >
-              <Icon size={20} className="flex-shrink-0" />
-              {!collapsed && <span className="text-sm font-sans truncate">{item.label}</span>}
-              
-              {item.badge && item.badge > 0 && (
-                <span className={`absolute right-3 flex items-center justify-center bg-primary text-black font-bold text-[10px] rounded-full h-5 min-w-5 px-1 ${
-                  collapsed ? '-top-1 -right-1' : ''
-                }`}>
-                  {item.badge}
-                </span>
-              )}
-
-              {collapsed && (
-                <div className="absolute left-full ml-4 px-2 py-1.5 bg-surface-hover text-text-primary text-xs rounded-md opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 whitespace-nowrap shadow-lg">
-                  {item.label}
-                </div>
+              {({ isActive }) => (
+                <>
+                  <Icon size={20} className={isActive ? 'text-black' : 'text-text-muted group-hover:text-text-primary'} />
+                  {!collapsed && (
+                    <span className="flex-1 truncate">{item.label}</span>
+                  )}
+                  {!collapsed && item.badge !== undefined && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      isActive ? 'bg-black text-primary' : 'bg-primary/20 text-primary border border-primary/30'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </>
               )}
             </NavLink>
           );
         })}
-      </nav>
+      </div>
 
-      {/* Bottom Profile and Subscription Area */}
-      <div className="p-3 border-t border-border space-y-4 relative">
-        
-        {/* Dynamic Teacher Switcher Dropdown (Super Admin ONLY) */}
-        {isAdmin && showTeacherDropdown && !collapsed && (
+      {/* Footer Profile & Logout */}
+      <div className="p-3 border-t border-border space-y-2 relative">
+        {/* Teacher Selection Dropdown (Only for Admin) */}
+        {showTeacherDropdown && !collapsed && isAdmin && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowTeacherDropdown(false)} />
-            <div className="absolute bottom-28 left-4 right-4 bg-surface-card border border-border rounded-xl shadow-xl p-2 z-20 space-y-1">
-              <p className="text-[10px] text-text-muted font-bold px-2 py-1 uppercase">Öğretmen Değiştir ({teachers.length})</p>
-              <div className="max-h-40 overflow-y-auto space-y-0.5">
-                {teachers.map((t) => (
+            <div className="fixed inset-0 z-40" onClick={() => setShowTeacherDropdown(false)} />
+            <div className="absolute bottom-20 left-3 right-3 bg-surface border border-border rounded-2xl p-2 shadow-2xl z-50 space-y-1">
+              <div className="text-[10px] font-bold text-text-muted px-2 py-1 uppercase tracking-wider flex items-center justify-between">
+                <span>Öğretmen Değiştir</span>
+                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[9px]">Admin</span>
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                {teachers.map(t => (
                   <div
                     key={t.id}
-                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition-all ${
-                      t.id === activeTeacherId
-                        ? 'bg-primary/10 border border-primary/20 text-text-primary font-semibold'
-                        : 'hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-transparent'
+                    className={`flex items-center justify-between p-2 rounded-xl text-xs transition-all ${
+                      t.id === activeTeacherId 
+                        ? 'bg-primary/15 text-primary font-bold border border-primary/30' 
+                        : 'hover:bg-surface-hover text-text-primary'
                     }`}
                   >
                     <button
                       onClick={() => handleSwitchTeacher(t.id)}
-                      className="flex-1 text-left flex flex-col min-w-0"
+                      className="flex-1 text-left truncate flex items-center gap-2"
                     >
-                      <span className="truncate">{t.name}</span>
-                      <span className="text-[10px] text-text-muted truncate">{t.subject} · {t.email}</span>
+                      <div className="w-6 h-6 rounded-md bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">
+                        {t.name.charAt(0)}
+                      </div>
+                      <div className="truncate">
+                        <p className="truncate font-semibold">{t.name}</p>
+                        <p className="text-[9px] text-text-muted truncate">{t.subject}</p>
+                      </div>
                     </button>
                     {teachers.length > 1 && (
                       <button
@@ -291,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold font-sans flex-shrink-0">
-              {activeTeacher ? activeTeacher.name.charAt(0) : 'C'}
+              {activeTeacher ? activeTeacher.name.charAt(0) : 'K'}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
@@ -305,43 +274,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               </div>
             )}
           </div>
-          {!collapsed && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSettingsModal(true);
-              }}
-              className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0 p-1 hover:bg-surface-hover rounded-md"
-              title="Yeşil API WhatsApp Ayarları"
-            >
-              <Settings size={16} />
-            </button>
-          )}
         </div>
 
-
-
-        {/* Log Out Button */}
         <button 
           onClick={logout}
-          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-text-secondary hover:bg-red-500/10 hover:text-red-400 transition-all ${
-            collapsed ? 'justify-center' : ''
+          className={`w-full flex items-center gap-3 px-3 py-2 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-xl text-xs font-bold transition-all ${
+            collapsed ? 'justify-center px-0' : ''
           }`}
         >
-          <LogOut size={18} className="flex-shrink-0" />
-          {!collapsed && <span className="text-sm">Çıkış Yap</span>}
+          <LogOut size={16} />
+          {!collapsed && <span>Çıkış Yap</span>}
         </button>
       </div>
-
-      {/* Floating Toggle Collapse Button */}
-      {collapsed && (
-        <button 
-          onClick={() => setCollapsed(false)}
-          className="absolute -right-3 top-16 w-6 h-6 bg-surface-card border border-border rounded-full flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all shadow-md z-50 cursor-pointer"
-        >
-          <ChevronRight size={14} />
-        </button>
-      )}
 
       {/* --- ADD NEW TEACHER MODAL --- */}
       {showAddTeacherModal && (
@@ -360,11 +304,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             
             <form onSubmit={handleAddTeacherSubmit} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs text-text-secondary font-semibold">ÖĞRETMEN ADI SOYADI</label>
+                <label className="text-xs text-text-secondary font-semibold">AD SOYAD</label>
                 <input 
                   type="text" 
                   required
-                  placeholder="Örn: Merve Kaya"
+                  placeholder="Örn: Mehmet Yılmaz"
                   value={newTeacherName}
                   onChange={(e) => setNewTeacherName(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
@@ -376,7 +320,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                 <input 
                   type="email" 
                   required
-                  placeholder="Örn: merve@site.com"
+                  placeholder="Örn: mehmet@example.com"
                   value={newTeacherEmail}
                   onChange={(e) => setNewTeacherEmail(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
@@ -384,21 +328,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs text-text-secondary font-semibold">BRANŞ / ALAN</label>
-                <select 
+                <label className="text-xs text-text-secondary font-semibold">DERS BRANŞI</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Örn: Matematik / Geometri"
                   value={newTeacherSubject}
                   onChange={(e) => setNewTeacherSubject(e.target.value)}
-                  className="w-full bg-surface-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
-                >
-                  <option value="Matematik">Matematik</option>
-                  <option value="Fizik">Fizik</option>
-                  <option value="Kimya">Kimya</option>
-                  <option value="Biyoloji">Biyoloji</option>
-                  <option value="Türkçe / Edebiyat">Türkçe / Edebiyat</option>
-                  <option value="İngilizce">İngilizce</option>
-                  <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
-                  <option value="Sınıf Öğretmenliği">Sınıf Öğretmenliği</option>
-                </select>
+                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -406,7 +344,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                 <input 
                   type="password" 
                   required
-                  placeholder="••••••"
+                  placeholder="••••••••"
                   value={newTeacherPassword}
                   onChange={(e) => setNewTeacherPassword(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
@@ -417,94 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10"
               >
-                Öğretmen Kaydet & Giriş Yap
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- WHATSAPP GREEN-API SETTINGS MODAL --- */}
-      {showSettingsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setShowSettingsModal(false)} />
-          <div className="bg-surface border border-border w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative z-10">
-            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <Settings className="text-primary w-5 h-5" />
-                <span>WhatsApp API Ayarları</span>
-              </h3>
-              <button onClick={() => setShowSettingsModal(false)} className="text-text-muted hover:text-text-primary transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSaveSettings} className="p-6 space-y-4">
-              {/* Enable/Disable Toggle */}
-              <div className="flex items-center justify-between bg-surface-card/50 p-3 rounded-xl border border-border/50">
-                <span className="text-xs text-text-secondary font-semibold">OTOMATİK GÖNDERİM AKTİF</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={waEnabled}
-                    onChange={(e) => setWaEnabled(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                </label>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-text-secondary font-semibold">GREEN-API INSTANCE ID</label>
-                <input 
-                  type="text" 
-                  required={waEnabled}
-                  placeholder="Örn: 1101824732"
-                  value={idInstance}
-                  onChange={(e) => setIdInstance(e.target.value)}
-                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-text-secondary font-semibold">GREEN-API TOKEN INSTANCE</label>
-                <input 
-                  type="text" 
-                  required={waEnabled}
-                  placeholder="Örn: d75b3b..."
-                  value={apiTokenInstance}
-                  onChange={(e) => setApiTokenInstance(e.target.value)}
-                  className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
-                />
-              </div>
-
-              {/* Test Section */}
-              <div className="border-t border-border/50 pt-4 space-y-3">
-                <div className="text-xs font-bold text-text-secondary">BAĞLANTIYI TEST ET</div>
-                <div className="flex gap-2">
-                  <input 
-                    type="tel" 
-                    placeholder="Test Numarası (Örn: 5078234071)"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                    className="flex-1 bg-surface-card border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary/50 text-text-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleTestConnection}
-                    disabled={testSending}
-                    className="bg-surface-card border border-border hover:bg-border/30 text-text-primary px-3 py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {testSending ? 'Gönderiliyor...' : 'Test Et'}
-                  </button>
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10"
-              >
-                Ayarları Kaydet
+                Öğretmeni Ekle
               </button>
             </form>
           </div>
