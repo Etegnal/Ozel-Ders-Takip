@@ -435,21 +435,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     phone: string,
     grade: string,
     password: string,
-    teacherId: string
+    teacherId?: string
   ): Promise<boolean> => {
-    const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
     const normInputPhone = normalizePhone(cleanPhone);
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !normInputPhone || !password.trim()) {
+      return false;
+    }
 
     const cloudState = await storageService.fetchCloudState();
     const currentStudents = cloudState ? cloudState.students : state.students;
 
-    // Check if student with this phone or email already exists
+    // Check if student with matching phone number, email or name already exists
     const existingIndex = currentStudents.findIndex(s => {
       const p1 = normalizePhone(s.phone);
       const p2 = normalizePhone(s.parentPhone);
+      const normName = normalizeStr(s.name);
       return (normInputPhone && (p1 === normInputPhone || p2 === normInputPhone)) ||
-             (cleanEmail && s.email && s.email.trim().toLowerCase() === cleanEmail);
+             (cleanEmail && s.email && s.email.trim().toLowerCase() === cleanEmail) ||
+             (normName && normName === normalizeStr(cleanName));
     });
 
     let updatedStudents = [...currentStudents];
@@ -458,22 +465,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (existingIndex !== -1) {
       createdStudent = {
         ...updatedStudents[existingIndex],
-        name: name.trim() || updatedStudents[existingIndex].name,
+        name: cleanName || updatedStudents[existingIndex].name,
         email: cleanEmail || updatedStudents[existingIndex].email,
         phone: cleanPhone || updatedStudents[existingIndex].phone,
-        password: password.trim()
+        password: password.trim(),
+        teacherId: teacherId || updatedStudents[existingIndex].teacherId || ''
       };
       updatedStudents[existingIndex] = createdStudent;
     } else {
       createdStudent = {
         id: 'student-' + Math.random().toString(36).substr(2, 9),
         teacherId: teacherId || '',
-        name: name.trim(),
+        name: cleanName,
         email: cleanEmail,
         phone: cleanPhone,
-        grade,
+        grade: grade || '12. Sınıf (YKS)',
         password: password.trim(),
-        hourlyRate: 0,
+        hourlyRate: 1000,
         balance: 0,
         status: 'active',
         createdAt: new Date().toISOString()
@@ -483,9 +491,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newNotification: AppNotification = {
       id: 'notif-' + Math.random().toString(36).substr(2, 9),
-      teacherId: teacherId || 'teacher-yasin-1',
+      teacherId: createdStudent.teacherId || 'teacher-yasin-1',
       title: 'Yeni Öğrenci Kaydı',
-      message: `${createdStudent.name} (${grade}) sisteme kendi kaydını yaptı ve sizinle eşleşti.`,
+      message: `${createdStudent.name} (${cleanPhone}) sisteme öğrenci kaydı oluşturdu.`,
       date: new Date().toISOString(),
       read: false,
       type: 'system'
@@ -548,19 +556,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addStudent = (studentData: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => {
-    const newStudent: Student = {
-      ...studentData,
-      phone: normalizePhone(studentData.phone),
-      parentPhone: studentData.parentPhone ? normalizePhone(studentData.parentPhone) : undefined,
-      teacherId: state.activeTeacherId,
-      id: `student-${Date.now()}`,
-      balance: 0,
-      createdAt: new Date().toISOString()
-    };
-    setState(prev => ({
-      ...prev,
-      students: [...prev.students, newStudent]
-    }));
+    const inputPhone = normalizePhone(studentData.phone);
+    const inputName = normalizeStr(studentData.name);
+
+    setState(prev => {
+      // Find matching student by phone number or name
+      const existingIndex = prev.students.findIndex(s => {
+        const p = normalizePhone(s.phone);
+        const pParent = normalizePhone(s.parentPhone);
+        const n = normalizeStr(s.name);
+        return (inputPhone && (p === inputPhone || pParent === inputPhone)) ||
+               (inputName && n === inputName);
+      });
+
+      let updatedStudents = [...prev.students];
+      if (existingIndex !== -1) {
+        // MATCH FOUND! Link student to current active teacher!
+        const target = updatedStudents[existingIndex];
+        updatedStudents[existingIndex] = {
+          ...target,
+          teacherId: prev.activeTeacherId || target.teacherId,
+          name: studentData.name.trim() || target.name,
+          phone: inputPhone || target.phone,
+          grade: studentData.grade || target.grade,
+          hourlyRate: studentData.hourlyRate || target.hourlyRate,
+          monthlyHours: studentData.monthlyHours || target.monthlyHours,
+          parentName: studentData.parentName || target.parentName,
+          parentPhone: studentData.parentPhone ? normalizePhone(studentData.parentPhone) : target.parentPhone,
+          notes: studentData.notes || target.notes
+        };
+      } else {
+        // Create new student assigned to active teacher
+        const newStudent: Student = {
+          ...studentData,
+          phone: inputPhone,
+          parentPhone: studentData.parentPhone ? normalizePhone(studentData.parentPhone) : undefined,
+          teacherId: prev.activeTeacherId,
+          id: `student-${Date.now()}`,
+          balance: 0,
+          createdAt: new Date().toISOString()
+        };
+        updatedStudents.push(newStudent);
+      }
+
+      const newState = { ...prev, students: updatedStudents };
+      storageService.saveState(newState);
+      return newState;
+    });
   };
 
   const updateStudent = (id: string, updates: Partial<Student>) => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Mail, Lock, User, BookOpen, AlertCircle, GraduationCap, School } from 'lucide-react';
+import { Mail, Lock, User, BookOpen, AlertCircle, GraduationCap, School, Phone } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
   const { login, register, loginAsStudent, registerStudent, teachers } = useApp();
@@ -21,9 +21,9 @@ export const AuthPage: React.FC = () => {
   
   // Student registration states
   const [studentName, setStudentName] = useState('');
-  const [studentEmail, setStudentEmail] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
-  const [studentGrade, setStudentGrade] = useState('12. Sınıf (YKS)');
+  const [studentEmail] = useState('');
+  const [studentGrade] = useState('12. Sınıf (YKS)');
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
 
   // Loading & Remember Me states
@@ -82,25 +82,25 @@ export const AuthPage: React.FC = () => {
             setErrorMsg('Öğrenci kaydı bulunamadı veya şifre hatalı.');
           }
         } else {
-          if (!studentName.trim() || !studentEmail.trim() || !studentPhone.trim() || !studentPassword.trim() || !selectedTeacherId) {
-            setErrorMsg('Lütfen tüm zorunlu alanları doldurun.');
+          if (!studentName.trim() || !studentPhone.trim() || !studentPassword.trim()) {
+            setErrorMsg('Lütfen ad soyad, telefon ve şifre alanlarını doldurun.');
             setLoading(false);
             return;
           }
-          if (studentPassword.length < 6) {
-            setErrorMsg('Şifre en az 6 karakterden oluşmalıdır.');
+          if (studentPassword.length < 4) {
+            setErrorMsg('Şifre en az 4 karakterden oluşmalıdır.');
             setLoading(false);
             return;
           }
           const success = await registerStudent(studentName, studentEmail, studentPhone, studentGrade, studentPassword, selectedTeacherId);
           if (!success) {
-            setErrorMsg('Bu e-posta adresi veya telefon numarası zaten kullanımda.');
+            setErrorMsg('Bu telefon numarası veya isim ile kayıtlı öğrenci zaten var.');
             setLoading(false);
             return;
           }
-          const loginSuccess = await loginAsStudent(studentEmail, studentPassword);
+          const loginSuccess = await loginAsStudent(studentPhone || studentName, studentPassword);
           if (!loginSuccess) {
-            setErrorMsg('Kayıt başarılı fakat giriş yapılırken hata oluştu.');
+            setErrorMsg('Kayıt başarılı! Lütfen telefon numaranız ve şifreniz ile giriş yapın.');
           }
         }
         setLoading(false);
@@ -278,7 +278,7 @@ export const AuthPage: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="Örn: Rahmi Koç"
+                      placeholder="Örn: Ahmet Yılmaz"
                       value={studentName}
                       onChange={(e) => setStudentName(e.target.value)}
                       className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
@@ -287,24 +287,9 @@ export const AuthPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">E-POSTA ADRESİ</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="Örn: rahmi@ornek.com"
-                      value={studentEmail}
-                      onChange={(e) => setStudentEmail(e.target.value)}
-                      className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
                   <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">TELEFON NUMARASI</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4.5 h-4.5" />
                     <input
                       type="tel"
                       required
@@ -313,45 +298,6 @@ export const AuthPage: React.FC = () => {
                       onChange={(e) => setStudentPhone(e.target.value)}
                       className="w-full bg-background border border-border text-text-primary text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors"
                     />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">SINIF / SEVİYE</label>
-                    <select
-                      value={studentGrade}
-                      onChange={(e) => setStudentGrade(e.target.value)}
-                      className="w-full bg-background border border-border text-text-primary text-xs rounded-xl px-3 py-3 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
-                    >
-                      <option value="5. Sınıf">5. Sınıf</option>
-                      <option value="6. Sınıf">6. Sınıf</option>
-                      <option value="7. Sınıf">7. Sınıf</option>
-                      <option value="8. Sınıf (LGS)">8. Sınıf (LGS)</option>
-                      <option value="9. Sınıf">9. Sınıf</option>
-                      <option value="10. Sınıf">10. Sınıf</option>
-                      <option value="11. Sınıf">11. Sınıf</option>
-                      <option value="12. Sınıf (YKS)">12. Sınıf (YKS)</option>
-                      <option value="Mezun (YKS)">Mezun (YKS)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">ÖĞRETMEN SEÇİN</label>
-                    <select
-                      value={selectedTeacherId}
-                      onChange={(e) => setSelectedTeacherId(e.target.value)}
-                      required
-                      className="w-full bg-background border border-border text-text-primary text-xs rounded-xl px-3 py-3 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
-                    >
-                      {teachers.length === 0 ? (
-                        <option value="">Öğretmen Yok</option>
-                      ) : (
-                        teachers.map(t => (
-                          <option key={t.id} value={t.id}>{t.name} ({t.subject})</option>
-                        ))
-                      )}
-                    </select>
                   </div>
                 </div>
 
@@ -372,7 +318,7 @@ export const AuthPage: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={loading || !selectedTeacherId}
+                  disabled={loading}
                   className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 mt-2 text-sm cursor-pointer"
                 >
                   <span>{loading ? 'Kayıt Yapılıyor...' : 'Öğrenci Kaydını Tamamla'}</span>
