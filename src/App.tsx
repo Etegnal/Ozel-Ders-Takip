@@ -16,7 +16,7 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { QuestionsPage } from './pages/QuestionsPage';
 
 const AppContent: React.FC = () => {
-  const { activeTeacherId, userRole, activeStudentId, isAdmin } = useApp();
+  const { activeTeacherId, userRole, activeStudentId } = useApp();
 
   if (userRole === 'student' && activeStudentId) {
     return <StudentDashboard />;
@@ -35,9 +35,11 @@ const AppContent: React.FC = () => {
         <Route path="/homeworks" element={<HomeworksPage />} />
         <Route path="/questions" element={<QuestionsPage />} />
         <Route path="/finance" element={<FinancePage />} />
+        <Route path="/finances" element={<FinancePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/teachers" element={<TeachersPage />} />
-        {isAdmin && <Route path="/admin" element={<AdminPage />} />}
+        <Route path="/super-admin" element={<AdminPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </MainLayout>
   );

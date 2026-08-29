@@ -36,13 +36,17 @@ export const Topbar: React.FC<TopbarProps> = ({ onMobileMenuToggle }) => {
       case '/questions':
         return { title: 'Soru & Çözüm Havuzu', showSearch: false };
       case '/finance':
+      case '/finances':
         return { title: 'Finansal Analiz', showSearch: false };
       case '/notifications':
         return { title: 'Bildirimler', showSearch: false };
       case '/teachers':
         return { title: 'Öğretmen Profilleri', showSearch: false };
+      case '/super-admin':
+      case '/admin':
+        return { title: 'Super Admin Paneli', showSearch: false };
       default:
-        return { title: 'Dashboard', showSearch: false };
+        return { title: 'Ana Sayfa', showSearch: false };
     }
   };
 
