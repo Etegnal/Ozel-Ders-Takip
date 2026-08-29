@@ -99,16 +99,6 @@ export const HomeworksPage: React.FC = () => {
     setShowEvalModal(false);
   };
 
-  const toggleStatus = (hw: Homework) => {
-    const nextStatusMap: Record<Homework['status'], Homework['status']> = {
-      'pending': 'completed',
-      'completed': 'evaluated',
-      'evaluated': 'overdue',
-      'overdue': 'pending'
-    };
-    updateHomework(hw.id, { status: nextStatusMap[hw.status] });
-  };
-
   const handleCopyText = (hw: Homework) => {
     const teacherName = activeTeacher ? activeTeacher.name : 'Coach';
     const text = getHomeworkTemplate(hw.studentName, hw.title, hw.dueDate, hw.dueTime, teacherName);
@@ -265,14 +255,10 @@ export const HomeworksPage: React.FC = () => {
 
               {/* Actions & Status */}
               <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5 border-t md:border-t-0 border-border/50 pt-3 md:pt-0">
-                {/* Status indicator click triggers toggle */}
-                <button 
-                  onClick={() => toggleStatus(hw)}
-                  className="hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                  title="Durumu Değiştir"
-                >
+                {/* Static Status indicator badge */}
+                <div>
                   {getStatusBadge(hw.status, hw.evaluation)}
-                </button>
+                </div>
 
                 {/* Quick actions row */}
                 <div className="flex items-center gap-2 flex-wrap">
