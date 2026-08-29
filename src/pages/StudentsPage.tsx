@@ -11,7 +11,8 @@ import {
   Calendar as CalendarIcon,
   MessageSquare,
   X,
-  User
+  User,
+  Award
 } from 'lucide-react';
 import { formatCurrency, getWhatsAppLink, getTodayDateString } from '../utils/helpers';
 
@@ -20,6 +21,7 @@ export const StudentsPage: React.FC = () => {
     students, 
     allStudents,
     teachers,
+    activeTeacher,
     isAdmin,
     searchQuery, 
     statusFilter, 
@@ -79,14 +81,16 @@ export const StudentsPage: React.FC = () => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
     addStudent({
-      name,
-      phone,
+      name: name.trim(),
+      phone: phone.trim(),
       grade,
       hourlyRate: Number(hourlyRate),
       monthlyHours: monthlyHours ? Number(monthlyHours) : undefined,
       status: 'active',
       notes
     });
+    const code = activeTeacher?.code || 'KOC-1001';
+    alert(`Öğrenci "${name.trim()}" başarıyla eklendi! 🎉\n\nÖğrencinin sisteme otomatik bağlanabilmesi için kendisine Öğretmen Eşleşme Kodunuzu (${code}) iletmeyi unutmayın.`);
     setShowAddModal(false);
     setActiveModal(null);
   };
@@ -393,6 +397,26 @@ export const StudentsPage: React.FC = () => {
             </div>
             
             <form onSubmit={handleAddStudent} className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Teacher Code Banner */}
+              <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                  <Award size={16} />
+                  <span>Eşleşme Kodunuz: <strong className="underline tracking-wider font-mono text-sm">{activeTeacher?.code || 'KOC-1001'}</strong></span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeTeacher?.code) {
+                      navigator.clipboard.writeText(activeTeacher.code);
+                      alert(`Eşleşme Kodunuz (${activeTeacher.code}) panoya kopyalandı! 📋`);
+                    }
+                  }}
+                  className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                >
+                  Kopyala 📋
+                </button>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs text-text-secondary font-semibold">ÖĞRENCİ ADI SOYADI</label>
                 <input 

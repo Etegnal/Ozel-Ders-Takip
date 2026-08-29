@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion } from '../types';
-import { storageService, normalizeStr } from '../services/storage';
+import { storageService, normalizeStr, ensureAdminTeacher } from '../services/storage';
 
 export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | 'weekly-schedule' | null;
 
@@ -302,9 +302,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     storageService.saveState(loggedOutState);
   };
 
+  const updateAndPersistState = (updater: (prev: AppState) => AppState) => {
+    setState(prev => {
+      const newState = updater(prev);
+      storageService.saveState(newState);
+      return newState;
+    });
+  };
+
   const deleteTeacher = (id: string) => {
     if (id === 'teacher-yasin-1') return; // Cannot delete Super Admin
-    setState(prev => {
+    updateAndPersistState(prev => {
       const remainingTeachers = prev.teachers.filter(t => t.id !== id);
       const nextActiveId = prev.activeTeacherId === id 
         ? (remainingTeachers[0]?.id || '') 
@@ -312,24 +320,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return {
         ...prev,
-        teachers: remainingTeachers,
+        teachers: ensureAdminTeacher(remainingTeachers),
         activeTeacherId: nextActiveId
       };
     });
   };
 
   const updateTeacher = (id: string, updates: Partial<Teacher>) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
-      teachers: prev.teachers.map(t => (t.id === id ? { ...t, ...updates } : t))
+      teachers: ensureAdminTeacher(prev.teachers.map(t => (t.id === id ? { ...t, ...updates } : t)))
     }));
   };
 
   const updateTeacherSettings = (settings: { enabled: boolean; idInstance: string; apiTokenInstance: string; }) => {
-    setState(prev => ({
-      ...prev,
-      teachers: prev.teachers.map(t => t.id === state.activeTeacherId ? { ...t, whatsappSettings: settings } : t)
-    }));
+    if (!state.activeTeacherId) return;
+    updateTeacher(state.activeTeacherId, { whatsappSettings: settings });
   };
 
   // --- Student Auth Actions ---
@@ -525,7 +531,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleStudentHomeworkStatus = (homeworkId: string) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       homeworks: prev.homeworks.map(h => {
         if (h.id === homeworkId) {
@@ -554,7 +560,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const inputPhone = normalizePhone(studentData.phone);
     const inputName = normalizeStr(studentData.name);
 
-    setState(prev => {
+    updateAndPersistState(prev => {
       // Find matching student by phone number or name
       const existingIndex = prev.students.findIndex(s => {
         const p = normalizePhone(s.phone);
@@ -594,9 +600,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updatedStudents.push(newStudent);
       }
 
-      const newState = { ...prev, students: updatedStudents };
-      storageService.saveState(newState);
-      return newState;
+      return { ...prev, students: updatedStudents };
     });
   };
 
@@ -609,24 +613,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       formattedUpdates.parentPhone = updates.parentPhone ? normalizePhone(updates.parentPhone) : undefined;
     }
 
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       students: prev.students.map(s => (s.id === id ? { ...s, ...formattedUpdates } : s))
     }));
   };
 
   const deleteStudent = (id: string) => {
-    setState(prev => {
-      const newState: AppState = {
-        ...prev,
-        students: prev.students.filter(s => s.id !== id),
-        lessons: prev.lessons.filter(l => l.studentId !== id),
-        homeworks: prev.homeworks.filter(h => h.studentId !== id),
-        transactions: prev.transactions.filter(t => t.studentId !== id)
-      };
-      storageService.saveState(newState);
-      return newState;
-    });
+    updateAndPersistState(prev => ({
+      ...prev,
+      students: prev.students.filter(s => s.id !== id),
+      lessons: prev.lessons.filter(l => l.studentId !== id),
+      homeworks: prev.homeworks.filter(h => h.studentId !== id),
+      transactions: prev.transactions.filter(t => t.studentId !== id)
+    }));
   };
 
   // --- Lesson Actions ---
@@ -637,7 +637,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `lesson-${Date.now()}`
     };
 
-    setState(prev => {
+    updateAndPersistState(prev => {
       // Automatically adjust student balance based on rate if completed
       let updatedStudents = prev.students;
       if (lessonData.status === 'completed') {
@@ -658,7 +658,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateLesson = (id: string, updates: Partial<Lesson>) => {
-    setState(prev => {
+    updateAndPersistState(prev => {
       const oldLesson = prev.lessons.find(l => l.id === id);
       if (!oldLesson) return prev;
 
@@ -699,7 +699,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteLesson = (id: string) => {
-    setState(prev => {
+    updateAndPersistState(prev => {
       const lessonToDelete = prev.lessons.find(l => l.id === id);
       if (!lessonToDelete) return prev;
 
@@ -739,7 +739,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'homework'
     };
 
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       homeworks: [...prev.homeworks, newHomework],
       notifications: [newNotification, ...prev.notifications]
@@ -747,7 +747,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateHomework = (id: string, updates: Partial<Homework>) => {
-    setState(prev => {
+    updateAndPersistState(prev => {
       const updatedHomeworks = prev.homeworks.map(h => (h.id === id ? { ...h, ...updates } : h));
       
       let updatedNotifications = prev.notifications;
@@ -777,7 +777,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteHomework = (id: string) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       homeworks: prev.homeworks.filter(h => h.id !== id)
     }));
@@ -791,7 +791,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `trans-${Date.now()}`
     };
 
-    setState(prev => {
+    updateAndPersistState(prev => {
       let updatedStudents = prev.students;
       if (transactionData.studentId && transactionData.type === 'income') {
         updatedStudents = prev.students.map(student => {
@@ -824,14 +824,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateTransaction = (id: string, updates: Partial<FinancialTransaction>) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       transactions: prev.transactions.map(t => (t.id === id ? { ...t, ...updates } : t))
     }));
   };
 
   const deleteTransaction = (id: string) => {
-    setState(prev => {
+    updateAndPersistState(prev => {
       const trans = prev.transactions.find(t => t.id === id);
       if (!trans) return prev;
 
@@ -854,7 +854,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const clearTransactions = () => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       transactions: prev.transactions.filter(t => t.teacherId !== state.activeTeacherId)
     }));
@@ -862,14 +862,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Notification Actions ---
   const markNotificationRead = (id: string) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       notifications: prev.notifications.map(n => (n.id === id ? { ...n, read: true } : n))
     }));
   };
 
   const clearAllNotifications = () => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       notifications: prev.notifications.filter(n => n.teacherId !== state.activeTeacherId)
     }));
@@ -902,7 +902,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'system'
     };
 
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       questions: [newQuestion, ...(prev.questions || [])],
       notifications: [newNotification, ...(prev.notifications || [])]
@@ -910,7 +910,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addSolution = (questionId: string, solutionImage?: string, solutionText?: string) => {
-    setState(prev => {
+    updateAndPersistState(prev => {
       const q = (prev.questions || []).find(x => x.id === questionId);
       if (!q) return prev;
 
@@ -946,7 +946,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const giveQuestionFeedback = (questionId: string, feedback: 'understood' | 'not_understood') => {
-    setState(prev => {
+    updateAndPersistState(prev => {
       const q = (prev.questions || []).find(x => x.id === questionId);
       if (!q) return prev;
 
@@ -981,7 +981,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteQuestion = (id: string) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       questions: (prev.questions || []).filter(q => q.id !== id)
     }));
