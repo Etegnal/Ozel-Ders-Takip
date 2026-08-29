@@ -1,6 +1,6 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
-const STORAGE_KEY = 'koc_app_state_v6';
+const STORAGE_KEY = 'koc_app_state_v7_clean';
 
 // Primary Firebase Realtime Database URL
 export const DEFAULT_FIREBASE_URL = 'https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/';
@@ -92,10 +92,10 @@ export function normalizePhone(phone?: string | null): string {
 export const defaultTeachers: Teacher[] = [
   {
     id: 'teacher-yasin-1',
-    name: 'Yasin Eren Alacahan',
+    name: 'ADMİN',
     email: 'yasinalacahan23@gmail.com',
     subject: 'Fizik / Matematik',
-    password: '123456',
+    password: 'admin123',
     createdAt: '2026-07-25T10:00:00.000Z'
   }
 ];
@@ -126,13 +126,13 @@ export const initialMockState: AppState = {
 
 const LEGACY_TEST_IDS = ['teacher-ayse-2', 'teacher-mehmet-3', 'teacher-elif-4', 'teacher-rahmi-5'];
 
-// Helper: Ensure Super Admin Yasin Eren Alacahan is ALWAYS present
+// Helper: Ensure Super Admin ADMİN is ALWAYS present
 export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
   let list = Array.isArray(teachers) ? teachers.filter(t => t && t.id && !LEGACY_TEST_IDS.includes(t.id)) : [];
   const adminIndex = list.findIndex(t => 
     t.id === 'teacher-yasin-1' || 
     normalizeStr(t.email).includes('yasinalacahan') || 
-    normalizeStr(t.name).includes('yasin eren alacahan')
+    normalizeStr(t.name).includes('admin')
   );
 
   if (adminIndex === -1) {
@@ -141,8 +141,9 @@ export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
     list[adminIndex] = {
       ...defaultTeachers[0],
       ...list[adminIndex],
+      name: 'ADMİN',
       email: 'yasinalacahan23@gmail.com',
-      password: list[adminIndex].password || defaultTeachers[0].password
+      password: 'admin123'
     };
   }
   return list;
