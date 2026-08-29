@@ -9,13 +9,13 @@
   },
   "build": {
     "appId": "com.ozelders.desktop",
-    "productName": "Coach",
+    "productName": "KOÇ",
     "win": {
       "target": "portable",
       "icon": "logo_square.png"
     },
     "portable": {
-      "artifactName": "${productName}Portable.${ext}"
+      "artifactName": "KOÇ.${ext}"
     },
     "directories": {
       "output": "../dist-desktop"

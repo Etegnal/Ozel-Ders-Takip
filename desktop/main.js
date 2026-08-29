@@ -7,7 +7,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: "Coach",
+    title: "KOÇ",
     icon: path.join(__dirname, 'logo_square.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -16,13 +16,20 @@ function createWindow() {
     }
   });
 
-  // Clear session cache and load the web app URL with no-cache headers
+  const PRIMARY_VERCEL_URL = 'https://ozel-ders-takip.vercel.app/';
+  const FALLBACK_URL = 'https://etegnal.github.io/Ozel-Ders-Takip/';
+
+  // Clear session cache and load Vercel web app URL with no-cache headers
   mainWindow.webContents.session.clearCache().then(() => {
-    mainWindow.loadURL('https://etegnal.github.io/Ozel-Ders-Takip/', {
+    mainWindow.loadURL(PRIMARY_VERCEL_URL, {
       extraHeaders: 'pragma: no-cache\r\nCache-Control: no-cache, no-store, must-revalidate\r\n'
+    }).catch(() => {
+      mainWindow.loadURL(FALLBACK_URL);
     });
   }).catch(() => {
-    mainWindow.loadURL('https://etegnal.github.io/Ozel-Ders-Takip/');
+    mainWindow.loadURL(PRIMARY_VERCEL_URL).catch(() => {
+      mainWindow.loadURL(FALLBACK_URL);
+    });
   });
 
   // Remove default menu bar
