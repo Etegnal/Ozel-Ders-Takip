@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'KOÇ',
   webDir: 'dist',
   server: {
-    url: 'https://ozel-ders-takip.vercel.app/',
+    url: 'https://etegnal.github.io/Ozel-Ders-Takip/',
     cleartext: true
   }
 };

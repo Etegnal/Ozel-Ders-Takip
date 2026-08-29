@@ -16,20 +16,15 @@ function createWindow() {
     }
   });
 
-  const PRIMARY_VERCEL_URL = 'https://ozel-ders-takip.vercel.app/';
-  const FALLBACK_URL = 'https://etegnal.github.io/Ozel-Ders-Takip/';
+  const SITE_URL = 'https://etegnal.github.io/Ozel-Ders-Takip/';
 
-  // Clear session cache and load Vercel web app URL with no-cache headers
+  // Clear session cache and load the exact web app URL with no-cache headers
   mainWindow.webContents.session.clearCache().then(() => {
-    mainWindow.loadURL(PRIMARY_VERCEL_URL, {
+    mainWindow.loadURL(SITE_URL, {
       extraHeaders: 'pragma: no-cache\r\nCache-Control: no-cache, no-store, must-revalidate\r\n'
-    }).catch(() => {
-      mainWindow.loadURL(FALLBACK_URL);
     });
   }).catch(() => {
-    mainWindow.loadURL(PRIMARY_VERCEL_URL).catch(() => {
-      mainWindow.loadURL(FALLBACK_URL);
-    });
+    mainWindow.loadURL(SITE_URL);
   });
 
   // Remove default menu bar
