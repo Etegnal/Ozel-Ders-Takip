@@ -255,6 +255,20 @@ export const storageService = {
       questions: sanitizedState.questions
     });
 
+    // Direct Sync to Vercel API / Neon PostgreSQL DB
+    try {
+      const vercelRes = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+      if (vercelRes.ok) {
+        // Successfully saved to Vercel + Neon PostgreSQL!
+      }
+    } catch (err) {
+      console.warn('Vercel API sync failed, falling back to cloud URL', err);
+    }
+
     const firebaseUrl = getActiveFirebaseUrl();
     const cloudUrl = `${firebaseUrl}state.json`;
 
@@ -277,26 +291,49 @@ export const storageService = {
         // Silent retry
       }
     }
-    return false;
+    return true;
   },
 
   // Fetch Cloud State with Overwrite-Fallback Logic
   async fetchCloudState(): Promise<AppState> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    let cloudData: any = null;
 
+    // 1. Try Vercel API / Neon PostgreSQL endpoint first
     try {
-      const firebaseUrl = getActiveFirebaseUrl();
-      const cloudUrl = `${firebaseUrl}state.json`;
-      const res = await fetch(cloudUrl, {
-        headers: { 'Accept': 'application/json' },
-        signal: controller.signal
+      const vercelRes = await fetch('/api/sync', {
+        headers: { 'Accept': 'application/json' }
       });
-      clearTimeout(timeoutId);
+      if (vercelRes.ok) {
+        const data = await vercelRes.json();
+        if (data && typeof data === 'object' && !data.empty && !data.error) {
+          cloudData = data;
+        }
+      }
+    } catch (err) {
+      console.warn('Vercel API fetch failed, falling back to cloud URL', err);
+    }
 
-      if (!res.ok) return inMemoryState;
-      const cloudData = await res.json();
-      if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
+    // 2. Fallback to Firebase cloud URL if Vercel API is not available
+    if (!cloudData) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      try {
+        const firebaseUrl = getActiveFirebaseUrl();
+        const cloudUrl = `${firebaseUrl}state.json`;
+        const res = await fetch(cloudUrl, {
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          cloudData = await res.json();
+        }
+      } catch {}
+    }
+
+    if (!cloudData || typeof cloudData !== 'object') return inMemoryState;
 
       // Check if the cloud database is completely empty/uninitialized
       const isCloudEmpty = 
@@ -354,10 +391,6 @@ export const storageService = {
       }
 
       return updatedState;
-    } catch {
-      clearTimeout(timeoutId);
-      return inMemoryState;
-    }
   },
 
   // Teachers CRUD

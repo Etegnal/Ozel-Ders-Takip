@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// OZELDERS APP MODELS
+// ==========================================
+
+model OzeldersAppState {
+  id        String   @id @default("default")
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model OzeldersTeacher {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  subject   String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OzeldersStudent {
+  id           String   @id @default(uuid())
+  teacherId    String
+  name         String
+  email        String?
+  phone        String?
+  grade        String
+  password     String?
+  hourlyRate   Float    @default(0)
+  monthlyHours Int      @default(8)
+  parentName   String?
+  parentPhone  String?
+  status       String   @default("active")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model OzeldersLesson {
+  id              String   @id @default(uuid())
+  teacherId       String
+  studentId       String
+  lessonName      String
+  topicName       String?
+  date            String
+  time            String
+  durationMinutes Int      @default(60)
+  rate            Float    @default(0)
+  status          String   @default("scheduled")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OzeldersHomework {
+  id            String   @id @default(uuid())
+  teacherId     String
+  studentId     String
+  lessonName    String
+  title         String
+  description   String?
+  dueDate       String
+  status        String   @default("pending")
+  studentNotes  String?
+  solutionNotes String?
+  solutionImage String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OzeldersQuestion {
+  id            String   @id @default(uuid())
+  teacherId     String
+  studentId     String
+  lessonName    String
+  topicName     String?
+  questionText  String?
+  questionImage String
+  status        String   @default("pending")
+  solutionText  String?
+  solutionImage String?
+  askedAt       String
+  solvedAt      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OzeldersTransaction {
+  id            String   @id @default(uuid())
+  teacherId     String
+  studentId     String?
+  type          String   @default("income")
+  amount        Float
+  date          String
+  description   String
+  category      String   @default("Ders Ücreti")
+  paymentStatus String   @default("completed")
+  paymentMethod String   @default("cash")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OzeldersSchedule {
+  id              String   @id @default(uuid())
+  teacherId       String
+  studentId       String
+  dayOfWeek       Int
+  startTime       String
+  durationMinutes Int      @default(60)
+  lessonName      String
+  rate            Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ==========================================
+// ETERNAL LIBRARY MODELS (Preserved)
+// ==========================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PostType {
+  YAZI
+  SIIR
+}
+
+model User {
+  id                String             @id @default(uuid())
+  name              String?
+  email             String             @unique
+  password          String             @default("")
+  role              Role               @default(USER)
+  image             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  likeRecords       LikeRecord[]
+  savedBooks        SavedBook[]
+  viewRecords       ViewRecord[]
+  testResultRecords TestResultRecord[]
+}
+
+model Post {
+  id          String       @id @default(uuid())
+  title       String
+  slug        String       @unique
+  content     String
+  excerpt     String
+  type        PostType     @default(YAZI)
+  author      String?
+  coverImage  String?
+  readingTime String?
+  isFeatured  Boolean      @default(true)
+  likes       Int          @default(0)
+  views       Int          @default(0)
+  publishedAt DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  likeRecords LikeRecord[]
+  viewRecords ViewRecord[]
+}
+
+model ViewRecord {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String?
+  userEmail String?
+  userName  String?
+  postTitle String?
+  postType  PostType @default(YAZI)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  post Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model LikeRecord {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}
+
+model Quote {
+  id        String   @id @default(uuid())
+  author    String
+  content   String
+  source    String?
+  dayOfYear Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Book {
+  id            String      @id @default(uuid())
+  slug          String      @unique @default(uuid())
+  title         String      @default("")
+  author        String      @default("")
+  year          Int         @default(0)
+  pages         Int         @default(0)
+  category      String      @default("Klasikler")
+  summary       String      @db.Text @default("")
+  rating        Float       @default(4.8)
+  isReadable    Boolean     @default(false)
+  coverUrl      String      @default("")
+  buyUrl        String?     @default("")
+  googleBookId  String?
+  authors       String?
+  description   String?
+  thumbnailUrl  String?
+  largeCoverUrl String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  bookPages     BookPage[]
+  savedBooks    SavedBook[]
+}
+
+model SavedBook {
+  id        String   @id @default(uuid())
+  userId    String
+  bookId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, bookId])
+}
+
+model BookPage {
+  id         String   @id @default(uuid())
+  bookId     String
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  pageNumber Int
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@unique([bookId, pageNumber])
+}
+
+model Letter {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  content   String
+  type      String   @default("MEKTUP")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MasterPoet {
+  id        String   @id @default(uuid())
+  author    String
+  title     String
+  slug      String   @default("")
+  excerpt   String
+  content   String   @default("")
+  year      String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Track {
+  id         String   @id @default(uuid())
+  title      String
+  artist     String
+  src        String
+  cover      String?
+  spotifyUrl String   @default("https://open.spotify.com")
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PsychologicalTest {
+  id          String             @id @default(uuid())
+  title       String
+  slug        String             @unique
+  description String             @db.Text
+  coverImage  String?
+  category    String?            @default("Psikolojik Test")
+  order       Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  questions   TestQuestion[]
+  results     TestResultRecord[]
+}
+
+model TestQuestion {
+  id           String            @id @default(uuid())
+  testId       String
+  test         PsychologicalTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  questionText String            @db.Text
+  order        Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  options      TestOption[]
+}
+
+model TestOption {
+  id                  String       @id @default(uuid())
+  questionId          String
+  question            TestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionText          String       @db.Text
+  metaphorExplanation String       @db.Text
+  order               Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model TestResultRecord {
+  id          String            @id @default(uuid())
+  testId      String
+  test        PsychologicalTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  userId      String?
+  userEmail   String?
+  userName    String?
+  testTitle   String
+  answersJson String            @db.Text
+  createdAt   DateTime          @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
