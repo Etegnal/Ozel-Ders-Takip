@@ -125,8 +125,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const teachers = state.teachers;
   const allStudents = state.students;
 
-  const effectiveTeacherId = state.activeTeacherId || (state.teachers[0] ? state.teachers[0].id : 'teacher-yasin-1');
-  const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId) || state.teachers[0];
+  const effectiveTeacherId = state.activeTeacherId;
+  const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId);
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
   // Automatically fetch cloud state on mount
@@ -144,7 +144,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cloudState) {
       setState(prev => ({
         ...cloudState,
-        activeTeacherId: prev.activeTeacherId || cloudState.activeTeacherId || 'teacher-yasin-1'
+        activeTeacherId: prev.activeTeacherId,
+        activeStudentId: prev.activeStudentId,
+        userRole: prev.userRole
       }));
     }
   };
@@ -158,13 +160,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Super Admin Check: Yasin Eren Alacahan (`yasinalacahan23@gmail.com`) has platform-wide management permissions
   const isAdmin = Boolean(
-    !state.activeTeacherId ||
     state.activeTeacherId === 'teacher-yasin-1' ||
-    effectiveTeacherId === 'teacher-yasin-1' ||
     (activeTeacher && (
-      normalizeStr(activeTeacher.name).includes('yasin') ||
-      normalizeStr(activeTeacher.name).includes('eren') ||
-      normalizeStr(activeTeacher.name).includes('alacahan') ||
+      normalizeStr(activeTeacher.name).includes('admin') ||
       normalizeStr(activeTeacher.email).includes('yasinalacahan')
     ))
   );
@@ -204,77 +202,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (!normInput || !cleanPassword) return false;
 
-    const findTeacherInList = (teachersList: Teacher[]) => {
-      return teachersList.find(t => {
-        const normEmail = normalizeStr(t.email);
-        const normName = normalizeStr(t.name);
+    const cloudState = await storageService.fetchCloudState();
+    const currentTeachers = cloudState && Array.isArray(cloudState.teachers) ? cloudState.teachers : state.teachers;
 
-        const matchEmail = normEmail === normInput;
-        const matchName = normName === normInput;
-        const matchPartialName = normInput.length >= 3 && (normName.includes(normInput) || normInput.includes(normName));
+    const teacher = currentTeachers.find(t => {
+      const normEmail = normalizeStr(t.email);
+      const normName = normalizeStr(t.name);
 
-        if (!matchEmail && !matchName && !matchPartialName) {
-          return false;
-        }
+      const matchEmail = normEmail === normInput;
+      const matchName = normName === normInput;
 
-        const teacherPass = t.password || '123456';
-        const matchPass = (teacherPass === cleanPassword) || (cleanPassword === '123456');
-
-        return matchPass;
-      });
-    };
-
-    let teacher = findTeacherInList(state.teachers);
-
-    if (!teacher) {
-      const cloudState = await storageService.fetchCloudState();
-      if (cloudState && Array.isArray(cloudState.teachers)) {
-        setState(cloudState);
-        teacher = findTeacherInList(cloudState.teachers);
+      if (!matchEmail && !matchName) {
+        return false;
       }
-    }
 
-    // Fail-safe Super Admin Login for Yasin Eren Alacahan
-    const isYasinAdminInput = 
-      normInput.includes('yasinalacahan') || 
-      normInput === 'yasin' || 
-      normInput.includes('yasin eren') ||
-      normInput === 'yasinalacahan23@gmail.com';
-
-    if (!teacher && isYasinAdminInput) {
-      let yasinTeacher = state.teachers.find(t => 
-        normalizeStr(t.email).includes('yasinalacahan') || normalizeStr(t.name).includes('yasin')
-      );
-
-      if (!yasinTeacher) {
-        yasinTeacher = {
-          id: 'teacher-yasin-1',
-          name: 'Yasin Eren Alacahan',
-          email: 'yasinalacahan23@gmail.com',
-          subject: 'Fizik / Matematik',
-          password: cleanPassword || '123456',
-          createdAt: new Date().toISOString()
-        };
-      } else if (cleanPassword) {
-        yasinTeacher = { ...yasinTeacher, password: cleanPassword };
-      }
-      teacher = yasinTeacher;
-    }
+      const teacherPass = (t.password || 'admin123').trim();
+      return teacherPass === cleanPassword;
+    });
 
     if (teacher) {
       try {
         localStorage.setItem('coach_user_logged_in', 'true');
       } catch {}
 
-      const updatedTeacher = { ...teacher, password: cleanPassword || teacher.password || '123456' };
-      const updatedTeachers = state.teachers.map(t => t.id === teacher.id ? updatedTeacher : t);
-      if (!updatedTeachers.some(t => t.id === teacher.id)) {
-        updatedTeachers.unshift(updatedTeacher);
-      }
-
       const newState: AppState = {
-        ...state,
-        teachers: updatedTeachers,
+        ...(cloudState || state),
+        teachers: currentTeachers,
         userRole: 'teacher',
         activeStudentId: null,
         activeTeacherId: teacher.id
@@ -395,8 +348,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const matchEmail = normEmail === normId;
         const matchPhone = (normPhoneId.length >= 7) && (normStudentPhone === normPhoneId || normParentPhone === normPhoneId);
 
-        const studentPass = s.password || '123456';
-        return (matchName || matchEmail || matchPhone) && studentPass === cleanPassword;
+        const studentPass = (s.password || '').trim();
+        return (matchName || matchEmail || matchPhone) && studentPass.length > 0 && studentPass === cleanPassword;
       });
     };
 

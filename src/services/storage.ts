@@ -226,8 +226,9 @@ export const storageService = {
     const cloudTeachers = cloudData.teachers || [];
     const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
 
-    const activeTeacherExists = finalTeachers.some(t => t.id === inMemoryState.activeTeacherId);
-    const validActiveTeacherId = activeTeacherExists ? inMemoryState.activeTeacherId : (finalTeachers[0] ? finalTeachers[0].id : 'teacher-yasin-1');
+    const validActiveTeacherId = (inMemoryState.activeTeacherId && finalTeachers.some(t => t.id === inMemoryState.activeTeacherId))
+      ? inMemoryState.activeTeacherId
+      : '';
 
     const updatedState: AppState = {
       teachers: finalTeachers,
