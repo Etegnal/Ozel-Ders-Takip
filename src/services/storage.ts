@@ -139,10 +139,31 @@ export function markIdAsDeleted(id: string) {
   if (id) deletedIds.add(id);
 }
 
+function mergeItem<T extends { id: string }>(cloudItem: T, localItem: T): T {
+  const merged = { ...cloudItem, ...localItem };
+
+  // For questions: if either cloud or local is solved, keep solved status & solution details!
+  if ((cloudItem as any).status === 'solved' || (localItem as any).status === 'solved') {
+    (merged as any).status = 'solved';
+    (merged as any).solutionImage = (localItem as any).solutionImage || (cloudItem as any).solutionImage;
+    (merged as any).solutionText = (localItem as any).solutionText || (cloudItem as any).solutionText;
+    (merged as any).solvedAt = (localItem as any).solvedAt || (cloudItem as any).solvedAt;
+  }
+
+  // For homeworks: if either cloud or local is evaluated/completed, preserve status!
+  if ((cloudItem as any).status === 'evaluated' || (localItem as any).status === 'evaluated') {
+    (merged as any).status = 'evaluated';
+    (merged as any).evaluation = (localItem as any).evaluation || (cloudItem as any).evaluation;
+  } else if ((cloudItem as any).status === 'completed' || (localItem as any).status === 'completed') {
+    (merged as any).status = 'completed';
+  }
+
+  return merged;
+}
+
 function mergeById<T extends { id: string }>(localArr: T[] = [], cloudArr: T[] = []): T[] {
   const map = new Map<string, T>();
   
-  // 1. Add cloud items first (latest server truth for existing items across devices)
   if (Array.isArray(cloudArr)) {
     cloudArr.forEach(item => {
       if (item && item.id && !deletedIds.has(item.id)) {
@@ -151,11 +172,13 @@ function mergeById<T extends { id: string }>(localArr: T[] = [], cloudArr: T[] =
     });
   }
   
-  // 2. Add local-only items (items created on this device that have not reached cloudArr yet)
   if (Array.isArray(localArr)) {
     localArr.forEach(item => {
       if (item && item.id && !deletedIds.has(item.id)) {
-        if (!map.has(item.id)) {
+        const existingCloud = map.get(item.id);
+        if (existingCloud) {
+          map.set(item.id, mergeItem(existingCloud, item));
+        } else {
           map.set(item.id, item);
         }
       }

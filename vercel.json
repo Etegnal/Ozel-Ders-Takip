@@ -1,6 +1,5 @@
 {
   "framework": "vite",
-  "ignoreCommand": "node -e \"process.exit(process.env.VERCEL_GIT_COMMIT_REF === 'gh-pages' ? 0 : 1)\"",
   "installCommand": "npm install",
   "buildCommand": "npx prisma generate && npm run build",
   "outputDirectory": "dist",
