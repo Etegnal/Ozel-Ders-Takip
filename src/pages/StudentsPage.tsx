@@ -12,7 +12,8 @@ import {
   MessageSquare,
   X,
   User,
-  Award
+  Award,
+  Lock
 } from 'lucide-react';
 import { formatCurrency, getWhatsAppLink, getTodayDateString, normalizeGrade } from '../utils/helpers';
 
@@ -57,6 +58,7 @@ export const StudentsPage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [parentName, setParentName] = useState('');
   const [parentPhone, setParentPhone] = useState('');
+  const [password, setPassword] = useState('');
 
   // Quick lesson states
   const [lessonDate, setLessonDate] = useState(getTodayDateString());
@@ -100,6 +102,7 @@ export const StudentsPage: React.FC = () => {
     setName(student.name);
     setPhone(student.phone);
     setGrade(student.grade);
+    setPassword(student.password || '');
     setHourlyRate(student.hourlyRate);
     setMonthlyHours(student.monthlyHours || 0);
     setNotes(student.notes || '');
@@ -114,6 +117,7 @@ export const StudentsPage: React.FC = () => {
       name,
       phone,
       grade,
+      password: password.trim() || selectedStudent.password,
       hourlyRate: Number(hourlyRate),
       monthlyHours: monthlyHours ? Number(monthlyHours) : undefined,
       notes
@@ -237,11 +241,17 @@ export const StudentsPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-text-primary text-base">{student.name}</span>
                     <span className="bg-surface-hover text-text-secondary text-[11px] px-2 py-0.5 rounded-md border border-border">
                       {student.grade}
                     </span>
+                    {isAdmin && (
+                      <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[11px] px-2 py-0.5 rounded-md font-mono font-bold flex items-center gap-1 shadow-sm" title="Super Admin Özel Yetkisi: Öğrenci Giriş Şifresi">
+                        <Lock size={12} />
+                        <span>Şifre: <strong className="underline tracking-wider">{student.password || 'Şifresiz'}</strong></span>
+                      </span>
+                    )}
                   </div>
                   
                   {/* Phone with WhatsApp Link */}
@@ -551,6 +561,23 @@ export const StudentsPage: React.FC = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full bg-surface-card border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50"
+                />
+              </div>
+
+              {/* Password field for Admin */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-amber-400 font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Lock size={13} />
+                    <span>ÖĞRENCİ GİRİŞ ŞİFRESİ {isAdmin && '(👑 SUPER ADMIN)'}</span>
+                  </span>
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Örn: murat123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-surface-card border border-amber-500/40 text-amber-300 font-mono font-bold rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400"
                 />
               </div>
 
