@@ -1,6 +1,6 @@
 import { AppState, Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, StudentQuestion } from '../types';
 
-const STORAGE_KEY = 'koc_app_state_v9_pure_neon';
+const STORAGE_KEY = 'koc_app_state_v10_force_cloud';
 
 // Turkish-safe string normalizer (handles İ/i, I/ı, Ğ/g, Ü/u, Ş/s, Ö/o, Ç/c, whitespace)
 export function normalizeStr(str: string | undefined | null): string {
@@ -99,13 +99,11 @@ function mergeTeachers(localTeachers: Teacher[], cloudTeachers: Teacher[]): Teac
   const map = new Map<string, Teacher>();
   defaultTeachers.forEach(t => map.set(t.id, t));
   
-  if (Array.isArray(cloudTeachers)) {
+  if (Array.isArray(cloudTeachers) && cloudTeachers.length > 0) {
     cloudTeachers.forEach(t => {
       if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) map.set(t.id, t);
     });
-  }
-  
-  if (Array.isArray(localTeachers)) {
+  } else if (Array.isArray(localTeachers)) {
     localTeachers.forEach(t => {
       if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) map.set(t.id, t);
     });
@@ -221,9 +219,12 @@ export const storageService = {
     const cloudTeachers = cloudData.teachers || [];
     const finalTeachers = mergeTeachers(inMemoryState.teachers || [], cloudTeachers);
 
+    const activeTeacherExists = finalTeachers.some(t => t.id === inMemoryState.activeTeacherId);
+    const validActiveTeacherId = activeTeacherExists ? inMemoryState.activeTeacherId : (finalTeachers[0] ? finalTeachers[0].id : 'teacher-yasin-1');
+
     const updatedState: AppState = {
       teachers: finalTeachers,
-      activeTeacherId: inMemoryState.activeTeacherId || '',
+      activeTeacherId: validActiveTeacherId,
       userRole: inMemoryState.userRole || 'teacher',
       activeStudentId: inMemoryState.activeStudentId || null,
       students: cloudData.students || [],
