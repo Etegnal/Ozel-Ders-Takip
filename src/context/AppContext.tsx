@@ -335,39 +335,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const normPhoneId = normalizePhone(identifier);
     const cleanPassword = password.trim();
 
-    const findStudent = (studentsList: Student[]) => {
-      return studentsList.find(s => {
+    const findStudent = (studentList: Student[]) => {
+      return (studentList || []).find(s => {
         const normName = normalizeStr(s.name);
         const normEmail = normalizeStr(s.email);
         const normStudentPhone = normalizePhone(s.phone);
         const normParentPhone = normalizePhone(s.parentPhone);
+        const rawPhone = (s.phone || '').trim();
 
-        const matchName = normName === normId;
-        const matchEmail = normEmail === normId;
-        const matchPhone = (normPhoneId.length >= 7) && (normStudentPhone === normPhoneId || normParentPhone === normPhoneId);
+        const matchName = normName.includes(normId) || normId.includes(normName) || normName === normId;
+        const matchEmail = normEmail && normEmail === normId;
+        const matchPhone = (normPhoneId && (normStudentPhone === normPhoneId || normParentPhone === normPhoneId)) || rawPhone === identifier.trim();
 
         const studentPass = (s.password || '').trim();
-        return (matchName || matchEmail || matchPhone) && studentPass.length > 0 && studentPass === cleanPassword;
+        const passMatch = studentPass.length === 0 || studentPass === cleanPassword;
+
+        return (matchName || matchEmail || matchPhone) && passMatch;
       });
     };
 
-    let student = findStudent(state.students);
-
-    if (!student) {
-      const cloudState = await storageService.fetchCloudState();
-      if (cloudState && Array.isArray(cloudState.students)) {
-        setState(cloudState);
-        student = findStudent(cloudState.students);
-      }
-    }
+    let cloudState = await storageService.fetchCloudState();
+    let currentStudents = cloudState && Array.isArray(cloudState.students) ? cloudState.students : state.students;
+    let student = findStudent(currentStudents);
 
     if (student) {
+      if (!student.password || student.password.trim() !== cleanPassword) {
+        student = { ...student, password: cleanPassword };
+        currentStudents = currentStudents.map(s => s.id === student!.id ? student! : s);
+      }
+
       try {
         localStorage.setItem('coach_user_logged_in', 'true');
       } catch {}
 
       const newState: AppState = {
-        ...state,
+        ...(cloudState || state),
+        students: currentStudents,
         userRole: 'student',
         activeStudentId: student.id,
         activeTeacherId: student.teacherId || ''
@@ -390,21 +393,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ): Promise<boolean> => {
     const cleanPhone = phone.trim();
     const normInputPhone = normalizePhone(cleanPhone);
+    const normInputName = normalizeStr(name);
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!cleanName || !normInputPhone || !password.trim()) {
+    if (!cleanName || !password.trim()) {
       return false;
     }
 
     const cloudState = await storageService.fetchCloudState();
     const currentStudents = cloudState && Array.isArray(cloudState.students) ? cloudState.students : state.students;
 
-    // Check if student with matching phone number already exists
+    // Check if student with matching phone or matching name already exists
     const existingIndex = currentStudents.findIndex(s => {
       const p1 = normalizePhone(s.phone);
       const p2 = normalizePhone(s.parentPhone);
-      return normInputPhone && (p1 === normInputPhone || p2 === normInputPhone);
+      const sName = normalizeStr(s.name);
+      const matchPhone = normInputPhone && (p1 === normInputPhone || p2 === normInputPhone || s.phone.trim() === cleanPhone);
+      const matchName = normInputName && sName === normInputName;
+      return matchPhone || matchName;
     });
 
     let updatedStudents = [...currentStudents];

@@ -196,6 +196,29 @@ function getSyncApiEndpoint(): string {
 
 let lastMutationTimestamp = 0;
 
+function mergeArrayById<T extends { id: string }>(existingArr: T[] = [], newArr: T[] = []): T[] {
+  const map = new Map<string, T>();
+  
+  if (Array.isArray(existingArr)) {
+    existingArr.forEach(item => {
+      if (item && item.id && !deletedIds.has(item.id)) {
+        map.set(item.id, item);
+      }
+    });
+  }
+  
+  if (Array.isArray(newArr)) {
+    newArr.forEach(item => {
+      if (item && item.id && !deletedIds.has(item.id)) {
+        const prev = map.get(item.id);
+        map.set(item.id, prev ? { ...prev, ...item } : item);
+      }
+    });
+  }
+  
+  return Array.from(map.values());
+}
+
 export const storageService = {
   getState(): AppState {
     try {
@@ -219,12 +242,25 @@ export const storageService = {
 
   async saveState(state: AppState): Promise<boolean> {
     lastMutationTimestamp = Date.now();
-    inMemoryState = state;
+    
+    // Merge new state with inMemoryState so empty local state never wipes existing records
+    const mergedState: AppState = {
+      ...state,
+      teachers: (state.teachers && state.teachers.length > 0) ? state.teachers : inMemoryState.teachers,
+      students: mergeArrayById(inMemoryState.students || [], state.students || []),
+      lessons: mergeArrayById(inMemoryState.lessons || [], state.lessons || []),
+      homeworks: mergeArrayById(inMemoryState.homeworks || [], state.homeworks || []),
+      transactions: mergeArrayById(inMemoryState.transactions || [], state.transactions || []),
+      notifications: mergeArrayById(inMemoryState.notifications || [], state.notifications || []),
+      questions: mergeArrayById(inMemoryState.questions || [], state.questions || [])
+    };
+
+    inMemoryState = mergedState;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedState));
     } catch {}
 
-    const sanitizedState = sanitizeState(state);
+    const sanitizedState = sanitizeState(mergedState);
     const payload = JSON.stringify({
       teachers: sanitizedState.teachers,
       students: (sanitizedState.students || []).filter(s => s && s.id && !deletedIds.has(s.id)),
