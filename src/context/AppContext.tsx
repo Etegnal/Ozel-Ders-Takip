@@ -129,7 +129,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activeTeacher = state.teachers.find(t => t.id === effectiveTeacherId) || state.teachers[0];
   const activeStudent = state.students.find(s => s.id === state.activeStudentId);
 
-  const syncCode = '';
+  // Automatically fetch cloud state on mount
+  useEffect(() => {
+    try {
+      syncCloudNow();
+    } catch (e) {
+      console.warn('Initial cloud sync failed:', e);
+    }
+  }, []);
 
   // Manual cloud sync handler
   const syncCloudNow = async () => {
@@ -965,7 +972,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logoutStudent,
         toggleStudentHomeworkStatus,
         syncCloudNow,
-        syncCode,
+        syncCode: '',
         updateSyncCode,
 
         students,

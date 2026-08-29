@@ -15,6 +15,8 @@ import { AuthPage } from './pages/AuthPage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { QuestionsPage } from './pages/QuestionsPage';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 const AppContent: React.FC = () => {
   const { activeTeacherId, userRole, activeStudentId } = useApp();
 
@@ -47,11 +49,13 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AppProvider>
-      <HashRouter>
-        <AppContent />
-      </HashRouter>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <HashRouter>
+          <AppContent />
+        </HashRouter>
+      </AppProvider>
+    </ErrorBoundary>
   );
 };
 
