@@ -504,7 +504,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedState: AppState = {
       ...(cloudState || state),
       students: updatedStudents,
-      notifications: updatedNotifications
+      notifications: updatedNotifications,
+      userRole: 'student',
+      activeStudentId: createdStudent.id,
+      activeTeacherId: createdStudent.teacherId || ''
     };
 
     setState(updatedState);
