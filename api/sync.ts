@@ -84,7 +84,15 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'POST') {
-      const payload = req.body;
+      let payload = req.body;
+      if (typeof payload === 'string') {
+        try {
+          payload = JSON.parse(payload);
+        } catch (e) {
+          console.error('Failed to parse string payload:', e);
+        }
+      }
+
       if (!payload || typeof payload !== 'object') {
         return res.status(400).json({ error: 'Geçersiz veri gönderildi' });
       }
@@ -98,8 +106,8 @@ export default async function handler(req: any, res: any) {
 
         return res.status(200).json({ success: true, timestamp: new Date().toISOString() });
       } catch (dbErr: any) {
-        console.error('Database query error on POST:', dbErr);
-        return res.status(200).json({ success: false, fallback: true });
+        console.error('Database query error on POST:', dbErr?.message || dbErr);
+        return res.status(500).json({ success: false, error: dbErr?.message || 'Veritabanı kayıt hatası' });
       }
     }
 

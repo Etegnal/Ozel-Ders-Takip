@@ -88,6 +88,7 @@ export const AdminPage: React.FC = () => {
     setIsSyncing(true);
     await syncCloudNow();
     setIsSyncing(false);
+    alert('Veri tabanı ile canlı senkronizasyon tamamlandı! ✅');
   };
 
   const toggleShowPassword = (id: string) => {
