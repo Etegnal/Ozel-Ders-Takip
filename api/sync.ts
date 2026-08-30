@@ -39,6 +39,30 @@ async function ensureTable() {
   }
 }
 
+function mergeDbArrays<T extends { id: string }>(existingArr: T[] = [], incomingArr: T[] = [], deletedIdsArr: string[] = []): T[] {
+  const deletedSet = new Set(deletedIdsArr);
+  const map = new Map<string, T>();
+
+  if (Array.isArray(existingArr)) {
+    existingArr.forEach(item => {
+      if (item && item.id && !deletedSet.has(item.id)) {
+        map.set(item.id, item);
+      }
+    });
+  }
+
+  if (Array.isArray(incomingArr)) {
+    incomingArr.forEach(item => {
+      if (item && item.id && !deletedSet.has(item.id)) {
+        const prev = map.get(item.id);
+        map.set(item.id, prev ? { ...prev, ...item } : item);
+      }
+    });
+  }
+
+  return Array.from(map.values());
+}
+
 export default async function handler(req: any, res: any) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -107,10 +131,27 @@ export default async function handler(req: any, res: any) {
       }
 
       try {
+        const dbStateRecord = await prisma.ozeldersAppState.findUnique({
+          where: { id: 'default' }
+        });
+
+        const existingData: any = (dbStateRecord && dbStateRecord.data) ? dbStateRecord.data : defaultState;
+        const deletedIdsArr: string[] = Array.isArray(payload.deletedIds) ? payload.deletedIds : [];
+
+        const mergedData = {
+          teachers: mergeDbArrays(existingData.teachers || defaultState.teachers, payload.teachers || [], deletedIdsArr),
+          students: mergeDbArrays(existingData.students || [], payload.students || [], deletedIdsArr),
+          lessons: mergeDbArrays(existingData.lessons || [], payload.lessons || [], deletedIdsArr),
+          homeworks: mergeDbArrays(existingData.homeworks || [], payload.homeworks || [], deletedIdsArr),
+          transactions: mergeDbArrays(existingData.transactions || [], payload.transactions || [], deletedIdsArr),
+          notifications: mergeDbArrays(existingData.notifications || [], payload.notifications || [], deletedIdsArr),
+          questions: mergeDbArrays(existingData.questions || [], payload.questions || [], deletedIdsArr)
+        };
+
         await prisma.ozeldersAppState.upsert({
           where: { id: 'default' },
-          update: { data: payload },
-          create: { id: 'default', data: payload }
+          update: { data: mergedData },
+          create: { id: 'default', data: mergedData }
         });
 
         return res.status(200).json({ success: true, timestamp: new Date().toISOString() });

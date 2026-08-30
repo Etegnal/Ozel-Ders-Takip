@@ -262,6 +262,7 @@ export const storageService = {
 
     const sanitizedState = sanitizeState(mergedState);
     const payload = JSON.stringify({
+      deletedIds: Array.from(deletedIds),
       teachers: sanitizedState.teachers,
       students: (sanitizedState.students || []).filter(s => s && s.id && !deletedIds.has(s.id)),
       lessons: (sanitizedState.lessons || []).filter(l => l && l.id && !deletedIds.has(l.id)),
