@@ -11,8 +11,7 @@ import {
   CheckCircle2, 
   ChevronRight,
   Sparkles,
-  ArrowUpRight,
-  Award
+  ArrowUpRight
 } from 'lucide-react';
 import { formatCurrency, getWhatsAppLink, getTodayDateString } from '../utils/helpers';
 import { Link, useNavigate } from 'react-router-dom';
@@ -72,23 +71,7 @@ export const TeacherDashboard: React.FC = () => {
               </span>
               <span className="text-xs text-text-primary font-medium bg-surface-hover/80 px-2.5 py-1 rounded-xl border border-border/80 shadow-xs">
                 {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })}
-              </span>
-
-              {activeTeacher?.code && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(activeTeacher.code || '');
-                    alert(`Öğretmen Eşleşme Kodunuz (${activeTeacher.code}) panoya kopyalandı! 📋`);
-                  }}
-                  className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold rounded-xl flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all cursor-pointer shadow-md"
-                  title="Öğrencinize vermek için tıklayıp kodu kopyalayın"
-                >
-                  <Award size={14} />
-                  <span>Eşleşme Kodunuz: <strong className="underline tracking-wider">{activeTeacher.code}</strong> 📋</span>
-                </button>
-              )}
-            </div>
+              </span>            </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight leading-snug">
               Hoş Geldiniz, <span className="text-primary underline decoration-primary/30 underline-offset-4">{activeTeacher?.name || 'Değerli Öğretmenimiz'}</span> 👋

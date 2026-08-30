@@ -7,7 +7,7 @@ import {
   Clock, 
   LogOut, 
   User, 
-  Award, 
+  Award,
   Mail, 
   AlertCircle,
   School,
@@ -17,7 +17,6 @@ import {
   X,
   Phone,
   Lock,
-  Link as LinkIcon,
   Save,
   Check
 } from 'lucide-react';
@@ -39,17 +38,10 @@ export const StudentDashboard: React.FC = () => {
     giveQuestionFeedback,
     toggleStudentHomeworkStatus, 
     logoutStudent,
-    updateStudent,
-    linkStudentToTeacherByCode
+    updateStudent
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions' | 'profile'>('homeworks');
-
-  // Teacher Code Link Modal State
-  const [showLinkTeacherModal, setShowLinkTeacherModal] = useState(false);
-  const [teacherCodeInput, setTeacherCodeInput] = useState('');
-  const [linkError, setLinkError] = useState('');
-  const [linkLoading, setLinkLoading] = useState(false);
 
   // Profile Edit State
   const [profileName, setProfileName] = useState(activeStudent?.name || '');
@@ -180,24 +172,6 @@ export const StudentDashboard: React.FC = () => {
     });
     setProfileMsg('Profil bilgileriniz başarıyla güncellendi! ✅');
     setTimeout(() => setProfileMsg(''), 3500);
-  };
-
-  const handleLinkTeacherSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLinkError('');
-    setLinkLoading(true);
-    try {
-      const result = await linkStudentToTeacherByCode(teacherCodeInput);
-      if (result.success) {
-        alert(`Tebrikler! ${result.teacherName} başarıyla öğretmeniniz olarak eklendi! 🎉`);
-        setShowLinkTeacherModal(false);
-        setTeacherCodeInput('');
-      } else {
-        setLinkError(result.message || 'Öğretmen eşleşme kodu geçersiz.');
-      }
-    } finally {
-      setLinkLoading(false);
-    }
   };
 
   if (!activeStudent) {
@@ -510,20 +484,12 @@ export const StudentDashboard: React.FC = () => {
         {/* --- TAB CONTENT: MY TEACHER --- */}
         {activeTab === 'teacher' && (
           <div className="space-y-4 max-w-3xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-              <h3 className="text-sm sm:text-base font-bold text-text-primary">Ders Aldığım Öğretmenler ({myTeachers.length})</h3>
-              
-              <button
-                onClick={() => {
-                  setTeacherCodeInput('');
-                  setLinkError('');
-                  setShowLinkTeacherModal(true);
-                }}
-                className="bg-primary hover:bg-primary-hover text-black px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer"
-              >
-                <Plus size={15} />
-                <span>+ Öğretmen Bağla (Kodu Gir)</span>
-              </button>
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-sm text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                <User className="text-primary w-4 h-4" />
+                <span>ÖĞRETMENİM VE DERSLERİM</span>
+              </h2>
             </div>
 
             {myTeachers.length === 0 ? (
@@ -531,14 +497,8 @@ export const StudentDashboard: React.FC = () => {
                 <School size={36} className="text-text-muted mx-auto" />
                 <h3 className="text-sm font-bold text-text-primary">Henüz Bağlı Öğretmeniniz Bulunmuyor</h3>
                 <p className="text-xs text-text-secondary max-w-sm mx-auto">
-                  Öğretmeninizden aldığınız <strong>Öğretmen Eşleşme Kodunu</strong> yukarıdaki butona tıklayarak girebilir veya öğretmeniniz sizi eklediğinde eşleşebilirsiniz.
+                  Öğretmeniniz sizi kendi panelinden eklediğinde öğretmeninizin ve derslerinizin bilgileri otomatik olarak burada görüntülenecektir.
                 </p>
-                <button
-                  onClick={() => setShowLinkTeacherModal(true)}
-                  className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  Öğretmen Kodunu Gir
-                </button>
               </div>
             ) : (
               myTeachers.map(teacher => {
@@ -790,63 +750,7 @@ export const StudentDashboard: React.FC = () => {
 
       </main>
 
-      {/* --- LINK TEACHER BY CODE MODAL --- */}
-      {showLinkTeacherModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => !linkLoading && setShowLinkTeacherModal(false)} />
-          <div className="bg-surface border border-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative z-10 animate-fade-in">
-            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-card">
-              <h3 className="font-bold text-base text-text-primary flex items-center gap-2">
-                <LinkIcon className="text-primary w-5 h-5" />
-                <span>Öğretmen Bağla</span>
-              </h3>
-              <button 
-                onClick={() => !linkLoading && setShowLinkTeacherModal(false)} 
-                disabled={linkLoading}
-                className="text-text-muted hover:text-text-primary transition-colors disabled:opacity-50"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleLinkTeacherSubmit} className="p-6 space-y-4">
-              <p className="text-xs text-text-secondary leading-relaxed">
-                Öğretmeninizin size verdiği <strong>Öğretmen Eşleşme Kodunu</strong> (Örn: <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">KOC-1001</code>) aşağıdaki alana girerek öğretmeninizle anında eşleşebilirsiniz.
-              </p>
 
-              {linkError && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2">
-                  <AlertCircle size={16} className="flex-shrink-0" />
-                  <span>{linkError}</span>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">ÖĞRETMEN EŞLEŞME KODU</label>
-                <div className="relative">
-                  <Award className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary w-4.5 h-4.5" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Örn: KOC-1001"
-                    value={teacherCodeInput}
-                    onChange={(e) => setTeacherCodeInput(e.target.value)}
-                    className="w-full bg-background border border-border text-text-primary font-mono font-bold tracking-wider text-base rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-primary/50 transition-colors uppercase"
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={linkLoading || !teacherCodeInput.trim()}
-                className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-sm"
-              >
-                <span>{linkLoading ? 'Eşleştiriliyor...' : 'Öğretmeni Hesabıma Bağla'}</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* --- ADD QUESTION MODAL --- */}
       {showAddQuestionModal && (
