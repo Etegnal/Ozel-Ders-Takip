@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion } from '../types';
+import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion, ExamResult } from '../types';
 import { storageService, normalizeStr, ensureAdminTeacher, markIdAsDeleted } from '../services/storage';
 
 export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | 'weekly-schedule' | null;
@@ -34,12 +34,17 @@ interface AppContextType {
   transactions: FinancialTransaction[];
   notifications: AppNotification[];
   questions: StudentQuestion[];
+  examResults: ExamResult[];
   
   // Question Actions
   addQuestion: (lessonName: string, topicName: string, questionImage: string, questionText?: string) => void;
-  addSolution: (questionId: string, solutionImage?: string, solutionText?: string) => void;
+  addSolution: (questionId: string, solutionImage?: string, solutionText?: string, solutionAudio?: string) => void;
   giveQuestionFeedback: (questionId: string, feedback: 'understood' | 'not_understood') => void;
   deleteQuestion: (id: string) => void;
+
+  // Exam Result Actions
+  addExamResult: (result: Omit<ExamResult, 'id' | 'createdAt' | 'teacherId'>) => void;
+  deleteExamResult: (id: string) => void;
   
   // Student Actions
   addStudent: (student: Omit<Student, 'id' | 'createdAt' | 'balance' | 'teacherId'>) => void;
@@ -927,7 +932,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const addSolution = (questionId: string, solutionImage?: string, solutionText?: string) => {
+  const addSolution = (questionId: string, solutionImage?: string, solutionText?: string, solutionAudio?: string) => {
     updateAndPersistState(prev => {
       const q = (prev.questions || []).find(x => x.id === questionId);
       if (!q) return prev;
@@ -938,6 +943,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...x,
             solutionImage,
             solutionText: solutionText?.trim(),
+            solutionAudio,
             status: 'solved' as const,
             solvedAt: new Date().toISOString(),
             feedback: undefined,
@@ -1008,6 +1014,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const addExamResult = (resultData: Omit<ExamResult, 'id' | 'createdAt' | 'teacherId'>) => {
+    const newExamResult: ExamResult = {
+      ...resultData,
+      id: 'exam-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      teacherId: effectiveTeacherId || 'teacher-yasin-1',
+      createdAt: new Date().toISOString()
+    };
+
+    updateAndPersistState(prev => ({
+      ...prev,
+      examResults: [newExamResult, ...(prev.examResults || [])]
+    }));
+  };
+
+  const deleteExamResult = (id: string) => {
+    markIdAsDeleted(id);
+    updateAndPersistState(prev => ({
+      ...prev,
+      examResults: (prev.examResults || []).filter(e => e.id !== id)
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1041,11 +1069,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         transactions,
         notifications,
         questions,
+        examResults: state.examResults || [],
 
         addQuestion,
         addSolution,
         giveQuestionFeedback,
         deleteQuestion,
+        addExamResult,
+        deleteExamResult,
 
         addStudent,
         updateStudent,

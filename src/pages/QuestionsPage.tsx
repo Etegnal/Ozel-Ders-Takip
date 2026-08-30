@@ -40,7 +40,48 @@ export const QuestionsPage: React.FC = () => {
   // Solution Form state
   const [solutionText, setSolutionText] = useState('');
   const [solutionImage, setSolutionImage] = useState('');
+  const [solutionAudio, setSolutionAudio] = useState<string | undefined>(undefined);
   const [isCompressing, setIsCompressing] = useState(false);
+
+  // Audio Solution States
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSolutionAudio(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (err) {
+      alert('Mikrofon erişimi izni verilemedi.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
+    }
+  };
 
   // Lightbox & Copy States
   const [zoomImage, setZoomImage] = useState<string | null>(null);
@@ -315,6 +356,43 @@ export const QuestionsPage: React.FC = () => {
         )}
       </div>
 
+      {/* --- ZAYIF KONU / EKSİK ANALİZİ RAPORU --- */}
+      {questions.length > 0 && (
+        <div className="bg-surface-card border border-border/80 rounded-2xl p-4 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+              <AlertCircle size={14} />
+              <span>📊 KONU EKSİK / ZAYIFLIK ANALİZ RAPORU</span>
+            </h3>
+            <span className="text-[11px] text-text-muted">En Çok Soru Sorulan Konular</span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {Object.values(questions.reduce((acc, q) => {
+              const key = `${q.lessonName} - ${q.topicName}`;
+              if (!acc[key]) acc[key] = { lessonName: q.lessonName, topicName: q.topicName, count: 0, notUnderstood: 0 };
+              acc[key].count += 1;
+              if (q.feedback === 'not_understood') acc[key].notUnderstood += 1;
+              return acc;
+            }, {} as Record<string, { lessonName: string; topicName: string; count: number; notUnderstood: number }>))
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 6)
+              .map((item, idx) => (
+                <div key={idx} className="bg-background border border-border/60 rounded-xl px-3 py-2 min-w-[140px] space-y-1 flex-shrink-0">
+                  <span className="text-[10px] text-text-muted truncate block font-bold uppercase">{item.lessonName}</span>
+                  <span className="text-xs font-bold text-text-primary truncate block">{item.topicName}</span>
+                  <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10px]">
+                    <span className="font-mono text-primary font-bold">{item.count} Soru</span>
+                    {item.notUnderstood > 0 && (
+                      <span className="text-red-400 font-bold">❌ {item.notUnderstood} Anlaşılmadı</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* --- FILTER CONTROL BAR --- */}
       <div className="bg-surface-card border border-border/80 p-4 rounded-2xl flex flex-col md:flex-row items-center gap-4 justify-between shadow-sm">
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -531,6 +609,13 @@ export const QuestionsPage: React.FC = () => {
                         </div>
                       )}
 
+                      {selectedQuestion.solutionAudio && (
+                        <div className="bg-surface-card border border-border/80 p-3 rounded-xl space-y-1.5">
+                          <p className="text-[10px] font-bold text-primary uppercase">🎙️ Sesli Çözüm Anlatımı</p>
+                          <audio src={selectedQuestion.solutionAudio} controls className="w-full h-9 rounded-lg" />
+                        </div>
+                      )}
+
                       {selectedQuestion.solvedAt && (
                         <p className="text-[10px] text-text-muted">Çözülme Tarihi: {new Date(selectedQuestion.solvedAt).toLocaleString('tr-TR')}</p>
                       )}
@@ -680,12 +765,12 @@ export const QuestionsPage: React.FC = () => {
                   }
                 }
 
-                if (!solutionText && !finalSolutionImage) {
-                  alert('Lütfen çözüm açıklaması yazın veya çözüm resmi ekleyin.');
+                if (!solutionText && !finalSolutionImage && !solutionAudio) {
+                  alert('Lütfen çözüm açıklaması yazın, çözüm resmi veya sesli anlatım ekleyin.');
                   return;
                 }
                 
-                addSolution(selectedQuestion.id, finalSolutionImage || undefined, solutionText || undefined);
+                addSolution(selectedQuestion.id, finalSolutionImage || undefined, solutionText || undefined, solutionAudio || undefined);
                 
                 // Update local selectedQuestion object state for display in detail modal
                 setSelectedQuestion(prev => prev ? {
@@ -693,6 +778,7 @@ export const QuestionsPage: React.FC = () => {
                   status: 'solved',
                   solutionImage: finalSolutionImage || undefined,
                   solutionText: solutionText || undefined,
+                  solutionAudio: solutionAudio || undefined,
                   solvedAt: new Date().toISOString()
                 } : null);
                 
@@ -870,9 +956,48 @@ export const QuestionsPage: React.FC = () => {
                 />
               </div>
 
+              {/* SESLİ ANLATIM (AUDIO NOTE) RECORDER */}
+              <div className="space-y-1.5 bg-surface-card/60 p-3 rounded-xl border border-border/60">
+                <label className="text-xs text-primary font-bold uppercase tracking-wider block">🎙️ SESLİ ÇÖZÜM ANLATIMI (OPSİYONEL)</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {!isRecording ? (
+                    <button
+                      type="button"
+                      onClick={startRecording}
+                      className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                      <span>Ses Kaydı Başlat 🎙️</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={stopRecording}
+                      className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 animate-pulse cursor-pointer shadow-md"
+                    >
+                      <span>⏹️ Kaydı Bitir (Sesiniz Kaydediliyor...)</span>
+                    </button>
+                  )}
+
+                  {solutionAudio && !isRecording && (
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <audio src={solutionAudio} controls className="h-8 max-w-full flex-1 rounded-lg" />
+                      <button
+                        type="button"
+                        onClick={() => setSolutionAudio(undefined)}
+                        className="text-text-muted hover:text-red-400 p-1"
+                        title="Sesi Sil"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <button 
                 type="submit" 
-                disabled={isCompressing || (solutionMethod === 'upload' && !solutionText && !solutionImage)}
+                disabled={isCompressing || (solutionMethod === 'upload' && !solutionText && !solutionImage && !solutionAudio)}
                 className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isCompressing ? 'Görsel Hazırlanıyor...' : 'Çözümü Gönder'}

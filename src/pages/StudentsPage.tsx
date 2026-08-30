@@ -15,6 +15,7 @@ import {
   Lock
 } from 'lucide-react';
 import { formatCurrency, getWhatsAppLink, getTodayDateString, normalizeGrade } from '../utils/helpers';
+import { ExamResultsSection } from '../components/ExamResultsSection';
 
 export const StudentsPage: React.FC = () => {
   const { 
@@ -386,6 +387,11 @@ export const StudentsPage: React.FC = () => {
           <UserPlus size={16} />
           <span>+ Yeni Öğrenci Ekle</span>
         </button>
+
+        {/* Exam Results Section */}
+        <div className="pt-6 border-t border-border/60">
+          <ExamResultsSection />
+        </div>
       </div>
 
       {/* --- ADD STUDENT MODAL --- */}

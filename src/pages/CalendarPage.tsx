@@ -382,10 +382,23 @@ export const CalendarPage: React.FC = () => {
                   <>
                     <button 
                       onClick={() => {
+                        const student = students.find(s => s.id === selectedLesson.studentId);
+                        const phone = student?.phone || student?.parentPhone || '';
+                        const msg = `Merhaba ${selectedLesson.studentName}, bugün saat ${selectedLesson.startTime}'de dersimiz bulunmaktadır. Hatırlatmak istedik 😊`;
+                        window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                      }}
+                      className="py-2.5 px-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold rounded-xl text-xs hover:bg-emerald-500/30 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      title="WhatsApp ile Hatırlatma Mesajı Gönder"
+                    >
+                      📲 Hatırlat
+                    </button>
+
+                    <button 
+                      onClick={() => {
                         updateLesson(selectedLesson.id, { status: 'completed' });
                         setSelectedLesson(null);
                       }}
-                      className="flex-1 py-2.5 bg-emerald-500 text-black hover:bg-emerald-600 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1 shadow-md shadow-emerald-500/10"
+                      className="flex-1 py-2.5 bg-emerald-500 text-black hover:bg-emerald-600 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1 shadow-md shadow-emerald-500/10 cursor-pointer"
                     >
                       <Check size={14} />
                       <span>Tamamla</span>
@@ -395,7 +408,7 @@ export const CalendarPage: React.FC = () => {
                         updateLesson(selectedLesson.id, { status: 'cancelled' });
                         setSelectedLesson(null);
                       }}
-                      className="flex-1 py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1"
+                      className="flex-1 py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <X size={14} />
                       <span>İptal Et</span>

@@ -62,6 +62,8 @@ export interface Homework {
   dueTime: string; // HH:MM
   status: HomeworkStatus;
   evaluation?: 'excellent' | 'good' | 'average' | 'poor' | string; // e.g., "Yetersiz AI" or "Pek İyi"
+  attachmentUrl?: string; // Image base64 or file URL
+  attachmentName?: string;
 }
 
 export type TransactionType = 'income' | 'expense';
@@ -99,10 +101,32 @@ export interface StudentQuestion {
   questionText?: string;
   solutionImage?: string; // Base64 compressed JPEG
   solutionText?: string;
+  solutionAudio?: string; // Base64 webm/mp3 audio data URL
   status: 'pending' | 'solved';
   feedback?: 'understood' | 'not_understood';
   solvedAt?: string;
   feedbackAt?: string;
+  createdAt: string;
+}
+
+export interface SubjectScore {
+  subject: string;
+  correct: number;
+  incorrect: number;
+  net: number;
+}
+
+export interface ExamResult {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  examTitle: string;
+  examType: 'TYT' | 'AYT' | 'LGS' | 'Diğer';
+  date: string; // YYYY-MM-DD
+  scores: SubjectScore[];
+  totalNet: number;
+  notes?: string;
   createdAt: string;
 }
 
@@ -117,4 +141,5 @@ export interface AppState {
   transactions: FinancialTransaction[];
   notifications: AppNotification[];
   questions: StudentQuestion[];
+  examResults?: ExamResult[];
 }

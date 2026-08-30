@@ -82,7 +82,8 @@ export const initialMockState: AppState = {
   homeworks: [],
   transactions: [],
   notifications: [],
-  questions: []
+  questions: [],
+  examResults: []
 };
 
 const LEGACY_TEST_IDS = ['teacher-ayse-2', 'teacher-mehmet-3', 'teacher-elif-4', 'teacher-rahmi-5'];
@@ -164,7 +165,8 @@ function sanitizeState(state: AppState): AppState {
     homeworks: state.homeworks || [],
     transactions: state.transactions || [],
     notifications: state.notifications || [],
-    questions: state.questions || []
+    questions: state.questions || [],
+    examResults: state.examResults || []
   };
 }
 
@@ -252,7 +254,8 @@ export const storageService = {
       homeworks: mergeArrayById(inMemoryState.homeworks || [], state.homeworks || []),
       transactions: mergeArrayById(inMemoryState.transactions || [], state.transactions || []),
       notifications: mergeArrayById(inMemoryState.notifications || [], state.notifications || []),
-      questions: mergeArrayById(inMemoryState.questions || [], state.questions || [])
+      questions: mergeArrayById(inMemoryState.questions || [], state.questions || []),
+      examResults: mergeArrayById(inMemoryState.examResults || [], state.examResults || [])
     };
 
     inMemoryState = mergedState;
@@ -269,7 +272,8 @@ export const storageService = {
       homeworks: (sanitizedState.homeworks || []).filter(h => h && h.id && !deletedIds.has(h.id)),
       transactions: (sanitizedState.transactions || []).filter(t => t && t.id && !deletedIds.has(t.id)),
       notifications: (sanitizedState.notifications || []).filter(n => n && n.id && !deletedIds.has(n.id)),
-      questions: (sanitizedState.questions || []).filter(q => q && q.id && !deletedIds.has(q.id))
+      questions: (sanitizedState.questions || []).filter(q => q && q.id && !deletedIds.has(q.id)),
+      examResults: (sanitizedState.examResults || []).filter((e: any) => e && e.id && !deletedIds.has(e.id))
     });
 
     try {
@@ -326,7 +330,8 @@ export const storageService = {
       homeworks: (cloudData.homeworks || []).filter((h: any) => h && h.id && !deletedIds.has(h.id)),
       transactions: (cloudData.transactions || []).filter((t: any) => t && t.id && !deletedIds.has(t.id)),
       notifications: (cloudData.notifications || []).filter((n: any) => n && n.id && !deletedIds.has(n.id)),
-      questions: pruneOldQuestions((cloudData.questions || []).filter((q: any) => q && q.id && !deletedIds.has(q.id)))
+      questions: pruneOldQuestions((cloudData.questions || []).filter((q: any) => q && q.id && !deletedIds.has(q.id))),
+      examResults: (cloudData.examResults || []).filter((e: any) => e && e.id && !deletedIds.has(e.id))
     };
 
     inMemoryState = updatedState;

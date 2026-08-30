@@ -17,15 +17,27 @@ import { QuestionsPage } from './pages/QuestionsPage';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+import { PWAInstallBanner } from './components/PWAInstallBanner';
+
 const AppContent: React.FC = () => {
   const { activeTeacherId, userRole, activeStudentId } = useApp();
 
   if (userRole === 'student' && activeStudentId) {
-    return <StudentDashboard />;
+    return (
+      <>
+        <StudentDashboard />
+        <PWAInstallBanner />
+      </>
+    );
   }
 
   if (!activeTeacherId) {
-    return <AuthPage />;
+    return (
+      <>
+        <AuthPage />
+        <PWAInstallBanner />
+      </>
+    );
   }
 
   return (
@@ -43,6 +55,7 @@ const AppContent: React.FC = () => {
         <Route path="/super-admin" element={<AdminPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
+      <PWAInstallBanner />
     </MainLayout>
   );
 };

@@ -25,6 +25,8 @@ import { StudentQuestion } from '../types';
 import { WeeklyScheduleModal } from '../components/WeeklyScheduleModal';
 import { normalizePhone } from '../services/storage';
 
+import { ExamResultsSection } from '../components/ExamResultsSection';
+
 export const StudentDashboard: React.FC = () => {
   const { 
     activeStudent, 
@@ -41,7 +43,7 @@ export const StudentDashboard: React.FC = () => {
     updateStudent
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions' | 'profile'>('homeworks');
+  const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions' | 'exams' | 'profile'>('homeworks');
 
   // Profile Edit State
   const [profileName, setProfileName] = useState(activeStudent?.name || '');
@@ -356,6 +358,18 @@ export const StudentDashboard: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('exams')}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
+              activeTab === 'exams'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <Award size={15} />
+            <span>Deneme Netlerim</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('profile')}
             className={`pb-2.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-1.5 border-b-2 transition-all flex-shrink-0 cursor-pointer ${
               activeTab === 'profile'
@@ -367,6 +381,11 @@ export const StudentDashboard: React.FC = () => {
             <span>Profilim</span>
           </button>
         </div>
+
+        {/* --- TAB CONTENT: EXAMS --- */}
+        {activeTab === 'exams' && (
+          <ExamResultsSection isStudentView />
+        )}
 
         {/* --- TAB CONTENT: HOMEWORKS --- */}
         {activeTab === 'homeworks' && (

@@ -51,6 +51,8 @@ export const HomeworksPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [dueTime, setDueTime] = useState('23:59');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [attachmentName, setAttachmentName] = useState('');
   
   // Evaluation state
   const [evaluationText, setEvaluationText] = useState('Yetersiz AI');
@@ -61,7 +63,45 @@ export const HomeworksPage: React.FC = () => {
     setDescription('');
     setDueDate(getTodayDateString());
     setDueTime('23:59');
+    setAttachmentUrl('');
+    setAttachmentName('');
     setShowAddModal(true);
+  };
+
+  const handleFileAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAttachmentName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (file.type.startsWith('image/')) {
+        const img = new Image();
+        img.src = result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 600;
+          let w = img.width;
+          let h = img.height;
+          if (w > h && w > MAX) {
+            h *= MAX / w;
+            w = MAX;
+          } else if (h > MAX) {
+            w *= MAX / h;
+            h = MAX;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, w, h);
+          setAttachmentUrl(canvas.toDataURL('image/jpeg', 0.5));
+        };
+      } else {
+        setAttachmentUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddHomework = (e: React.FormEvent) => {
@@ -76,7 +116,9 @@ export const HomeworksPage: React.FC = () => {
       description,
       dueDate,
       dueTime,
-      status: 'pending'
+      status: 'pending',
+      attachmentUrl,
+      attachmentName
     });
 
     setShowAddModal(false);
@@ -245,6 +287,20 @@ export const HomeworksPage: React.FC = () => {
                   <h4 className="text-base font-bold text-text-primary">{hw.title}</h4>
                   <p className="text-xs text-text-secondary line-clamp-2 max-w-xl">{hw.description}</p>
                   
+                  {hw.attachmentUrl && (
+                    <div className="pt-1">
+                      {hw.attachmentUrl.startsWith('data:image/') ? (
+                        <a href={hw.attachmentUrl} target="_blank" rel="noreferrer" className="inline-block">
+                          <img src={hw.attachmentUrl} alt="Ödev Görseli" className="h-16 w-24 object-cover rounded-lg border border-border/80 hover:scale-105 transition-transform" />
+                        </a>
+                      ) : (
+                        <a href={hw.attachmentUrl} download={hw.attachmentName || 'odev-dosyasi'} className="inline-flex items-center gap-1.5 text-xs text-primary font-bold hover:underline bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20">
+                          📎 {hw.attachmentName || 'Ödev Dosyasını İndir'}
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   {/* Due Date details */}
                   <div className="text-xs text-text-muted flex items-center gap-1.5 pt-1">
                     <Clock size={12} />
@@ -393,6 +449,27 @@ export const HomeworksPage: React.FC = () => {
                     onChange={(e) => setDueTime(e.target.value)}
                     className="w-full bg-surface-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary/50 text-text-primary"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-text-secondary font-semibold">ÖDEV GÖRSELİ / DOSYASI (OPSİYONEL)</label>
+                <div className="border border-dashed border-border rounded-xl p-3 bg-surface-card text-center relative cursor-pointer hover:border-primary/50 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileAttachment}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  {attachmentName ? (
+                    <span className="text-xs font-bold text-primary truncate block">
+                      📎 {attachmentName}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-text-muted">
+                      📷 Fotoğraf Çek veya PDF Ekle
+                    </span>
+                  )}
                 </div>
               </div>
 
