@@ -9,10 +9,7 @@ import {
   Wallet, 
   Info,
   CheckSquare,
-  Smartphone,
-  ShieldCheck,
-  AlertTriangle,
-  Send
+  BellRing
 } from 'lucide-react';
 import { sendNativeNotification } from '../utils/helpers';
 
@@ -33,24 +30,42 @@ export const NotificationsPage: React.FC = () => {
     }
   }, []);
 
-  const handleRequestPermission = async () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      try {
-        const perm = await Notification.requestPermission();
-        setPermissionStatus(perm);
-        if (perm === 'granted') {
-          sendNativeNotification('KOÇ Bildirimleri Aktif 📱', 'Telefonunuza bildirimler başarıyla gönderilecektir.');
-        } else if (perm === 'denied') {
-          alert('Bildirim izni engellendi. Telefon/Tarayıcı ayarlarından site izinlerini açmanız gerekmektedir.');
-        }
-      } catch (err) {
-        console.warn(err);
+  const handleRequestPermission = () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('Cihazınız tarayıcı ekran bildirimlerini desteklemiyor.');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert('Bildirim izni daha önce engellenmiş. Telefonunuzun Ayarlar -> İzinler menüsünden bildirimleri açabilirsiniz.');
+      return;
+    }
+
+    const handleResult = (perm: string) => {
+      setPermissionStatus(perm);
+      if (perm === 'granted') {
+        alert('Bildirim izni verildi! 📱');
+        sendNativeNotification('KOÇ Bildirimleri Aktif 📱', 'Bildirimler telefonunuza ulaşacaktır.');
+      } else {
+        alert('Bildirim izni verilmedi veya kapatıldı.');
       }
+    };
+
+    try {
+      const res = Notification.requestPermission(handleResult);
+      if (res && typeof res.then === 'function') {
+        res.then(handleResult).catch(err => {
+          console.warn(err);
+        });
+      }
+    } catch (err: any) {
+      alert('İzin başlatılamadı: ' + (err?.message || err));
     }
   };
 
   const handleSendTestNotification = () => {
-    sendNativeNotification('KOÇ Test Bildirimi 📱', 'Tebrikler! Bildirimler telefonunuzun üst çubuğuna başarıyla ulaşıyor.');
+    sendNativeNotification('KOÇ Test Bildirimi 📱', 'Tebrikler! Bildirimler telefonunuzun üst bildirim çubuğuna ulaşıyor.');
+    alert('Test bildirimi telefonunuza gönderildi! 📱');
   };
 
   const getIcon = (type: string) => {
@@ -89,89 +104,53 @@ export const NotificationsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* --- DEDICATED NOTIFICATION SETTINGS & PERMISSION CARD --- */}
-      <div className="bg-surface-card border border-border/80 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-center flex-shrink-0">
-              <Smartphone size={20} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
-                <span>📱 TELEFON ÜST BİLDİRİM AYARLARI</span>
-              </h3>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Cihazınızın kilit veya ana ekranında yukarıdan kaydırılan bildirim çubuğu yönetimi.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-            {permissionStatus === 'granted' ? (
-              <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
-                <ShieldCheck size={14} />
-                <span>İzin Verildi (Aktif)</span>
-              </span>
-            ) : (
-              <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold rounded-xl flex items-center gap-1.5 whitespace-nowrap">
-                <AlertTriangle size={14} />
-                <span>İzin Bekleniyor</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-          <p className="text-xs text-text-muted leading-relaxed max-w-xl">
-            Soru çözüldüğünde, yeni soru yüklendiğinde veya ödev verildiğinde telefonunuz kilitli olsa bile ekranın üst bildirim paneline anlık bildirim düşer.
-          </p>
-
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0">
-            {permissionStatus === 'granted' ? (
-              <button
-                onClick={handleSendTestNotification}
-                className="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-primary-hover text-black text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-primary/20 cursor-pointer whitespace-nowrap"
-              >
-                <Send size={14} />
-                <span>Test Bildirimi Gönder 🔔</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleRequestPermission}
-                className="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-primary-hover text-black text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-primary/20 cursor-pointer whitespace-nowrap animate-pulse"
-              >
-                <Bell size={14} />
-                <span>📱 Telefon Bildirimlerini Aktif Et</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* --- NOTIFICATIONS LIST CONTROLS HEADER --- */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card/30 p-4 border border-border/80 rounded-2xl">
+      {/* --- NOTIFICATIONS HEADER WITH SIMPLE RED / GREEN PERMISSION BUTTON --- */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface-card p-4 border border-border/80 rounded-2xl shadow-sm">
         <span className="text-xs font-bold text-text-primary whitespace-nowrap">
-          Toplam {notifications.length} Bildirim Kaydı
+          Toplam {notifications.length} Bildirim
         </span>
         
-        {notifications.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-end">
-            <button 
-              onClick={handleMarkAllRead}
-              className="flex-1 sm:flex-initial text-xs px-3.5 py-2.5 bg-surface-card border border-border text-text-secondary hover:text-text-primary rounded-xl transition-all flex items-center justify-center gap-1.5 font-bold cursor-pointer whitespace-nowrap"
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-end">
+          {/* SIMPLIFIED RED / GREEN PERMISSION BUTTON */}
+          {permissionStatus === 'granted' ? (
+            <button
+              onClick={handleSendTestNotification}
+              className="flex-1 sm:flex-initial text-xs px-4 py-2.5 bg-emerald-500 text-black border border-emerald-400 font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-md shadow-emerald-500/20"
+              title="Bildirimler Aktif - Test Yapmak İçin Tıklayın"
             >
-              <CheckSquare size={14} />
-              <span>Tümünü Okundu İşaretle</span>
+              <BellRing size={15} />
+              <span>✅ Bildirimler Aktif</span>
             </button>
-            <button 
-              onClick={clearAllNotifications}
-              className="flex-1 sm:flex-initial text-xs px-3.5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all flex items-center justify-center gap-1.5 font-bold cursor-pointer whitespace-nowrap"
+          ) : (
+            <button
+              onClick={handleRequestPermission}
+              className="flex-1 sm:flex-initial text-xs px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shadow-md shadow-red-500/30 animate-pulse"
+              title="Telefon Bildirimlerini İzin Vererek Aktif Et"
             >
-              <Trash2 size={14} />
-              <span>Temizle</span>
+              <Bell size={15} />
+              <span>🔔 Bildirimleri Aktif Et</span>
             </button>
-          </div>
-        )}
+          )}
+
+          {notifications.length > 0 && (
+            <>
+              <button 
+                onClick={handleMarkAllRead}
+                className="text-xs px-3.5 py-2.5 bg-surface-hover border border-border text-text-secondary hover:text-text-primary rounded-xl transition-all flex items-center justify-center gap-1.5 font-bold cursor-pointer whitespace-nowrap"
+              >
+                <CheckSquare size={14} />
+                <span>Tümünü Okundu İşaretle</span>
+              </button>
+              <button 
+                onClick={clearAllNotifications}
+                className="text-xs px-3.5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all flex items-center justify-center gap-1.5 font-bold cursor-pointer whitespace-nowrap"
+              >
+                <Trash2 size={14} />
+                <span>Temizle</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* --- NOTIFICATIONS LIST --- */}
