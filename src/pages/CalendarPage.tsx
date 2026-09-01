@@ -244,8 +244,9 @@ export const CalendarPage: React.FC = () => {
       </div>
 
       {/* 30-Day Monthly Calendar Grid */}
-      <div className="bg-surface-card border border-border/80 rounded-2xl overflow-hidden shadow-xl">
-        {/* Weekday headers */}
+      <div className="bg-surface-card border border-border/80 rounded-2xl overflow-hidden shadow-xl overflow-x-auto scrollbar-thin">
+        <div className="min-w-[600px] sm:min-w-0">
+          {/* Weekday headers */}
         <div className="grid grid-cols-7 border-b border-border bg-surface/50">
           {weekdays.map((day) => (
             <div key={day} className="py-3 text-center text-xs font-bold text-text-secondary border-r border-border/30 last:border-r-0 uppercase tracking-wider">
@@ -313,6 +314,7 @@ export const CalendarPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
 

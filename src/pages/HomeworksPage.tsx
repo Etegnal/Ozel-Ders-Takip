@@ -211,9 +211,9 @@ export const HomeworksPage: React.FC = () => {
         </div>
 
         {/* Tab Filters */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
           {/* Status Tabs */}
-          <div className="bg-surface-card border border-border p-1 rounded-xl flex flex-wrap items-center gap-1">
+          <div className="bg-surface-card border border-border p-1 rounded-xl flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
             {(['all', 'pending', 'completed', 'overdue', 'evaluated'] as const).map(tab => {
               const tabLabels = {
                 all: 'Tümü',
@@ -226,7 +226,7 @@ export const HomeworksPage: React.FC = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`text-xs px-3 py-1.5 rounded-lg transition-all capitalize ${
+                  className={`text-xs px-3 py-1.5 rounded-lg transition-all capitalize flex-shrink-0 whitespace-nowrap ${
                     activeTab === tab
                       ? 'bg-surface-hover text-text-primary font-semibold border border-border'
                       : 'text-text-secondary hover:text-text-primary'
