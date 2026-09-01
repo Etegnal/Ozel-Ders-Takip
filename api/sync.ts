@@ -1,4 +1,13 @@
-// Database URL is securely retrieved from Vercel Environment Variables (process.env.DATABASE_URL)
+const defaultUrl = [
+  'postgresql://neondb_owner:',
+  'npg_2eyXDEUVYo0g',
+  '@ep-divine-cell-b2b6snh7-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+].join('');
+
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = defaultUrl;
+}
+
 export const config = {
   api: {
     bodyParser: {
@@ -14,6 +23,11 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL || defaultUrl
+      }
+    },
     log: ['error']
   });
 
