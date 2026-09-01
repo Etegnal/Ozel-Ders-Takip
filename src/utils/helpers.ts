@@ -164,7 +164,33 @@ export async function verifyPassword(inputPassword: string, storedHash: string):
   return hashedInput === storedHash;
 }
 
-export function sendNativeNotification(title: string, message: string) {
+import { LocalNotifications } from '@capacitor/local-notifications';
+
+export async function sendNativeNotification(title: string, message: string) {
+  // 1. Capacitor Native App Notification Support (for Android APK)
+  try {
+    const isCapacitor = typeof (window as any)?.Capacitor !== 'undefined';
+    if (isCapacitor) {
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display === 'granted') {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body: message,
+              id: Math.floor(Math.random() * 100000),
+              schedule: { at: new Date(Date.now() + 100) }
+            }
+          ]
+        });
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Capacitor LocalNotifications error:', err);
+  }
+
+  // 2. Web Browser / Service Worker Push Notification Fallback
   if (typeof window !== 'undefined' && 'Notification' in window) {
     const options = {
       body: message,
