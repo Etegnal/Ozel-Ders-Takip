@@ -164,13 +164,12 @@ export async function verifyPassword(inputPassword: string, storedHash: string):
   return hashedInput === storedHash;
 }
 
-import { LocalNotifications } from '@capacitor/local-notifications';
-
 export async function sendNativeNotification(title: string, message: string) {
   // 1. Capacitor Native App Notification Support (for Android APK)
   try {
-    const isCapacitor = typeof (window as any)?.Capacitor !== 'undefined';
-    if (isCapacitor) {
+    const capacitor = (window as any)?.Capacitor;
+    if (capacitor && capacitor.Plugins && capacitor.Plugins.LocalNotifications) {
+      const LocalNotifications = capacitor.Plugins.LocalNotifications;
       const perm = await LocalNotifications.requestPermissions();
       if (perm.display === 'granted') {
         await LocalNotifications.schedule({

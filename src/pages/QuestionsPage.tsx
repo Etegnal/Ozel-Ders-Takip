@@ -7,7 +7,6 @@ import {
   Clock, 
   User, 
   Search, 
-  Upload, 
   X, 
   Trash2, 
   MessageSquare, 
@@ -15,7 +14,9 @@ import {
   RotateCcw,
   ZoomIn,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { formatReadableDate } from '../utils/helpers';
 import { StudentQuestion } from '../types';
@@ -923,23 +924,40 @@ export const QuestionsPage: React.FC = () => {
                         </button>
                       </div>
                     ) : (
-                      <label className="cursor-pointer flex flex-col items-center space-y-2 p-2">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                          <Upload size={16} />
-                        </div>
-                        <div className="text-xs font-bold text-text-primary">
-                          {isCompressing ? 'Görsel Sıkıştırılıyor...' : 'Çözüm Fotoğrafı Yükle'}
-                        </div>
-                        <p className="text-[10px] text-text-muted">Kamera veya Galeri (PNG, JPG)</p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleFileChange}
-                          disabled={isCompressing}
-                          className="hidden"
-                        />
-                      </label>
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full p-2">
+                        {/* Option 1: Live Camera Capture */}
+                        <label className="flex-1 w-full border border-primary/30 hover:border-primary/60 bg-primary/10 hover:bg-primary/20 rounded-xl p-3 text-center cursor-pointer transition-all flex flex-col items-center gap-1.5 group">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center border border-primary/30 group-hover:scale-105 transition-transform">
+                            <Camera size={16} />
+                          </div>
+                          <span className="text-xs font-bold text-text-primary">Anında Kamera İle Çek 📸</span>
+                          <span className="text-[10px] text-text-muted">Kamerayı açıp çözüm çekin</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleFileChange}
+                            disabled={isCompressing}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {/* Option 2: Gallery / Files Selection */}
+                        <label className="flex-1 w-full border border-border hover:border-text-muted bg-surface-card hover:bg-surface-hover rounded-xl p-3 text-center cursor-pointer transition-all flex flex-col items-center gap-1.5 group">
+                          <div className="w-8 h-8 rounded-full bg-surface-hover text-text-primary flex items-center justify-center border border-border group-hover:scale-105 transition-transform">
+                            <ImageIcon size={16} />
+                          </div>
+                          <span className="text-xs font-bold text-text-primary">Galeriden / Dosyalardan Seç 🖼️</span>
+                          <span className="text-[10px] text-text-muted">Galeri veya dosyadan seçin</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            disabled={isCompressing}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     )}
                   </div>
                 </div>
