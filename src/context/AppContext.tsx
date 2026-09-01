@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion, ExamResult } from '../types';
 import { storageService, normalizeStr, ensureAdminTeacher, markIdAsDeleted } from '../services/storage';
+import { sendNativeNotification } from '../utils/helpers';
 
 export type ModalType = 'student' | 'lesson' | 'homework' | 'transaction' | 'teacher' | 'weekly-schedule' | null;
 
@@ -925,6 +926,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'system'
     };
 
+    sendNativeNotification(newNotification.title, newNotification.message);
+
     updateAndPersistState(prev => ({
       ...prev,
       questions: [newQuestion, ...(prev.questions || [])],
@@ -963,6 +966,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         type: 'system'
       };
 
+      sendNativeNotification(newNotification.title, newNotification.message);
+
       return {
         ...prev,
         questions: updatedQuestions,
@@ -997,6 +1002,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         read: false,
         type: 'system'
       };
+
+      sendNativeNotification(newNotification.title, newNotification.message);
 
       return {
         ...prev,

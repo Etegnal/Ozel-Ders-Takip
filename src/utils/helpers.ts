@@ -163,3 +163,29 @@ export async function verifyPassword(inputPassword: string, storedHash: string):
   const hashedInput = await hashPassword(cleanInput);
   return hashedInput === storedHash;
 }
+
+export function sendNativeNotification(title: string, message: string) {
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body: message,
+          icon: '/pwa-192x192.png'
+        });
+      } catch (e) {
+        console.warn('Native notification error:', e);
+      }
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          try {
+            new Notification(title, {
+              body: message,
+              icon: '/pwa-192x192.png'
+            });
+          } catch (e) {}
+        }
+      });
+    }
+  }
+}
