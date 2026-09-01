@@ -77,8 +77,17 @@ export const PWAInstallBanner: React.FC = () => {
           className="flex-1 bg-primary hover:bg-primary-hover text-black text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer"
         >
           <Download size={14} />
-          <span>Uygulamayı Ana Ekrana Yükle</span>
+          <span>Ana Ekrana Ekle</span>
         </button>
+
+        <a
+          href="./koc-app.apk"
+          download="koc-app.apk"
+          className="px-3 py-2.5 bg-surface-card hover:bg-surface-hover text-text-primary border border-border text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+        >
+          <Download size={14} className="text-primary" />
+          <span>APK İndir</span>
+        </a>
       </div>
     </div>
   );
