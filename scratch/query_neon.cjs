@@ -4,9 +4,14 @@ const prisma = new PrismaClient();
 
 async function run() {
   try {
-    const record = await prisma.ozeldersAppState.findUnique({ where: { id: 'default' } });
-    console.log('RECORD FOUND:');
-    console.log(JSON.stringify(record?.data, null, 2));
+    const rows = await prisma.ozeldersAppState.findMany();
+    console.log('ALL ROWS IN NEON DB TABLE:', rows.length);
+    rows.forEach(r => {
+      console.log('ID:', r.id, 'Updated:', r.updatedAt);
+      console.log('Teachers:', r.data?.teachers?.map(t => t.name));
+      console.log('Students:', r.data?.students?.map(s => s.name));
+      console.log('-------------------------------------------');
+    });
   } catch (err) {
     console.error('Error:', err);
   } finally {
