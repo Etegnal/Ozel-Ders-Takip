@@ -24,6 +24,7 @@ import {
 import { formatReadableDate, normalizeGrade } from '../utils/helpers';
 import { StudentQuestion } from '../types';
 import { WeeklyScheduleModal } from '../components/WeeklyScheduleModal';
+import { AdminMessageModal } from '../components/AdminMessageModal';
 import { normalizePhone } from '../services/storage';
 
 import { ExamResultsSection } from '../components/ExamResultsSection';
@@ -45,6 +46,7 @@ export const StudentDashboard: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'homeworks' | 'schedule' | 'teacher' | 'questions' | 'exams' | 'profile'>('homeworks');
+  const [showAdminMsgModal, setShowAdminMsgModal] = useState(false);
 
   // Profile Edit State
   const [profileName, setProfileName] = useState(activeStudent?.name || '');
@@ -242,6 +244,15 @@ export const StudentDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowAdminMsgModal(true)}
+              className="flex items-center gap-1.5 bg-surface hover:bg-primary/10 text-text-secondary hover:text-primary border border-border/80 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              title="Admine Doğrudan Mesaj İlet"
+            >
+              <Mail size={14} className="text-primary" />
+              <span className="hidden sm:inline">Admine Yaz</span>
+            </button>
+
             <button
               onClick={() => setShowWeeklyScheduleModal(true)}
               className="flex items-center gap-1.5 bg-surface hover:bg-primary/10 text-text-secondary hover:text-primary border border-border/80 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
@@ -1096,6 +1107,12 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Admin Message Modal */}
+      <AdminMessageModal 
+        isOpen={showAdminMsgModal} 
+        onClose={() => setShowAdminMsgModal(false)} 
+      />
     </div>
   );
 };

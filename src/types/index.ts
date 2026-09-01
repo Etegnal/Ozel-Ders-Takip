@@ -130,6 +130,18 @@ export interface ExamResult {
   createdAt: string;
 }
 
+export interface AdminMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'teacher' | 'student';
+  senderContact?: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+}
+
 export interface AppState {
   teachers: Teacher[];
   activeTeacherId: string;
@@ -142,4 +154,5 @@ export interface AppState {
   notifications: AppNotification[];
   questions: StudentQuestion[];
   examResults?: ExamResult[];
+  adminMessages?: AdminMessage[];
 }

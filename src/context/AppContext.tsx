@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion, ExamResult } from '../types';
+import { Teacher, Student, Lesson, Homework, FinancialTransaction, AppNotification, AppState, StudentQuestion, ExamResult, AdminMessage } from '../types';
 import { storageService, normalizeStr, ensureAdminTeacher, markIdAsDeleted } from '../services/storage';
 import { sendNativeNotification } from '../utils/helpers';
 
@@ -36,6 +36,12 @@ interface AppContextType {
   notifications: AppNotification[];
   questions: StudentQuestion[];
   examResults: ExamResult[];
+  adminMessages: AdminMessage[];
+  
+  // Admin Message Actions
+  sendAdminMessage: (subject: string, message: string) => Promise<boolean>;
+  markAdminMessageRead: (id: string) => void;
+  deleteAdminMessage: (id: string) => void;
   
   // Question Actions
   addQuestion: (lessonName: string, topicName: string, questionImage: string, questionText?: string) => void;
@@ -1043,6 +1049,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  // --- Admin Message Actions ---
+  const sendAdminMessage = async (subject: string, message: string): Promise<boolean> => {
+    let senderId = '';
+    let senderName = '';
+    let senderRole: 'teacher' | 'student' = 'teacher';
+    let senderContact = '';
+
+    if (state.userRole === 'student' && activeStudent) {
+      senderId = activeStudent.id;
+      senderName = activeStudent.name;
+      senderRole = 'student';
+      senderContact = activeStudent.phone || activeStudent.email || '';
+    } else if (activeTeacher) {
+      senderId = activeTeacher.id;
+      senderName = activeTeacher.name;
+      senderRole = 'teacher';
+      senderContact = activeTeacher.email || '';
+    } else {
+      senderId = 'guest';
+      senderName = 'Kullanıcı';
+      senderRole = 'teacher';
+    }
+
+    const newMsg: AdminMessage = {
+      id: 'admin-msg-' + Date.now(),
+      senderId,
+      senderName,
+      senderRole,
+      senderContact,
+      subject: subject.trim(),
+      message: message.trim(),
+      createdAt: new Date().toISOString(),
+      read: false
+    };
+
+    setState(prev => ({
+      ...prev,
+      adminMessages: [newMsg, ...(prev.adminMessages || [])]
+    }));
+
+    sendNativeNotification('Yeni Admin Mesajı 📩', `${senderName}: ${subject}`);
+    return true;
+  };
+
+  const markAdminMessageRead = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      adminMessages: (prev.adminMessages || []).map(m => m.id === id ? { ...m, read: true } : m)
+    }));
+  };
+
+  const deleteAdminMessage = (id: string) => {
+    markIdAsDeleted(id);
+    setState(prev => ({
+      ...prev,
+      adminMessages: (prev.adminMessages || []).filter(m => m.id !== id)
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1077,6 +1142,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         notifications,
         questions,
         examResults: state.examResults || [],
+        adminMessages: state.adminMessages || [],
+
+        sendAdminMessage,
+        markAdminMessageRead,
+        deleteAdminMessage,
 
         addQuestion,
         addSolution,

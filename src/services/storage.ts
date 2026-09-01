@@ -166,7 +166,8 @@ function sanitizeState(state: AppState): AppState {
     transactions: state.transactions || [],
     notifications: state.notifications || [],
     questions: state.questions || [],
-    examResults: state.examResults || []
+    examResults: state.examResults || [],
+    adminMessages: state.adminMessages || []
   };
 }
 

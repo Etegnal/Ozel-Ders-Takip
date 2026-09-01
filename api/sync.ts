@@ -146,7 +146,8 @@ export default async function handler(req: any, res: any) {
           transactions: mergeDbArrays(existingData.transactions || [], payload.transactions || [], deletedIdsArr),
           notifications: mergeDbArrays(existingData.notifications || [], payload.notifications || [], deletedIdsArr),
           questions: mergeDbArrays(existingData.questions || [], payload.questions || [], deletedIdsArr),
-          examResults: mergeDbArrays(existingData.examResults || [], payload.examResults || [], deletedIdsArr)
+          examResults: mergeDbArrays(existingData.examResults || [], payload.examResults || [], deletedIdsArr),
+          adminMessages: mergeDbArrays(existingData.adminMessages || [], payload.adminMessages || [], deletedIdsArr)
         };
 
         await prisma.ozeldersAppState.upsert({
