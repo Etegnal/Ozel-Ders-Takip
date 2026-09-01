@@ -26,6 +26,13 @@ export const PWAInstallBanner: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
+    // Request push notification permission
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      try {
+        await Notification.requestPermission();
+      } catch (e) {}
+    }
+
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;

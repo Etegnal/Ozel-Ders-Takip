@@ -166,12 +166,24 @@ export async function verifyPassword(inputPassword: string, storedHash: string):
 
 export function sendNativeNotification(title: string, message: string) {
   if (typeof window !== 'undefined' && 'Notification' in window) {
+    const options = {
+      body: message,
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      vibrate: [200, 100, 200],
+      tag: 'koc-notif-' + Date.now(),
+      renotify: true
+    };
+
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, {
-          body: message,
-          icon: '/pwa-192x192.png'
-        });
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, options);
+          });
+        } else {
+          new Notification(title, options);
+        }
       } catch (e) {
         console.warn('Native notification error:', e);
       }
@@ -179,10 +191,13 @@ export function sendNativeNotification(title: string, message: string) {
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
           try {
-            new Notification(title, {
-              body: message,
-              icon: '/pwa-192x192.png'
-            });
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(title, options);
+              });
+            } else {
+              new Notification(title, options);
+            }
           } catch (e) {}
         }
       });

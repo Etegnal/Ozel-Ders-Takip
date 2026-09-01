@@ -60,24 +60,42 @@ export const NotificationsPage: React.FC = () => {
           Toplam {notifications.length} bildirim mevcut
         </span>
         
-        {notifications.length > 0 && (
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handleMarkAllRead}
-              className="text-xs px-3.5 py-2 bg-surface-card border border-border text-text-secondary hover:text-text-primary rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
+        <div className="flex items-center gap-2">
+          {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+            <button
+              onClick={() => {
+                Notification.requestPermission().then(perm => {
+                  if (perm === 'granted') {
+                    alert('Telefon üst bildirim izni başarıyla verildi! 📱');
+                  }
+                });
+              }}
+              className="text-xs px-3.5 py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
             >
-              <CheckSquare size={14} />
-              <span>Tümünü Okundu İşaretle</span>
+              <Bell size={14} />
+              <span>📱 Telefon Bildirim İznini Aç</span>
             </button>
-            <button 
-              onClick={clearAllNotifications}
-              className="text-xs px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
-            >
-              <Trash2 size={14} />
-              <span>Temizle</span>
-            </button>
-          </div>
-        )}
+          )}
+
+          {notifications.length > 0 && (
+            <>
+              <button 
+                onClick={handleMarkAllRead}
+                className="text-xs px-3.5 py-2 bg-surface-card border border-border text-text-secondary hover:text-text-primary rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
+              >
+                <CheckSquare size={14} />
+                <span>Tümünü Okundu İşaretle</span>
+              </button>
+              <button 
+                onClick={clearAllNotifications}
+                className="text-xs px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all flex items-center gap-1.5 font-bold cursor-pointer"
+              >
+                <Trash2 size={14} />
+                <span>Temizle</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Notifications List */}
