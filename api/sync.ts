@@ -1,5 +1,4 @@
-process.env.DATABASE_URL = "postgresql://neondb_owner:npg_2eyXDEUVYo0g@ep-divine-cell-b2b6snh7-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require";
-
+// Database URL is securely retrieved from Vercel Environment Variables (process.env.DATABASE_URL)
 export const config = {
   api: {
     bodyParser: {
