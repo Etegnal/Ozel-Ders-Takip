@@ -25,41 +25,55 @@ export const NotificationsPage: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermissionStatus(Notification.permission);
+    } else if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      setPermissionStatus('default');
     } else {
       setPermissionStatus('unsupported');
     }
   }, []);
 
   const handleRequestPermission = () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      alert('Cihazınız tarayıcı ekran bildirimlerini desteklemiyor.');
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+
+    if (isIOS && !isStandalone) {
+      alert("📲 iPhone (iOS) cihazlarda ekran bildirimi almak için:\n\n1. Safari alt menüsündeki 'Paylaş (⬆️)' simgesine dokunun.\n2. 'Ana Ekrana Ekle' seçeneğini seçin.\n3. Ana ekrandaki KOÇ simgesinden girdiğinizde bildirimler 100% aktifleşecektir.");
       return;
     }
 
-    if (Notification.permission === 'denied') {
-      alert('Bildirim izni daha önce engellenmiş. Telefonunuzun Ayarlar -> İzinler menüsünden bildirimleri açabilirsiniz.');
+    if (typeof window === 'undefined' || (!('Notification' in window) && !('serviceWorker' in navigator))) {
+      alert('Cihazınız tarayıcı bildirimlerini desteklemiyor.');
+      return;
+    }
+
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+      alert('Bildirim izni engellenmiş. Telefonunuzun Ayarlar -> İzinler menüsünden bildirimi açabilirsiniz.');
       return;
     }
 
     const handleResult = (perm: string) => {
       setPermissionStatus(perm);
       if (perm === 'granted') {
-        alert('Bildirim izni verildi! 📱');
+        alert('Bildirim izni başarıyla aktifleştirildi! 📱');
         sendNativeNotification('KOÇ Bildirimleri Aktif 📱', 'Bildirimler telefonunuza ulaşacaktır.');
       } else {
-        alert('Bildirim izni verilmedi veya kapatıldı.');
+        alert('Bildirim izni verilmedi.');
       }
     };
 
-    try {
-      const res = Notification.requestPermission(handleResult);
-      if (res && typeof res.then === 'function') {
-        res.then(handleResult).catch(err => {
-          console.warn(err);
-        });
+    if (typeof Notification !== 'undefined' && Notification.requestPermission) {
+      try {
+        const res = Notification.requestPermission(handleResult);
+        if (res && typeof res.then === 'function') {
+          res.then(handleResult).catch(err => {
+            console.warn(err);
+          });
+        }
+      } catch (err: any) {
+        alert('İzin başlatılamadı: ' + (err?.message || err));
       }
-    } catch (err: any) {
-      alert('İzin başlatılamadı: ' + (err?.message || err));
+    } else {
+      alert("Lütfen uygulamayı telefon ana ekranınıza ekleyip oradan giriniz.");
     }
   };
 
