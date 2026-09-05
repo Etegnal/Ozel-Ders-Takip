@@ -4,14 +4,16 @@ const prisma = new PrismaClient();
 
 async function run() {
   try {
-    const rows = await prisma.ozeldersAppState.findMany();
-    console.log('ALL ROWS IN NEON DB TABLE:', rows.length);
-    rows.forEach(r => {
-      console.log('ID:', r.id, 'Updated:', r.updatedAt);
-      console.log('Teachers:', r.data?.teachers?.map(t => t.name));
-      console.log('Students:', r.data?.students?.map(s => s.name));
-      console.log('-------------------------------------------');
-    });
+    console.log('Ensuring tables...');
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "OzeldersAppStateSnapshots" (
+        "id" TEXT NOT NULL,
+        "data" JSONB NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "OzeldersAppStateSnapshots_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('Table OzeldersAppStateSnapshots created/verified!');
   } catch (err) {
     console.error('Error:', err);
   } finally {

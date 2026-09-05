@@ -326,13 +326,14 @@ export const storageService = {
       activeTeacherId: validActiveTeacherId,
       userRole: inMemoryState.userRole || 'teacher',
       activeStudentId: inMemoryState.activeStudentId || null,
-      students: (cloudData.students || []).filter((s: any) => s && s.id && !deletedIds.has(s.id)),
-      lessons: (cloudData.lessons || []).filter((l: any) => l && l.id && !deletedIds.has(l.id)),
-      homeworks: (cloudData.homeworks || []).filter((h: any) => h && h.id && !deletedIds.has(h.id)),
-      transactions: (cloudData.transactions || []).filter((t: any) => t && t.id && !deletedIds.has(t.id)),
-      notifications: (cloudData.notifications || []).filter((n: any) => n && n.id && !deletedIds.has(n.id)),
-      questions: pruneOldQuestions((cloudData.questions || []).filter((q: any) => q && q.id && !deletedIds.has(q.id))),
-      examResults: (cloudData.examResults || []).filter((e: any) => e && e.id && !deletedIds.has(e.id))
+      students: mergeArrayById(inMemoryState.students || [], cloudData.students || []),
+      lessons: mergeArrayById(inMemoryState.lessons || [], cloudData.lessons || []),
+      homeworks: mergeArrayById(inMemoryState.homeworks || [], cloudData.homeworks || []),
+      transactions: mergeArrayById(inMemoryState.transactions || [], cloudData.transactions || []),
+      notifications: mergeArrayById(inMemoryState.notifications || [], cloudData.notifications || []),
+      questions: pruneOldQuestions(mergeArrayById(inMemoryState.questions || [], cloudData.questions || [])),
+      examResults: mergeArrayById(inMemoryState.examResults || [], cloudData.examResults || []),
+      adminMessages: mergeArrayById(inMemoryState.adminMessages || [], cloudData.adminMessages || [])
     };
 
     inMemoryState = updatedState;

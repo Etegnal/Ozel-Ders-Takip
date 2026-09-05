@@ -36,6 +36,7 @@ let isTableVerified = false;
 async function ensureTable() {
   if (isTableVerified) return;
   try {
+    // Primary State Table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "OzeldersAppState" (
         "id" TEXT NOT NULL,
@@ -44,16 +45,32 @@ async function ensureTable() {
         CONSTRAINT "OzeldersAppState_pkey" PRIMARY KEY ("id")
       );
     `);
+
+    // Automatic Snapshot History Table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "OzeldersAppStateSnapshots" (
+        "id" TEXT NOT NULL,
+        "data" JSONB NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "OzeldersAppStateSnapshots_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
     isTableVerified = true;
   } catch (err) {
     console.error('Table verification/creation error:', err);
   }
 }
 
-function mergeDbArrays<T extends { id: string }>(existingArr: T[] = [], incomingArr: T[] = [], deletedIdsArr: string[] = []): T[] {
+function mergeDbArrays<T extends { id: string }>(
+  existingArr: T[] = [], 
+  incomingArr: T[] = [], 
+  deletedIdsArr: string[] = []
+): T[] {
   const deletedSet = new Set(deletedIdsArr);
   const map = new Map<string, T>();
 
+  // 1. Load existing DB items (unless explicitly in deletedIdsArr)
   if (Array.isArray(existingArr)) {
     existingArr.forEach(item => {
       if (item && item.id && !deletedSet.has(item.id)) {
@@ -62,6 +79,7 @@ function mergeDbArrays<T extends { id: string }>(existingArr: T[] = [], incoming
     });
   }
 
+  // 2. Merge incoming client items (unless explicitly in deletedIdsArr)
   if (Array.isArray(incomingArr)) {
     incomingArr.forEach(item => {
       if (item && item.id && !deletedSet.has(item.id)) {
@@ -90,34 +108,85 @@ export default async function handler(req: any, res: any) {
 
   await ensureTable();
 
+  const defaultAdmin = {
+    id: 'teacher-yasin-1',
+    name: 'ADMİN',
+    email: 'yasinalacahan23@gmail.com',
+    subject: 'Fizik / Matematik',
+    password: 'admin123',
+    code: 'KOC-1001',
+    createdAt: '2026-07-25T10:00:00.000Z'
+  };
+
   const defaultState = {
-    teachers: [
-      {
-        id: 'teacher-yasin-1',
-        name: 'ADMİN',
-        email: 'yasinalacahan23@gmail.com',
-        subject: 'Fizik / Matematik',
-        password: 'admin123',
-        createdAt: '2026-07-25T10:00:00.000Z'
-      }
-    ],
+    teachers: [defaultAdmin],
     students: [],
     lessons: [],
     homeworks: [],
     transactions: [],
     notifications: [],
-    questions: []
+    questions: [],
+    examResults: [],
+    adminMessages: []
   };
 
   try {
     if (req.method === 'GET') {
+      const { snapshots, restoreId } = req.query || {};
+
+      // Return Snapshot History for Admin Restore
+      if (snapshots === 'true') {
+        try {
+          const snapshotRecords: any[] = await prisma.$queryRawUnsafe(`
+            SELECT "id", "createdAt", 
+                   jsonb_array_length(data->'teachers') as teacher_count,
+                   jsonb_array_length(data->'students') as student_count,
+                   jsonb_array_length(data->'lessons') as lesson_count,
+                   jsonb_array_length(data->'questions') as question_count
+            FROM "OzeldersAppStateSnapshots"
+            ORDER BY "createdAt" DESC
+            LIMIT 15;
+          `);
+          return res.status(200).json({ snapshots: snapshotRecords });
+        } catch (err: any) {
+          return res.status(500).json({ error: 'Snapshots query error' });
+        }
+      }
+
+      // Restore specific snapshot if requested
+      if (restoreId) {
+        try {
+          const snapshotRecord: any[] = await prisma.$queryRawUnsafe(`
+            SELECT "data" FROM "OzeldersAppStateSnapshots" WHERE "id" = $1 LIMIT 1;
+          `, String(restoreId));
+
+          if (snapshotRecord && snapshotRecord[0] && snapshotRecord[0].data) {
+            const restoredData = snapshotRecord[0].data;
+            await prisma.ozeldersAppState.upsert({
+              where: { id: 'default' },
+              update: { data: restoredData },
+              create: { id: 'default', data: restoredData }
+            });
+            return res.status(200).json({ success: true, restored: true, data: restoredData });
+          }
+        } catch (err: any) {
+          return res.status(500).json({ error: 'Restore snapshot error: ' + err.message });
+        }
+      }
+
+      // Normal GET current state
       try {
         const dbStateRecord = await prisma.ozeldersAppState.findUnique({
           where: { id: 'default' }
         });
 
-        if (dbStateRecord && dbStateRecord.data) {
-          return res.status(200).json(dbStateRecord.data);
+        if (dbStateRecord && dbStateRecord.data && typeof dbStateRecord.data === 'object') {
+          const dataObj: any = dbStateRecord.data;
+          // Ensure defaultAdmin is always present in teachers
+          if (Array.isArray(dataObj.teachers) && !dataObj.teachers.some((t: any) => t.id === 'teacher-yasin-1')) {
+            dataObj.teachers.unshift(defaultAdmin);
+          }
+          return res.status(200).json(dataObj);
         } else {
           return res.status(200).json(defaultState);
         }
@@ -146,28 +215,66 @@ export default async function handler(req: any, res: any) {
           where: { id: 'default' }
         });
 
-        const existingData: any = (dbStateRecord && dbStateRecord.data) ? dbStateRecord.data : defaultState;
+        const existingData: any = (dbStateRecord && dbStateRecord.data && typeof dbStateRecord.data === 'object') 
+          ? dbStateRecord.data 
+          : defaultState;
+        
         const deletedIdsArr: string[] = Array.isArray(payload.deletedIds) ? payload.deletedIds : [];
 
+        // 🛡️ SAFEGUARD 1: Never wipe existing DB arrays with empty payload if DB already has records
+        const incomingTeachers = Array.isArray(payload.teachers) && payload.teachers.length > 0 ? payload.teachers : existingData.teachers || [defaultAdmin];
+        const incomingStudents = Array.isArray(payload.students) ? payload.students : [];
+        const incomingLessons = Array.isArray(payload.lessons) ? payload.lessons : [];
+        const incomingHomeworks = Array.isArray(payload.homeworks) ? payload.homeworks : [];
+        const incomingTransactions = Array.isArray(payload.transactions) ? payload.transactions : [];
+        const incomingNotifications = Array.isArray(payload.notifications) ? payload.notifications : [];
+        const incomingQuestions = Array.isArray(payload.questions) ? payload.questions : [];
+        const incomingExamResults = Array.isArray(payload.examResults) ? payload.examResults : [];
+        const incomingAdminMessages = Array.isArray(payload.adminMessages) ? payload.adminMessages : [];
+
         const mergedData = {
-          teachers: mergeDbArrays(existingData.teachers || defaultState.teachers, payload.teachers || [], deletedIdsArr),
-          students: mergeDbArrays(existingData.students || [], payload.students || [], deletedIdsArr),
-          lessons: mergeDbArrays(existingData.lessons || [], payload.lessons || [], deletedIdsArr),
-          homeworks: mergeDbArrays(existingData.homeworks || [], payload.homeworks || [], deletedIdsArr),
-          transactions: mergeDbArrays(existingData.transactions || [], payload.transactions || [], deletedIdsArr),
-          notifications: mergeDbArrays(existingData.notifications || [], payload.notifications || [], deletedIdsArr),
-          questions: mergeDbArrays(existingData.questions || [], payload.questions || [], deletedIdsArr),
-          examResults: mergeDbArrays(existingData.examResults || [], payload.examResults || [], deletedIdsArr),
-          adminMessages: mergeDbArrays(existingData.adminMessages || [], payload.adminMessages || [], deletedIdsArr)
+          teachers: mergeDbArrays(existingData.teachers || [defaultAdmin], incomingTeachers, deletedIdsArr),
+          students: mergeDbArrays(existingData.students || [], incomingStudents, deletedIdsArr),
+          lessons: mergeDbArrays(existingData.lessons || [], incomingLessons, deletedIdsArr),
+          homeworks: mergeDbArrays(existingData.homeworks || [], incomingHomeworks, deletedIdsArr),
+          transactions: mergeDbArrays(existingData.transactions || [], incomingTransactions, deletedIdsArr),
+          notifications: mergeDbArrays(existingData.notifications || [], incomingNotifications, deletedIdsArr),
+          questions: mergeDbArrays(existingData.questions || [], incomingQuestions, deletedIdsArr),
+          examResults: mergeDbArrays(existingData.examResults || [], incomingExamResults, deletedIdsArr),
+          adminMessages: mergeDbArrays(existingData.adminMessages || [], incomingAdminMessages, deletedIdsArr)
         };
 
+        // 🛡️ SAFEGUARD 2: Ensure defaultAdmin is ALWAYS in teachers array
+        if (!mergedData.teachers.some((t: any) => t.id === 'teacher-yasin-1')) {
+          mergedData.teachers.unshift(defaultAdmin);
+        }
+
+        // 🛡️ SAFEGUARD 3: Create automatic snapshot before updating if existing DB had data
+        const hasExistingData = (existingData.students && existingData.students.length > 0) || 
+                                (existingData.teachers && existingData.teachers.length > 1) ||
+                                (existingData.questions && existingData.questions.length > 0);
+
+        if (hasExistingData) {
+          try {
+            const snapshotId = `snapshot-${Date.now()}`;
+            await prisma.$executeRawUnsafe(
+              `INSERT INTO "OzeldersAppStateSnapshots" ("id", "data", "createdAt") VALUES ($1, $2, NOW());`,
+              snapshotId,
+              JSON.stringify(existingData)
+            );
+          } catch (snapErr) {
+            console.warn('Snapshot error:', snapErr);
+          }
+        }
+
+        // Save merged state to primary DB table
         await prisma.ozeldersAppState.upsert({
           where: { id: 'default' },
           update: { data: mergedData },
           create: { id: 'default', data: mergedData }
         });
 
-        return res.status(200).json({ success: true, timestamp: new Date().toISOString() });
+        return res.status(200).json({ success: true, timestamp: new Date().toISOString(), data: mergedData });
       } catch (dbErr: any) {
         console.error('Database query error on POST:', dbErr?.message || dbErr);
         return res.status(500).json({ success: false, error: dbErr?.message || 'Veritabanı kayıt hatası' });

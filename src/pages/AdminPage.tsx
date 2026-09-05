@@ -19,9 +19,11 @@ import {
   AlertCircle,
   Phone,
   ArrowRightLeft,
-  X
+  X,
+  History
 } from 'lucide-react';
 import { formatCurrency, getWhatsAppLink } from '../utils/helpers';
+import { RestoreSnapshotModal } from '../components/RestoreSnapshotModal';
 
 export const AdminPage: React.FC = () => {
   const { 
@@ -42,8 +44,9 @@ export const AdminPage: React.FC = () => {
   // Active Admin Tab: 'teachers' | 'students'
   const [activeTab, setActiveTab] = useState<'teachers' | 'students'>('teachers');
 
-  // Cloud Sync State
+  // Cloud Sync & Restore State
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
 
   // Search & Filters
   const [teacherSearch, setTeacherSearch] = useState('');
@@ -246,7 +249,15 @@ export const AdminPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* The ONLY Cloud Sync Button Requested by User */}
+            <button
+              onClick={() => setShowRestoreModal(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-card hover:bg-surface-hover text-text-primary border border-border text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+              title="Geçmiş Otomatik Veritabanı Yedeklerini Görüntüle ve Geri Yükle"
+            >
+              <History size={15} className="text-primary" />
+              <span>Yedekten Geri Yükle</span>
+            </button>
+
             <button
               onClick={handleManualSync}
               disabled={isSyncing}
@@ -956,6 +967,12 @@ export const AdminPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Restore Snapshot Backup Modal */}
+      <RestoreSnapshotModal 
+        isOpen={showRestoreModal} 
+        onClose={() => setShowRestoreModal(false)} 
+      />
     </div>
   );
 };
