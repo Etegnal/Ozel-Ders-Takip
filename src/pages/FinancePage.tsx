@@ -314,9 +314,10 @@ export const FinancePage: React.FC = () => {
           <h3 className="font-bold text-sm text-text-primary">Son Finansal Hareketler</h3>
           {transactions.length > 0 && (
             <button
-              onClick={() => {
-                if (confirm('Tüm finansal hareketleri sıfırlamak istediğinize emin misiniz?')) {
+              onClick={async () => {
+                if (window.confirm('Tüm finansal hareketleri ve kayıtları sıfırlamak istediğinize emin misiniz?')) {
                   clearTransactions();
+                  alert('Finansal hareketler başarıyla sıfırlandı.');
                 }
               }}
               className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 rounded-lg cursor-pointer border border-red-500/20"

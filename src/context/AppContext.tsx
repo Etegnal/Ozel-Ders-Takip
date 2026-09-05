@@ -884,10 +884,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const clearTransactions = () => {
-    updateAndPersistState(prev => ({
-      ...prev,
-      transactions: prev.transactions.filter(t => t.teacherId !== state.activeTeacherId)
-    }));
+    updateAndPersistState(prev => {
+      const targetTrans = prev.transactions.filter(t => 
+        t.teacherId === effectiveTeacherId || 
+        (isAdmin && (t.teacherId === 'teacher-yasin-1' || !t.teacherId))
+      );
+
+      // Mark all deleted transaction IDs so cloud sync never restores them
+      targetTrans.forEach(t => markIdAsDeleted(t.id));
+
+      const remainingTrans = prev.transactions.filter(t => 
+        t.teacherId !== effectiveTeacherId && 
+        !(isAdmin && (t.teacherId === 'teacher-yasin-1' || !t.teacherId))
+      );
+
+      return {
+        ...prev,
+        transactions: remainingTrans
+      };
+    });
   };
 
   // --- Notification Actions ---
