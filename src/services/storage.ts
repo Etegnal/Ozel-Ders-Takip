@@ -42,7 +42,7 @@ export const defaultTeachers: Teacher[] = [
     name: 'ADMİN',
     email: 'yasinalacahan23@gmail.com',
     subject: 'Fizik / Matematik',
-    password: 'admin123',
+    password: 'susamlıpatates',
     createdAt: '2026-07-25T10:00:00.000Z'
   }
 ];
@@ -105,7 +105,7 @@ export function ensureAdminTeacher(teachers: Teacher[]): Teacher[] {
       ...list[adminIndex],
       name: 'ADMİN',
       email: 'yasinalacahan23@gmail.com',
-      password: 'admin123',
+      password: list[adminIndex].password || 'susamlıpatates',
       code: list[adminIndex].code || 'KOC-1001'
     };
   }

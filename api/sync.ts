@@ -113,7 +113,7 @@ export default async function handler(req: any, res: any) {
     name: 'ADMİN',
     email: 'yasinalacahan23@gmail.com',
     subject: 'Fizik / Matematik',
-    password: 'admin123',
+    password: 'susamlıpatates',
     code: 'KOC-1001',
     createdAt: '2026-07-25T10:00:00.000Z'
   };

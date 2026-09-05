@@ -220,7 +220,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return false;
       }
 
-      const teacherPass = (t.password || 'admin123').trim();
+      const teacherPass = (t.password || (t.id === 'teacher-yasin-1' ? 'susamlıpatates' : '123456')).trim();
       return teacherPass === cleanPassword;
     });
 
