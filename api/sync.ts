@@ -258,7 +258,7 @@ export default async function handler(req: any, res: any) {
           try {
             const snapshotId = `snapshot-${Date.now()}`;
             await prisma.$executeRawUnsafe(
-              `INSERT INTO "OzeldersAppStateSnapshots" ("id", "data", "createdAt") VALUES ($1, $2, NOW());`,
+              `INSERT INTO "OzeldersAppStateSnapshots" ("id", "data", "createdAt") VALUES ($1, $2::jsonb, NOW());`,
               snapshotId,
               JSON.stringify(existingData)
             );
