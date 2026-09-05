@@ -71,22 +71,33 @@ export const PWAInstallBanner: React.FC = () => {
           <X size={16} />
         </button>
       </div>
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
           onClick={handleInstallClick}
-          className="flex-1 bg-primary hover:bg-primary-hover text-black text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer"
+          className="flex-1 bg-primary hover:bg-primary-hover text-black text-xs font-bold py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer min-w-[120px]"
         >
           <Download size={14} />
           <span>Ana Ekrana Ekle</span>
         </button>
 
         <a
+          href="./koc-setup.exe"
+          download="koc-setup.exe"
+          className="px-3 py-2.5 bg-surface-card hover:bg-surface-hover text-text-primary border border-border text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+          title="Windows Masaüstü Kurulum EXE İndir"
+        >
+          <Download size={14} className="text-primary" />
+          <span>Masaüstü EXE</span>
+        </a>
+
+        <a
           href="./koc-app.apk"
           download="koc-app.apk"
           className="px-3 py-2.5 bg-surface-card hover:bg-surface-hover text-text-primary border border-border text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+          title="Android APK İndir"
         >
           <Download size={14} className="text-primary" />
-          <span>APK İndir</span>
+          <span>APK</span>
         </a>
       </div>
     </div>

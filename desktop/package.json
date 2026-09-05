@@ -1,7 +1,7 @@
 {
   "name": "coach-desktop",
   "version": "1.0.0",
-  "description": "Coach Desktop App Wrapper",
+  "description": "KOÇ Özel Ders Takip Masaüstü Uygulaması",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -11,11 +11,19 @@
     "appId": "com.ozelders.desktop",
     "productName": "KOÇ",
     "win": {
-      "target": "portable",
-      "icon": "logo_square.png"
+      "target": ["nsis", "portable"],
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KOÇ",
+      "artifactName": "koc-setup.${ext}"
     },
     "portable": {
-      "artifactName": "KOÇ.${ext}"
+      "artifactName": "koc-app.${ext}"
     },
     "directories": {
       "output": "../dist-desktop"

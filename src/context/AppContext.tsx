@@ -1099,7 +1099,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       read: false
     };
 
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       adminMessages: [newMsg, ...(prev.adminMessages || [])]
     }));
@@ -1109,7 +1109,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markAdminMessageRead = (id: string) => {
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       adminMessages: (prev.adminMessages || []).map(m => m.id === id ? { ...m, read: true } : m)
     }));
@@ -1117,7 +1117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteAdminMessage = (id: string) => {
     markIdAsDeleted(id);
-    setState(prev => ({
+    updateAndPersistState(prev => ({
       ...prev,
       adminMessages: (prev.adminMessages || []).filter(m => m.id !== id)
     }));

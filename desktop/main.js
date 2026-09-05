@@ -8,7 +8,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     title: "KOÇ",
-    icon: path.join(__dirname, 'logo_square.png'),
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
