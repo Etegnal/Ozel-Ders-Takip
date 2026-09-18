@@ -44,6 +44,55 @@ export const defaultTeachers: Teacher[] = [
     subject: 'Fizik / Matematik',
     password: 'susamlıpatates',
     createdAt: '2026-07-25T10:00:00.000Z'
+  },
+  {
+    id: 'teacher-1788096203939',
+    code: 'KOC-1002',
+    name: 'Rahmi Koç',
+    email: 'rahmikoc@gmail.com',
+    subject: 'Matematik',
+    password: '123',
+    createdAt: '2026-08-30T13:23:23.939Z'
+  },
+  {
+    id: 'teacher-1788096238381',
+    code: 'KOC-1003',
+    name: 'Hüseyin Çiçek',
+    email: 'cicekhuseyin2323@gmail.com',
+    subject: 'Fizik',
+    password: '123',
+    createdAt: '2026-08-30T13:23:58.381Z'
+  }
+];
+
+export const defaultStudents: Student[] = [
+  {
+    id: 'student-1788096259859',
+    name: 'Ahmet Murat Yatmaz',
+    phone: '5537706619',
+    email: 'ahmetmurat@gmail.com',
+    grade: '12. Sınıf (YKS-TYT/AYT)',
+    teacherId: 'teacher-1788096203939',
+    createdAt: '2026-08-30T13:24:19.859Z',
+    balance: 0,
+    hourlyRate: 500,
+    monthlyHours: 8,
+    status: 'active'
+  }
+];
+
+export const defaultLessons: Lesson[] = [
+  {
+    id: 'lesson-1788096300000',
+    studentId: 'student-1788096259859',
+    teacherId: 'teacher-1788096203939',
+    studentName: 'Ahmet Murat Yatmaz',
+    date: '2026-08-30',
+    startTime: '14:00',
+    durationMinutes: 60,
+    rate: 500,
+    status: 'completed',
+    notes: 'Matematik - İntegral'
   }
 ];
 
@@ -77,8 +126,8 @@ export const initialMockState: AppState = {
   activeTeacherId: '',
   userRole: 'teacher',
   activeStudentId: null,
-  students: [],
-  lessons: [],
+  students: defaultStudents,
+  lessons: defaultLessons,
   homeworks: [],
   transactions: [],
   notifications: [],

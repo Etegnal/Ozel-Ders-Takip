@@ -97,9 +97,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [statusFilter, setStatusFilter] = useState<'active' | 'archive' | 'all'>('active');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  // Initial and periodic central cloud database sync (polling every 3s + on window focus)
+  // Initial and periodic central cloud database sync (smart polling: every 30s when tab is active to protect database quota)
   useEffect(() => {
     const handleCloudSync = async () => {
+      if (document.visibilityState !== 'visible') return;
       const cloudState = await storageService.fetchCloudState();
       if (cloudState) {
         setState(prev => ({
@@ -112,7 +113,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     handleCloudSync();
-    const interval = setInterval(handleCloudSync, 3000);
+    const interval = setInterval(handleCloudSync, 30000);
 
     const onFocus = () => {
       handleCloudSync();

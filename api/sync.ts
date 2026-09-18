@@ -118,10 +118,63 @@ export default async function handler(req: any, res: any) {
     createdAt: '2026-07-25T10:00:00.000Z'
   };
 
+  const defaultTeachers = [
+    defaultAdmin,
+    {
+      id: 'teacher-1788096203939',
+      code: 'KOC-1002',
+      name: 'Rahmi Koç',
+      email: 'rahmikoc@gmail.com',
+      subject: 'Matematik',
+      password: '123',
+      createdAt: '2026-08-30T13:23:23.939Z'
+    },
+    {
+      id: 'teacher-1788096238381',
+      code: 'KOC-1003',
+      name: 'Hüseyin Çiçek',
+      email: 'cicekhuseyin2323@gmail.com',
+      subject: 'Fizik',
+      password: '123',
+      createdAt: '2026-08-30T13:23:58.381Z'
+    }
+  ];
+
+  const defaultStudents = [
+    {
+      id: 'student-1788096259859',
+      name: 'Ahmet Murat Yatmaz',
+      phone: '5537706619',
+      email: 'ahmetmurat@gmail.com',
+      grade: '12. Sınıf (YKS-TYT/AYT)',
+      teacherId: 'teacher-1788096203939',
+      createdAt: '2026-08-30T13:24:19.859Z',
+      balance: 0,
+      hourlyRate: 500,
+      monthlyHours: 8
+    }
+  ];
+
+  const defaultLessons = [
+    {
+      id: 'lesson-1788096300000',
+      studentId: 'student-1788096259859',
+      teacherId: 'teacher-1788096203939',
+      subject: 'Matematik',
+      topic: 'İntegral',
+      date: '2026-08-30',
+      startTime: '14:00',
+      durationMinutes: 60,
+      rate: 500,
+      status: 'completed',
+      createdAt: '2026-08-30T13:25:00.000Z'
+    }
+  ];
+
   const defaultState = {
-    teachers: [defaultAdmin],
-    students: [],
-    lessons: [],
+    teachers: defaultTeachers,
+    students: defaultStudents,
+    lessons: defaultLessons,
     homeworks: [],
     transactions: [],
     notifications: [],
@@ -149,7 +202,7 @@ export default async function handler(req: any, res: any) {
           `);
           return res.status(200).json({ snapshots: snapshotRecords });
         } catch (err: any) {
-          return res.status(500).json({ error: 'Snapshots query error' });
+          return res.status(500).json({ error: 'Snapshots query error: ' + err?.message });
         }
       }
 
@@ -192,7 +245,8 @@ export default async function handler(req: any, res: any) {
         }
       } catch (dbErr: any) {
         console.error('Database query error on GET:', dbErr);
-        return res.status(200).json(defaultState);
+        // CRITICAL GUARD: Return 500 status so client never overwrites local state on DB failure/quota limit
+        return res.status(500).json({ error: 'Veritabanı bağlantı/kota hatası: ' + (dbErr?.message || 'DB query failed') });
       }
     }
 
