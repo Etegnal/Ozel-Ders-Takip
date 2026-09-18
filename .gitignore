@@ -125,3 +125,7 @@ dist-ssr
 # Electron build output
 dist-desktop
 
+# Binary files
+*.apk
+*.exe
+

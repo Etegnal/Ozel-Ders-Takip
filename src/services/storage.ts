@@ -46,13 +46,13 @@ export const defaultTeachers: Teacher[] = [
     createdAt: '2026-07-25T10:00:00.000Z'
   },
   {
-    id: 'teacher-1788096203939',
+    id: 'teacher-1786752562977',
     code: 'KOC-1002',
     name: 'Rahmi Koç',
-    email: 'rahmikoc@gmail.com',
+    email: 'rahmik93@gmail.com',
     subject: 'Matematik',
     password: '123',
-    createdAt: '2026-08-30T13:23:23.939Z'
+    createdAt: '2026-08-15T00:09:22.978Z'
   },
   {
     id: 'teacher-1788096238381',
@@ -72,7 +72,7 @@ export const defaultStudents: Student[] = [
     phone: '5537706619',
     email: 'ahmetmurat@gmail.com',
     grade: '12. Sınıf (YKS-TYT/AYT)',
-    teacherId: 'teacher-1788096203939',
+    teacherId: 'teacher-1786752562977',
     createdAt: '2026-08-30T13:24:19.859Z',
     balance: 0,
     hourlyRate: 500,
@@ -85,7 +85,7 @@ export const defaultLessons: Lesson[] = [
   {
     id: 'lesson-1788096300000',
     studentId: 'student-1788096259859',
-    teacherId: 'teacher-1788096203939',
+    teacherId: 'teacher-1786752562977',
     studentName: 'Ahmet Murat Yatmaz',
     date: '2026-08-30',
     startTime: '14:00',
@@ -169,13 +169,21 @@ function mergeTeachers(localTeachers: Teacher[], cloudTeachers: Teacher[]): Teac
   const map = new Map<string, Teacher>();
   defaultTeachers.forEach(t => map.set(t.id, t));
   
+  if (Array.isArray(localTeachers)) {
+    localTeachers.forEach(t => {
+      if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) {
+        const prev = map.get(t.id);
+        map.set(t.id, prev ? { ...prev, ...t } : t);
+      }
+    });
+  }
+
   if (Array.isArray(cloudTeachers) && cloudTeachers.length > 0) {
     cloudTeachers.forEach(t => {
-      if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) map.set(t.id, t);
-    });
-  } else if (Array.isArray(localTeachers)) {
-    localTeachers.forEach(t => {
-      if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) map.set(t.id, t);
+      if (t && t.id && !LEGACY_TEST_IDS.includes(t.id)) {
+        const prev = map.get(t.id);
+        map.set(t.id, prev ? { ...prev, ...t } : t);
+      }
     });
   }
   
@@ -223,6 +231,9 @@ function sanitizeState(state: AppState): AppState {
 let inMemoryState: AppState = (() => {
   try {
     const item = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    const isLoggedIn = typeof localStorage !== 'undefined' && localStorage.getItem('coach_user_logged_in') === 'true';
+    const savedActiveTeacherId = typeof localStorage !== 'undefined' ? localStorage.getItem('coach_active_teacher_id') : null;
+
     if (item) {
       const parsed = JSON.parse(item);
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.teachers)) {
@@ -233,6 +244,7 @@ let inMemoryState: AppState = (() => {
         return sanitizeState({
           ...initialMockState,
           ...parsed,
+          activeTeacherId: isLoggedIn ? (savedActiveTeacherId || parsed.activeTeacherId || '') : '',
           teachers: ensureAdminTeacher(mergedTeachers),
           students: mergedStudents,
           lessons: mergedLessons
@@ -280,7 +292,10 @@ function mergeArrayById<T extends { id: string }>(existingArr: T[] = [], newArr:
 export const storageService = {
   getState(): AppState {
     try {
-      const item = localStorage.getItem(STORAGE_KEY);
+      const item = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      const isLoggedIn = typeof localStorage !== 'undefined' && localStorage.getItem('coach_user_logged_in') === 'true';
+      const savedActiveTeacherId = typeof localStorage !== 'undefined' ? localStorage.getItem('coach_active_teacher_id') : null;
+
       if (item) {
         const parsed = JSON.parse(item);
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.teachers)) {
@@ -291,6 +306,7 @@ export const storageService = {
           inMemoryState = sanitizeState({
             ...initialMockState,
             ...parsed,
+            activeTeacherId: isLoggedIn ? (savedActiveTeacherId || parsed.activeTeacherId || '') : '',
             teachers: ensureAdminTeacher(mergedTeachers),
             students: mergedStudents,
             lessons: mergedLessons
@@ -338,35 +354,65 @@ export const storageService = {
       examResults: (sanitizedState.examResults || []).filter((e: any) => e && e.id && !deletedIds.has(e.id))
     });
 
+    // 1. Primary: Save directly to Firebase Realtime Database (Fast, 100% available, no quota locks)
+    let firebaseSuccess = false;
     try {
-      const vercelRes = await fetch(getSyncApiEndpoint(), {
-        method: 'POST',
+      const fbRes = await fetch('https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/state.json', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: payload
       });
-      return vercelRes.ok;
+      firebaseSuccess = fbRes.ok;
     } catch (err) {
-      console.warn('Vercel API sync error:', err);
-      return false;
+      console.warn('Firebase sync error:', err);
     }
+
+    // 2. Secondary: Background backup to Vercel API
+    try {
+      fetch(getSyncApiEndpoint(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      }).catch(() => {});
+    } catch {}
+
+    return firebaseSuccess;
   },
 
   async fetchCloudState(): Promise<AppState> {
     const fetchStartTime = Date.now();
     let cloudData: any = null;
 
+    // 1. Primary: Fetch from Firebase Realtime Database
     try {
-      const vercelRes = await fetch(getSyncApiEndpoint(), {
+      const fbRes = await fetch('https://coach-3eab3-default-rtdb.europe-west1.firebasedatabase.app/state.json', {
         headers: { 'Accept': 'application/json' }
       });
-      if (vercelRes.ok) {
-        const data = await vercelRes.json();
+      if (fbRes.ok) {
+        const data = await fbRes.json();
         if (data && typeof data === 'object' && !data.error) {
           cloudData = data;
         }
       }
     } catch (err) {
-      console.warn('Vercel API fetch error:', err);
+      console.warn('Firebase fetch error:', err);
+    }
+
+    // 2. Fallback: If Firebase failed or empty, try Vercel
+    if (!cloudData) {
+      try {
+        const vercelRes = await fetch(getSyncApiEndpoint(), {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (vercelRes.ok) {
+          const data = await vercelRes.json();
+          if (data && typeof data === 'object' && !data.error) {
+            cloudData = data;
+          }
+        }
+      } catch (err) {
+        console.warn('Vercel API fetch error:', err);
+      }
     }
 
     if (!cloudData || typeof cloudData !== 'object') return inMemoryState;

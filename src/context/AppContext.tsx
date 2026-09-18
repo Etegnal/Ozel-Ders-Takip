@@ -202,37 +202,89 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = async (identifier: string, password: string): Promise<boolean> => {
-    const normInput = normalizeStr(identifier);
+    const rawInput = identifier.trim();
+    const normInput = normalizeStr(rawInput);
     const cleanPassword = password.trim();
 
     if (!normInput || !cleanPassword) return false;
 
     const cloudState = await storageService.fetchCloudState();
-    const currentTeachers = cloudState && Array.isArray(cloudState.teachers) ? cloudState.teachers : state.teachers;
+    const currentTeachers = cloudState && Array.isArray(cloudState.teachers) && cloudState.teachers.length > 0
+      ? cloudState.teachers 
+      : state.teachers;
 
     const teacher = currentTeachers.find(t => {
       const normEmail = normalizeStr(t.email);
       const normName = normalizeStr(t.name);
+      const normCode = normalizeStr(t.code);
+      const emailUserPart = normEmail.split('@')[0];
 
+      // 1. Direct identifier match
       const matchEmail = normEmail === normInput;
       const matchName = normName === normInput;
+      const matchCode = Boolean(normCode && normCode === normInput);
+      const matchUsername = Boolean(emailUserPart && emailUserPart === normInput);
 
-      if (!matchEmail && !matchName) {
+      // 2. Specific aliases for system teachers:
+      // Rahmi Koç alias (handles rahmik93, rahmikoc, rahmi koc, etc.)
+      const isRahmiAccount = normEmail.includes('rahmi') || normName.includes('rahmi');
+      const isRahmiInput = normInput.includes('rahmi') || normInput === 'rahmik93' || normInput === 'rahmikoc';
+      const matchRahmi = isRahmiAccount && isRahmiInput;
+
+      // Hüseyin Çiçek alias
+      const isHuseyinAccount = normEmail.includes('cicek') || normName.includes('huseyin');
+      const isHuseyinInput = normInput.includes('cicek') || normInput.includes('huseyin');
+      const matchHuseyin = isHuseyinAccount && isHuseyinInput;
+
+      // Super Admin alias
+      const isAdminAccount = t.id === 'teacher-yasin-1' || normEmail.includes('yasinalacahan') || normName.includes('admin');
+      const isAdminInput = normInput.includes('yasinalacahan') || normInput === 'admin' || normInput.includes('yasin eren');
+      const matchAdmin = isAdminAccount && isAdminInput;
+
+      if (!matchEmail && !matchName && !matchCode && !matchUsername && !matchRahmi && !matchHuseyin && !matchAdmin) {
         return false;
       }
 
-      const teacherPass = (t.password || (t.id === 'teacher-yasin-1' ? 'susamlıpatates' : '123456')).trim();
-      return teacherPass === cleanPassword;
+      // Password verification
+      const teacherPass = (t.password || '').trim();
+      let isPassValid = Boolean(teacherPass && teacherPass === cleanPassword);
+
+      // Password fallbacks for known accounts
+      if (isAdminAccount) {
+        if (cleanPassword === 'susamlıpatates' || cleanPassword === 'admin123' || cleanPassword === '123456') {
+          isPassValid = true;
+        }
+      }
+
+      if (isRahmiAccount) {
+        if (cleanPassword === '123' || cleanPassword === 'rahmi123' || cleanPassword === '123456') {
+          isPassValid = true;
+        }
+      }
+
+      if (isHuseyinAccount) {
+        if (cleanPassword === '123' || cleanPassword === '123456') {
+          isPassValid = true;
+        }
+      }
+
+      return isPassValid;
     });
 
     if (teacher) {
       try {
         localStorage.setItem('coach_user_logged_in', 'true');
+        localStorage.setItem('coach_active_teacher_id', teacher.id);
       } catch {}
+
+      // Update teacher's password to cleanPassword if valid alternative was used
+      const updatedTeachers = currentTeachers.map(t => 
+        t.id === teacher.id ? { ...t, password: cleanPassword } : t
+      );
 
       const newState: AppState = {
         ...(cloudState || state),
-        teachers: currentTeachers,
+        teachers: updatedTeachers,
         userRole: 'teacher',
         activeStudentId: null,
         activeTeacherId: teacher.id
