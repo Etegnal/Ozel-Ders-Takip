@@ -222,14 +222,20 @@ function sanitizeState(state: AppState): AppState {
 
 let inMemoryState: AppState = (() => {
   try {
-    const item = localStorage.getItem(STORAGE_KEY);
+    const item = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     if (item) {
       const parsed = JSON.parse(item);
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.teachers)) {
+        const mergedTeachers = mergeArrayById(defaultTeachers, parsed.teachers);
+        const mergedStudents = mergeArrayById(defaultStudents, parsed.students || []);
+        const mergedLessons = mergeArrayById(defaultLessons, parsed.lessons || []);
+
         return sanitizeState({
           ...initialMockState,
           ...parsed,
-          teachers: ensureAdminTeacher(parsed.teachers)
+          teachers: ensureAdminTeacher(mergedTeachers),
+          students: mergedStudents,
+          lessons: mergedLessons
         });
       }
     }
@@ -278,10 +284,16 @@ export const storageService = {
       if (item) {
         const parsed = JSON.parse(item);
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.teachers)) {
+          const mergedTeachers = mergeArrayById(defaultTeachers, parsed.teachers);
+          const mergedStudents = mergeArrayById(defaultStudents, parsed.students || []);
+          const mergedLessons = mergeArrayById(defaultLessons, parsed.lessons || []);
+
           inMemoryState = sanitizeState({
             ...initialMockState,
             ...parsed,
-            teachers: ensureAdminTeacher(parsed.teachers)
+            teachers: ensureAdminTeacher(mergedTeachers),
+            students: mergedStudents,
+            lessons: mergedLessons
           });
           return inMemoryState;
         }
